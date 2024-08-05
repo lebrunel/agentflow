@@ -5,6 +5,9 @@ import type { Root, Node, RootContent } from 'mdast'
 import type { WorkflowNode } from './ast'
 import type { FileWithData } from './parser'
 
+/**
+ * **Workflow** - A complete program defined in plain English using markdown.
+ */
 export class Workflow {
   title: string;
   description: string;

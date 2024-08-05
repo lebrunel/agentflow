@@ -1,7 +1,7 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 import { default as dd } from 'ts-dedent'
 import { parseProcessor } from '../src/parser'
-import type { FlowContextNode, FlowGenerateNode, FlowRootNode, FlowRoutineNode } from '../src/ast'
+import type { ContextNode, GenerateNode, WorkflowNode, PhaseNode } from '../src/ast'
 import { VFile } from 'vfile'
 import { visit } from 'unist-util-visit'
 
@@ -68,7 +68,7 @@ describe('parseProcessor() parses metadata', () => {
 })
 
 describe('parseProcessor() parses routines', () => {
-  function parse(src: string): FlowRootNode {
+  function parse(src: string): WorkflowNode {
     const proc = parseProcessor()
     return proc.runSync(proc.parse(src))
   }
@@ -88,9 +88,9 @@ describe('parseProcessor() parses routines', () => {
     Final paragraph.
     `)
 
-    expect(ast.type).toBe('flow-root')
+    expect(ast.type).toBe('workflow')
     expect(ast.children.length).toEqual(6)
-    expect(ast.children.every(child => child.type !== 'flow-routine')).toBe(true)
+    expect(ast.children.every(child => child.type !== 'phase')).toBe(true)
   })
 
   test('1 routine at the end', () => {
@@ -112,10 +112,10 @@ describe('parseProcessor() parses routines', () => {
     \`\`\`
     `)
   
-    expect(ast.type).toBe('flow-root')
+    expect(ast.type).toBe('workflow')
     expect(ast.children.length).toBe(5)
-    expect(ast.children[4].type).toBe('flow-routine')
-    expect((ast.children[4] as FlowRoutineNode).children.length).toBe(3)
+    expect(ast.children[4].type).toBe('phase')
+    expect((ast.children[4] as PhaseNode).children.length).toBe(3)
   })
 
   test('2 routines, first routine starts at h2', () => {
@@ -141,9 +141,9 @@ describe('parseProcessor() parses routines', () => {
     \`\`\`
     `)
   
-    expect(ast.type).toBe('flow-root')
+    expect(ast.type).toBe('workflow')
     expect(ast.children.length).toBe(4)
-    expect(ast.children.filter(n => n.type === 'flow-routine')).toHaveLength(2)
+    expect(ast.children.filter(n => n.type === 'phase')).toHaveLength(2)
   })
 
   test('yaml, 2 routines starting at first h2', () => {
@@ -167,10 +167,10 @@ describe('parseProcessor() parses routines', () => {
     Concluding paragraph.
     `);
   
-    expect(ast.type).toBe('flow-root')
+    expect(ast.type).toBe('workflow')
     expect(ast.children.length).toBe(5)
     expect(ast.children[0].type).toBe('yaml')
-    expect(ast.children.filter(n => n.type === 'flow-routine')).toHaveLength(2)
+    expect(ast.children.filter(n => n.type === 'phase')).toHaveLength(2)
   })
   
 })
@@ -209,8 +209,8 @@ describe('parseProcessor() parses context tags and generate blocks', () => {
   const ast = proc.runSync(proc.parse(src))
 
   test('finds all context tags', () => {
-    const contextNodes: FlowContextNode[] = []
-    visit(ast, 'flow-context', (n) => {
+    const contextNodes: ContextNode[] = []
+    visit(ast, 'context', (n) => {
       contextNodes.push(n)
     })
 
@@ -219,8 +219,8 @@ describe('parseProcessor() parses context tags and generate blocks', () => {
   })
 
   test('finds all context tags', () => {
-    const generateNodes: FlowGenerateNode[] = []
-    visit(ast, 'flow-generate', (n) => {
+    const generateNodes: GenerateNode[] = []
+    visit(ast, 'generate', (n) => {
       generateNodes.push(n)
     })
 

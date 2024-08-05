@@ -6,29 +6,31 @@ import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import type { Node, Code, InlineCode, Paragraph, Root } from 'mdast'
 import type { VFile } from 'vfile'
-import type { FlowRootNode, FlowRoutineNode } from './ast'
-import { compileFlow, Flow } from './flow'
+import type { WorkflowNode, PhaseNode } from './ast'
+import { Workflow } from './workflow'
 
-export function parseFlow(src: string): Flow {
+export function parseFlow(src: string): Workflow {
   const proc = parseProcessor()
   const file = proc.processSync(src)
   return file.result
 }
 
-export function parseProcessor(): Processor<Root, Root, FlowRootNode, FlowRootNode, Flow> {
+export function parseProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
-    .use(flowData)
-    .use(flowRoutines)
-    .use(flowContext)
-    .use(flowGenerate)
-    .use<[], FlowRootNode, Flow>(function() {
-      this.compiler = (node, file) => compileFlow(node as FlowRootNode, file as FileWithData)
-    })
+    .use(workflowData)
+    .use(workflowPhases)
+    .use(workflowContext)
+    .use(workflowGenerate)
+    .use<[], WorkflowNode, Workflow>(workflowCompile)
 }
 
-function flowData(): Transformer<Root> {
+function workflowCompile(this: Processor) {
+  this.compiler = (node, file) => new Workflow(node as WorkflowNode, file as FileWithData)
+}
+
+function workflowData(): Transformer<Root> {
   return function(tree, file) {
     setMatter(file)
     setTitle(file as FileWithData, tree)
@@ -36,7 +38,7 @@ function flowData(): Transformer<Root> {
 }
 
 
-function flowRoutines(): Transformer<Root, FlowRootNode> {
+function workflowPhases(): Transformer<Root, WorkflowNode> {
   return function(root) {
     const children: Node[] = []
     let currentGroup: Node[] = []
@@ -46,7 +48,7 @@ function flowRoutines(): Transformer<Root, FlowRootNode> {
       if (currentGroup.length === 0) return
       if (hasRoutine || currentGroup.some(n => n.type === 'code' && (<Code>n).lang === 'generate')) {
         hasRoutine = true
-        children.push(u('flow-routine', currentGroup))
+        children.push(u('phase', currentGroup))
       } else {
         children.push(...currentGroup)
       }
@@ -67,25 +69,25 @@ function flowRoutines(): Transformer<Root, FlowRootNode> {
     }
 
     processGroup()
-    return u('flow-root', children)
+    return u('workflow', children)
   }
 }
 
-function flowContext(): Transformer<FlowRootNode> {
+function workflowContext(): Transformer<WorkflowNode> {
   return function(tree) {
     visit(tree, 'inlineCode', (node: InlineCode, i: number, parent: Paragraph) => {
       if (/^@\w+/.test(node.value)) {
-        parent.children[i] = u('flow-context', node.value)
+        parent.children[i] = u('context', node.value)
       }
     })
   }
 }
 
-function flowGenerate(): Transformer<FlowRootNode> {
+function workflowGenerate(): Transformer<WorkflowNode> {
   return function(tree) {
-    visit(tree, 'code', (node: Code, i: number, parent: FlowRoutineNode) => {
+    visit(tree, 'code', (node: Code, i: number, parent: PhaseNode) => {
       if (node.lang === 'generate') {
-        parent.children[i] = u('flow-generate', node.value)
+        parent.children[i] = u('generate', node.value)
       }
     })
   }

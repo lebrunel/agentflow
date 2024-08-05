@@ -1,34 +1,34 @@
-import type { Node } from 'mdast'
-import type { Flow } from './flow'
+import type { Node, RootContent } from 'mdast'
+import type { Workflow } from './workflow'
 
-export interface FlowRootNode extends Node {
-  type: 'flow-root';
+export interface WorkflowNode extends Node {
+  type: 'workflow';
   children: Node[];
 }
 
-export interface FlowRoutineNode extends Node {
-  type: 'flow-routine';
+export interface PhaseNode extends Node {
+  type: 'phase';
   children: Node[];
 }
 
-export interface FlowContextNode extends Node {
-  type: 'flow-context';
+export interface ContextNode extends Node {
+  type: 'context';
   value: string;
 }
 
-export interface FlowGenerateNode extends Node {
-  type: 'flow-generate';
+export interface GenerateNode extends Node {
+  type: 'generate';
   value: string;
 }
 
 declare module 'mdast' {
   interface PhrasingContentMap {
-    flowConextNode: FlowContextNode;
+    flowConextNode: ContextNode;
   }
 }
 
 declare module 'unified' {
   interface CompileResultMap {
-    flow: Flow;
+    flow: Workflow;
   }
 }

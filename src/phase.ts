@@ -1,8 +1,8 @@
 import { is } from 'unist-util-is'
 import { visit } from 'unist-util-visit'
-import { validateActionNode, type ContextNode, type PhaseNode } from './ast'
+import { validateActionNode, type ActionNode, type ContextNode, type PhaseNode } from './ast'
 import type { ContextMap } from './context'
-import {  } from './action'
+import { Action } from './action'
 import { default as dd } from 'ts-dedent'
 
 /**
@@ -29,6 +29,25 @@ export class Phase {
         this.dependencies.add(node.value)
       }
     })
+  }
+
+  get actions(): Iterable<Action> {
+    return {
+      [Symbol.iterator]: () => this.actionIterator(),
+    }
+  }
+
+  private *actionIterator(): Generator<Action, void, undefined> {
+    const nodes = this.#ast.children
+    let cursor = 0
+
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
+      if (is(node, 'action')) {
+        yield new Action(node, nodes.slice(cursor, i))
+        cursor = i + 1
+      }
+    }
   }
 
   private validateDependency(node: ContextNode) {

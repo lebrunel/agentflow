@@ -1,80 +1,18 @@
-import { beforeAll, describe, expect, test } from 'bun:test'
+import { describe, expect, test } from 'bun:test'
 import { default as dd } from 'ts-dedent'
+import { selectAll } from 'unist-util-select'
+import type { Root } from 'mdast'
 import { parseProcessor } from '../src/parser'
-import type { ContextNode, GenerateNode, WorkflowNode, PhaseNode } from '../src/ast'
-import { VFile } from 'vfile'
-import { visit } from 'unist-util-visit'
+import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '../src/ast'
 
-describe('parseProcessor() parses metadata', () => {
-  function parse(src: string): VFile {
-    const proc = parseProcessor()
-    const file = new VFile({
-      path: '/path/to/example.md',
-      value: src,
-    })
-    return proc.processSync(file)
-  }
+function parse(src: string): WorkflowNode {
+  const proc = parseProcessor()
+  return proc.runSync(proc.parse(src))
+}
 
-  test('yaml, title from yaml', () => {
-    const file = parse(dd`
-    ---
-    title: Title 1
-    foo: bar
-    ---
-
-    # Title 2
-
-    This is a paragraph.
-    
-    \`\`\`generate
-    name: foo
-    \`\`\`
-    
-    `)
-
-    expect(file.data.title).toBe('Title 1')
-    expect(file.data.matter).toEqual({ title: 'Title 1', foo: 'bar' })
-  })
-
-  test('title from document', () => {
-    const file = parse(dd`
-    # Title 2
-
-    This is a paragraph.
-    
-    \`\`\`generate
-    name: foo
-    \`\`\`
-    
-    `)
-
-    expect(file.data.title).toBe('Title 2')
-    expect(file.data.matter).toEqual({})
-  })
-
-  test('title from filename', () => {
-    const file = parse(dd`
-    This is a paragraph.
-    
-    \`\`\`generate
-    name: foo
-    \`\`\`
-    
-    `)
-
-    expect(file.data.title).toBe('example')
-    expect(file.data.matter).toEqual({})
-  })
-})
-
-describe('parseProcessor() parses routines', () => {
-  function parse(src: string): WorkflowNode {
-    const proc = parseProcessor()
-    return proc.runSync(proc.parse(src))
-  }
-
-  test('no routines, all direct children', () => {
-    const ast = parse(dd`
+describe('parseProcessor()', () => {
+  test('handles no phases', () => {
+    const src = dd`
     # Introduction
 
     This is a paragraph.
@@ -86,146 +24,201 @@ describe('parseProcessor() parses routines', () => {
     ## Section 2
 
     Final paragraph.
-    `)
+    `
+    const ast = parse(src)
 
     expect(ast.type).toBe('workflow')
-    expect(ast.children.length).toEqual(6)
-    expect(ast.children.every(child => child.type !== 'phase')).toBe(true)
+    expect(ast.children.length).toBe(1)
+    expect(ast.children[0].type).toBe('root')
+    expect((ast.children[0] as Root).children.length).toBe(6)
+    expect(selectAll('phase', ast).length).toBe(0)
   })
 
-  test('1 routine at the end', () => {
-    const ast = parse(dd`
-    # Main Title
+  test('handles single phase', () => {
+    const src = dd`
+    # Introduction
 
-    Some text here.
+    This is a paragraph.
 
-    ## First Section
+    ## Section 1
 
-    More text.
-
-    ## Second Section
-
-    Even more text.
+    Another paragraph here.
 
     \`\`\`generate
     name: foo
     \`\`\`
-    `)
-  
+    `
+    const ast = parse(src)
+
     expect(ast.type).toBe('workflow')
-    expect(ast.children.length).toBe(5)
-    expect(ast.children[4].type).toBe('phase')
-    expect((ast.children[4] as PhaseNode).children.length).toBe(3)
+    expect(ast.children.length).toBe(1)
+    expect(ast.children[0].type).toBe('phase')
+    expect((ast.children[0] as PhaseNode).children.length).toBe(5)
   })
 
-  test('2 routines, first routine starts at h2', () => {
-    const ast = parse(dd`
-    # Overview
+  test('handles single phase with intro', () => {
+    const src = dd`
+    # Introduction
 
-    Introduction paragraph.
+    This is a paragraph.
 
-    ## Details
-
-    Some details here.
-
-    \`\`\`generate
-    name: foo1
-    \`\`\`
-
-    ## Conclusion
-
-    Wrapping up.
-
-    \`\`\`generate
-    name: foo2
-    \`\`\`
-    `)
-  
-    expect(ast.type).toBe('workflow')
-    expect(ast.children.length).toBe(4)
-    expect(ast.children.filter(n => n.type === 'phase')).toHaveLength(2)
-  })
-
-  test('yaml, 2 routines starting at first h2', () => {
-    const ast = parse(dd`
     ---
-    title: Test Document
+
+    ## Section 1
+
+    Another paragraph here.
+
+    \`\`\`generate
+    name: foo
+    \`\`\`
+    `
+    const ast = parse(src)
+
+    expect(ast.type).toBe('workflow')
+    expect(ast.children.length).toBe(2)
+    expect(ast.children[0].type).toBe('root')
+    expect((ast.children[0] as Root).children.length).toBe(2)
+    expect(ast.children[1].type).toBe('phase')
+    expect((ast.children[1] as PhaseNode).children.length).toBe(3)
+  })
+
+  test('handles multiple phases', () => {
+    const src = dd`
+    # Introduction
+
+    This is a paragraph.
+
+    ---
+
+    ## Section 1
+
+    Another paragraph here.
+
+    \`\`\`generate
+    name: foo
+    \`\`\`
+
+    ---
+
+    ## Section 2
+
+    Another paragraph here.
+
+    \`\`\`generate
+    name: bar
+    \`\`\`
+    `
+    const ast = parse(src)
+
+    expect(ast.type).toBe('workflow')
+    expect(ast.children.length).toBe(3)
+    expect(ast.children[0].type).toBe('root')
+
+    const phases = selectAll('phase', ast) as PhaseNode[]
+    expect(phases.length).toBe(2)
+    expect(phases.every(n => n.children.length === 3)).toBeTrue()
+  })
+
+  test('handles multiple phases with frontmatter', () => {
+    const src = dd`
+    ---
+    foo: bar
     ---
 
     # Introduction
 
-    Opening remarks.
+    This is a paragraph.
 
-    ## Technical Details
+    ---
+
+    ## Section 1
+
+    Another paragraph here.
 
     \`\`\`generate
     name: foo
     \`\`\`
 
-    ## Summary
+    ---
 
-    Concluding paragraph.
-    `);
-  
+    ## Section 2
+
+    Another paragraph here.
+
+    \`\`\`generate
+    name: bar
+    \`\`\`
+    `
+    const ast = parse(src)
+
     expect(ast.type).toBe('workflow')
-    expect(ast.children.length).toBe(5)
-    expect(ast.children[0].type).toBe('yaml')
-    expect(ast.children.filter(n => n.type === 'phase')).toHaveLength(2)
-  })
-  
-})
-
-describe('parseProcessor() parses context tags and generate blocks', () => {
-  const src = dd`
-  ---
-  input:
-    - name: foo
-      description: bar
-      type: string
-  ---
-
-  # Overview
-
-  Introduction paragraph.
-
-  \`@foo\`
-
-  \`\`\`generate
-  name: foo1
-  \`\`\`
-
-  ## Conclusion
-
-  Wrapping up.
-
-  \`@foo\`
-
-  \`\`\`generate
-  name: foo2
-  \`\`\`
-  `
-
-  const proc = parseProcessor()
-  const ast = proc.runSync(proc.parse(src))
-
-  test('finds all context tags', () => {
-    const contextNodes: ContextNode[] = []
-    visit(ast, 'context', (n) => {
-      contextNodes.push(n)
-    })
-
-    expect(contextNodes).toHaveLength(2)
-    expect(contextNodes.every(n => n.value === '@foo')).toBeTrue()
+    expect(ast.children.length).toBe(3)
+    expect(ast.children[0].type).toBe('root')
+    expect(ast.children[0].children.length).toBe(3)
+    expect(selectAll('phase', ast).length).toBe(2)
   })
 
-  test('finds all context tags', () => {
-    const generateNodes: GenerateNode[] = []
-    visit(ast, 'generate', (n) => {
-      generateNodes.push(n)
-    })
+  test('handles multiple dividers', () => {
+    const src = dd`
+    # Introduction
 
-    expect(generateNodes).toHaveLength(2)
-    expect(generateNodes[0].value).toBe('name: foo1')
-    expect(generateNodes[1].value).toBe('name: foo2')
+    This is a paragraph.
+
+    ---
+    ---
+    ---
+
+    ## Section 1
+
+    Another paragraph here.
+
+    \`\`\`generate
+    name: foo
+    \`\`\`
+    `
+    const ast = parse(src)
+
+    expect(ast.type).toBe('workflow')
+    expect(ast.children.length).toBe(2)
+    expect(ast.children[0].type).toBe('root')
+    expect(ast.children[0].children.length).toBe(2)
+    expect(ast.children[1].type).toBe('phase')
+    expect(ast.children[1].children.length).toBe(3)
+  })
+
+  test('parses context tags and action blocks', () => {
+    const src = dd`
+    ---
+    input:
+      - name: foo
+      - name: bar
+    ---
+    # Introduction
+
+    This is a paragraph.
+
+    ## Section 1
+
+    Another paragraph here.
+
+    \`@foo\`
+
+    \`\`\`generate
+    name: res1
+    \`\`\`
+
+    \`@bar\`
+
+    \`\`\`generate
+    name: res2
+    \`\`\`
+    `
+    const ast = parse(src)
+    const contexts = selectAll('context', ast) as ContextNode[]
+    const actions = selectAll('action', ast) as ActionNode[]
+
+    expect(contexts.length).toBe(2)
+    expect(contexts.map(n => n.value)).toEqual(['foo', 'bar'])
+    expect(actions.length).toBe(2)
   })
 })

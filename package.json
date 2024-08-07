@@ -3,6 +3,7 @@
   "module": "index.ts",
   "type": "module",
   "dependencies": {
+    "mdast-util-to-string": "^4.0.0",
     "remark-frontmatter": "^5.0.0",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
@@ -14,7 +15,8 @@
     "unist-util-select": "^5.1.0",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.2",
-    "vfile-matter": "^5.0.0"
+    "vfile-matter": "^5.0.0",
+    "yaml": "^2.5.0"
   },
   "devDependencies": {
     "@types/bun": "latest"

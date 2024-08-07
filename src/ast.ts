@@ -1,29 +1,40 @@
-import type { Node, RootContent } from 'mdast'
+import { is } from 'unist-util-is'
+import type { Literal, Node, Root, RootContent, Parent } from 'mdast'
 import type { Workflow } from './workflow'
 
 export interface WorkflowNode extends Node {
   type: 'workflow';
-  children: Node[];
+  children: Array<Root | PhaseNode>;
 }
 
-export interface PhaseNode extends Node {
+export interface PhaseNode extends Parent {
   type: 'phase';
-  children: Node[];
 }
 
-export interface ContextNode extends Node {
+export interface ActionNode extends Literal {
+  type: 'action';
+  data: any;
+}
+
+export interface ContextNode extends Literal {
   type: 'context';
-  value: string;
 }
 
-export interface GenerateNode extends Node {
-  type: 'generate';
-  value: string;
+export function isActionNode(node: Node): node is ActionNode {
+  return is(node, 'action')
+}
+
+export function isContextNode(node: Node): node is ContextNode {
+  return is(node, 'context')
 }
 
 declare module 'mdast' {
   interface PhrasingContentMap {
-    flowConextNode: ContextNode;
+    conextNode: ContextNode;
+  }
+
+  interface RootContentMap {
+    actionNode: ActionNode;
   }
 }
 

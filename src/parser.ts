@@ -1,119 +1,95 @@
 import { unified, type Processor, type Transformer } from 'unified'
 import { u } from 'unist-builder'
-import { matter as setMatter } from 'vfile-matter'
+import { is } from 'unist-util-is'
+import { selectAll } from 'unist-util-select'
 import { visit } from 'unist-util-visit'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
-import type { Node, Code, InlineCode, Paragraph, Root } from 'mdast'
+import type { Code, InlineCode, Node, Paragraph, Parent, Root, RootContent, ThematicBreak } from 'mdast'
 import type { VFile } from 'vfile'
-import type { WorkflowNode, PhaseNode } from './ast'
-import { Workflow } from './workflow'
+import { isActionNode, type WorkflowNode, type PhaseNode } from './ast'
 
-export function parseFlow(src: string): Workflow {
-  const proc = parseProcessor()
-  const file = proc.processSync(src)
-  return file.result
-}
-
-export function parseProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
+export function parseProcessor(): Processor<Root, Root, WorkflowNode> {
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
-    .use(workflowData)
+    .use(workflowVisitor)
     .use(workflowPhases)
-    .use(workflowContext)
-    .use(workflowGenerate)
-    .use<[], WorkflowNode, Workflow>(workflowCompile)
 }
 
-function workflowCompile(this: Processor) {
-  this.compiler = (node, file) => new Workflow(node as WorkflowNode, file as FileWithData)
-}
+function workflowVisitor(): Transformer<Root> {
+  return function(root) {
+    visit(root, (node, i, parent) => {
+      if (typeof i === 'number' && isActionDef(node)) {
+        (parent as Parent).children[i] = u('action', {
+          data: {}, // todo
+          value: node.value,
+        })
+        return 'skip'
+      }
 
-function workflowData(): Transformer<Root> {
-  return function(tree, file) {
-    setMatter(file)
-    setTitle(file as FileWithData, tree)
+      if (typeof i === 'number' && isContextDef(node)) {
+        (parent as Paragraph).children[i] = u('context', {
+          value: node.value.replace(/^@/, ''),
+        })
+        return 'skip'
+      }
+    })
   }
 }
-
 
 function workflowPhases(): Transformer<Root, WorkflowNode> {
   return function(root) {
-    const children: Node[] = []
-    let currentGroup: Node[] = []
-    let hasRoutine = false
+    const workflow: WorkflowNode = u('workflow', [])
+    const workflowRoot: Root = u('root', [])
+    const nodes = root.children
+    let cursor = 0
 
-    function processGroup() {
-      if (currentGroup.length === 0) return
-      if (hasRoutine || currentGroup.some(n => n.type === 'code' && (<Code>n).lang === 'generate')) {
-        hasRoutine = true
-        children.push(u('phase', currentGroup))
+    function processNodes(group: RootContent[]) {
+      const isFirst = selectAll('phase', workflow).length < 1
+      const hasAction = group.some(isActionNode)
+
+      if (isFirst && !hasAction) {
+        workflowRoot.children.push(...group)
       } else {
-        children.push(...currentGroup)
-      }
-      currentGroup = []
-    }
-
-    for (let i = 0; i < root.children.length; i++) {
-      const node = root.children[i]
-      if (i === 0 && node.type === 'yaml') {
-        children.push(node)
-      } else {
-        if (
-          node.type === 'heading' &&
-          (node.depth === 1 || node.depth === 2)
-        ) { processGroup() }
-        currentGroup.push(node)
+        const phase: PhaseNode = u('phase', group)
+        workflow.children.push(phase)
       }
     }
 
-    processGroup()
-    return u('workflow', children)
-  }
-}
+    for (let i = 0; i < nodes.length; i++) {
+      const node = nodes[i]
 
-function workflowContext(): Transformer<WorkflowNode> {
-  return function(tree) {
-    visit(tree, 'inlineCode', (node: InlineCode, i: number, parent: Paragraph) => {
-      if (/^@\w+/.test(node.value)) {
-        parent.children[i] = u('context', node.value)
+      if (i == 0 && is(node, 'yaml')) {
+        workflowRoot.children.push(node)
+        cursor = 1
       }
-    })
-  }
-}
 
-function workflowGenerate(): Transformer<WorkflowNode> {
-  return function(tree) {
-    visit(tree, 'code', (node: Code, i: number, parent: PhaseNode) => {
-      if (node.lang === 'generate') {
-        parent.children[i] = u('generate', node.value)
+      if (isSectionDivider(node)) {
+        if (i > cursor) processNodes(nodes.slice(cursor, i))
+        cursor = i + 1
       }
-    })
-  }
-}
-
-function setTitle(file: FileWithData , tree: Root) {
-  let title: string | undefined = file.data.matter?.title
-
-  if (!title) {
-    const firstIdx = tree.children[0].type === 'yaml' ? 1 : 0
-    const firstNode = tree.children[firstIdx]
-    if (firstNode.type === 'heading') {
-      visit(firstNode, 'text', (n) => {
-        title = n.value
-        return false
-      })
     }
-  }
 
-  if (!title) {
-    title = file.stem
-  }
+    // process last section
+    if (cursor < nodes.length) processNodes(nodes.slice(cursor))
+    // maybe prepend root
+    if (workflowRoot.children.length) workflow.children.unshift(workflowRoot)
 
-  if (title) {
-    file.data.title = title
+    return workflow
   }
+}
+
+function isActionDef(node: Node): node is Code {
+  return is(node, { type: 'code', lang: 'generate' })
+}
+
+function isContextDef(node: Node): node is InlineCode {
+  return is(node, n => n.type === 'inlineCode' && /^@\w+/.test((n as InlineCode).value))
+}
+
+function isSectionDivider(node: Node): node is ThematicBreak {
+  return is(node, 'thematicBreak')
 }
 
 export type FileWithData = VFile & { data: FileMetaData }

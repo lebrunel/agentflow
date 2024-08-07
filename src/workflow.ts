@@ -1,30 +1,45 @@
 import { unified, type Processor } from 'unified'
+import { filter } from 'unist-util-filter'
 import { select, selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
-import { parse } from 'yaml'
+import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
 import type { Root, Yaml } from 'mdast'
-import type { WorkflowNode } from './ast'
+import type { PhaseNode, WorkflowNode } from './ast'
+import type { ContextInput, ContextMap, ContextType } from './context'
 import { parseProcessor } from './parser'
-import { VFile } from 'vfile'
-import { filter } from 'unist-util-filter'
+import { Phase } from './phase'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.
  */
 export class Workflow {
   title: string;
-  description: string;
-  inputs: ContextInput[];
-  meta: Record<string, unknown>;
-  phases: any[];
+  readonly description: string;
+  readonly inputs: ContextInput[];
+  readonly meta: Record<string, unknown>;
+  readonly phases: Phase[] = [];
 
-  constructor(phases: any[], opts: WorkflowInitOpts) {
+  constructor(opts: WorkflowInitOpts) {
     this.title = opts.title
     this.description = opts.description
     this.inputs = opts.inputs
     this.meta = opts.meta
-    this.phases = phases
+
+    // init mutatable contextMap
+    const context = this.createInputMap()
+    // build phases
+    for (const phaseNode of opts.phases) {
+      const phase = new Phase(phaseNode, context)
+      for (const [name, type] of phase.outputs) {
+        context.set(name, type)
+      }
+      this.phases.push(phase)
+    }
+  }
+
+  static compile(ast: WorkflowNode, file?: VFile): Workflow {
+    return new Workflow(createWorkflowInitOpts(ast, file))
   }
 
   static parse(input: string | VFile): Workflow {
@@ -33,12 +48,28 @@ export class Workflow {
       .processSync(input)
     return file.result
   }
+
+  private createInputMap(): ContextMap {
+    return new Map(this.inputs.map(({ name, type }) => [name, type]))
+  }
 }
 
-export function compileWorkflow(ast: WorkflowNode, file: VFile): Workflow {
+// Types
+
+export interface WorkflowInitOpts {
+  title: string;
+  description: string;
+  inputs: ContextInput[];
+  meta: Record<string, unknown>;
+  phases: PhaseNode[];
+}
+
+// Helpers
+
+function createWorkflowInitOpts(ast: WorkflowNode, file?: VFile): WorkflowInitOpts {
   const root = select('root', ast) as Root | undefined
   const yaml = select('yaml', root) as Yaml | undefined
-  const meta = yaml ? parse(yaml.value) : {}
+  const meta: any = (yaml?.data || {})
   const inputs = meta?.inputs || []
 
   // get a title from either: meta, heading, file or fallbacl
@@ -64,33 +95,12 @@ export function compileWorkflow(ast: WorkflowNode, file: VFile): Workflow {
       .trim()
   }
 
-  // todo - compile into phases
-  const phases = selectAll('phase', ast)
-
-  return new Workflow(phases, { title, description, inputs, meta })
+  // collect phases
+  const phases = selectAll('phase', ast) as PhaseNode[]
+  
+  return { title, description, inputs, meta, phases }
 }
-
-// Types
-
-export interface WorkflowInitOpts {
-  title: string;
-  description: string;
-  inputs: ContextInput[];
-  meta: Record<string, unknown>;
-}
-
-// Helpers
 
 function compiler(this: Processor) {
-  this.compiler = (node, file) => compileWorkflow(node as WorkflowNode, file)
-}
-
-
-
-export type ContextType = 'string' | 'text' | 'image'
-
-export interface ContextInput {
-  name: string;
-  description: string;
-  type: ContextType;
+  this.compiler = (node, file) => Workflow.compile(node as WorkflowNode, file)
 }

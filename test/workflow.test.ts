@@ -40,7 +40,7 @@ describe('Workflow.parse()', () => {
     expect(workflow.title).toBe('Untitled')
   })
 
-  test('description from intoductory text', () => {
+  test('description from introductory text', () => {
     const src = dd`
     Paragraph
 
@@ -49,6 +49,8 @@ describe('Workflow.parse()', () => {
     More
 
     \`\`\`generate
+    name: foo
+    model: gpt-4o
     \`\`\`
     `
     const workflow = Workflow.parse(src)

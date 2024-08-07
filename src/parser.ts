@@ -91,12 +91,3 @@ function isContextDef(node: Node): node is InlineCode {
 function isSectionDivider(node: Node): node is ThematicBreak {
   return is(node, 'thematicBreak')
 }
-
-export type FileWithData = VFile & { data: FileMetaData }
-
-export type FileMetaData = {
-  title: string;
-  matter: {
-    [key: string]: any;
-  }
-}

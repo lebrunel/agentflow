@@ -45,22 +45,20 @@ export class ExecutionRunner {
 
   pause() {
     if (this.status !== ExecutionStatus.Running) {
-      console.error(dd`
-      Runner error. Cannot pause runner with status: ${ExecutionStatus[this.status]}.
-      `)
+      console.error(`Cannot pause runner with status: ${ExecutionStatus[this.status]}.`)
       return
     }
+
+    this.status = ExecutionStatus.Paused
   }
 
   rewind(position: string) {
     if (this.status === ExecutionStatus.Running) {
-      console.error(dd`
-      Runner error. Cannot rewind runner with status: ${ExecutionStatus[this.status]}.
-      `)
+      console.error(`Cannot rewind runner when running. Use 'runner.pause()' first.`)
       return
     }
     if (!/^\d+\.\w+$/.test(position)) {
-      throw new Error(`Invalid position format. Please use 'phase.action' (eg. '2.summary').`)
+      throw new Error(`Invalid format. Please use 'phase.action' (eg. '2.summary').`)
     }
 
     this.state.rewind(position)

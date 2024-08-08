@@ -92,12 +92,7 @@ export class ExecutionState {
 
 type ExecutionCursor = [number, number]
 
-export enum ExecutionStatus {
-  Error = -1,
-  Paused,
-  Running,
-  Success,
-}
+
 
 // Helpers
 

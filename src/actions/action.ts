@@ -1,35 +1,25 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { unified } from 'unified'
-import { u } from 'unist-builder'
-import remarkStringify from 'remark-stringify'
 import type { RootContent } from 'mdast'
-import type { ActionNode } from './ast'
+import type { ActionNode } from '../ast'
 
 /**
  * **Action** - An individual step within a phase, representing a single request
  * sent to the LLM for generating a response.
  */
-export class Action {
+export abstract class Action {
   #node: ActionNode;
-  content: string;
   contentNodes: RootContent[];
 
   constructor(node: ActionNode, content: RootContent[]) {
     this.#node = node
-    this.content = stringifyContent(content)
     this.contentNodes = content
   }
 
   get props(): ActionProps {
     return this.#node.data
   }
-}
 
-function stringifyContent(nodes: RootContent[]): string {
-  return unified()
-    .use(remarkStringify)
-    .stringify(u('root', nodes))
-    .trim()
+  abstract execute(): Promise<ActionResult>;
 }
 
 // Schemas
@@ -50,3 +40,5 @@ export const ActionPropsSchema = Type.Object({
 // Types
 
 export type ActionProps = Static<typeof ActionPropsSchema>
+
+export type ActionResult = any

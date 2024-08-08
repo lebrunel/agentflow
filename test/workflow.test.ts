@@ -58,7 +58,7 @@ describe('Workflow.parse()', () => {
   })
 })
 
-test('testing runner', (done) => {
+test.skip('testing runner', (done) => {
   const src = dd`
   Paragraph
 

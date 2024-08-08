@@ -6,7 +6,7 @@ import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
 import type { Root, Yaml } from 'mdast'
 import type { PhaseNode, WorkflowNode } from './ast'
-import type { ContextInput, ContextMap, ContextType } from './context'
+import type { ContextInput, ContextMap2 } from './context'
 import { parseProcessor } from './parser'
 import { Phase } from './phase'
 
@@ -49,7 +49,7 @@ export class Workflow {
     return file.result
   }
 
-  private createInputMap(): ContextMap {
+  private createInputMap(): ContextMap2 {
     return new Map(this.inputs.map(({ name, type }) => [name, type]))
   }
 }

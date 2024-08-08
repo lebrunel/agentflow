@@ -1,7 +1,7 @@
 import { is } from 'unist-util-is'
 import { visit } from 'unist-util-visit'
 import { validateActionNode, type ActionNode, type ContextNode, type PhaseNode } from './ast'
-import type { ContextMap } from './context'
+import type { ContextMap2 } from './context'
 import { Action } from './action'
 import { default as dd } from 'ts-dedent'
 
@@ -11,11 +11,11 @@ import { default as dd } from 'ts-dedent'
  */
 export class Phase {
   dependencies: Set<string> = new Set()
-  inputs: ContextMap = new Map()
-  outputs: ContextMap = new Map()
+  inputs: ContextMap2 = new Map()
+  outputs: ContextMap2 = new Map()
   #ast: PhaseNode;
 
-  constructor(ast: PhaseNode, inputs: ContextMap) {
+  constructor(ast: PhaseNode, inputs: ContextMap2) {
     this.#ast = ast
     this.inputs = new Map(inputs)
 

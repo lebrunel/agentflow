@@ -32,9 +32,9 @@ describe('Phase', () => {
     const phase = workflow.phases[0]
     const actions = [...phase.actions]
     expect(actions.length).toBe(3)
-    expect(actions[0].content).toBe('# Sample workflow\n\nThis is an instruction')
-    expect(actions[0].props.name).toBe('foo1')
-    expect(actions[2].content).toBe('This is a third instruction')
-    expect(actions[2].props.name).toBe('foo3')
+    expect(actions[0].name).toBe('foo1')
+    expect(actions[0].getContent({})).toBe('# Sample workflow\n\nThis is an instruction')
+    expect(actions[2].name).toBe('foo3')
+    expect(actions[2].getContent({})).toBe('This is a third instruction')
   })
 })

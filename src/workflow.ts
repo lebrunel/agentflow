@@ -6,9 +6,10 @@ import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
 import type { Root, Yaml } from 'mdast'
 import type { PhaseNode, WorkflowNode } from './ast'
-import type { ContextInput, ContextMap2 } from './context'
+import type { ContextInput, ContextMap, ContextMap2 } from './context'
 import { parseProcessor } from './parser'
 import { Phase } from './phase'
+import { ExecutionRunner } from './execution/runner'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.
@@ -51,6 +52,12 @@ export class Workflow {
 
   private createInputMap(): ContextMap2 {
     return new Map(this.inputs.map(({ name, type }) => [name, type]))
+  }
+
+  run(context: ContextMap): ExecutionRunner {
+    const runner = new ExecutionRunner(this, context)
+    runner.run()
+    return runner
   }
 }
 

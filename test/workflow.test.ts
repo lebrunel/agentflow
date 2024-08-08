@@ -57,3 +57,34 @@ describe('Workflow.parse()', () => {
     expect(workflow.description).toBe('Paragraph')
   })
 })
+
+test('testing runner', (done) => {
+  const src = dd`
+  Paragraph
+
+  ---
+
+  Create a "hello world" haiku
+
+  \`\`\`generate
+  name: foo
+  model: llama3.1@ollama
+  \`\`\`
+
+  Now translate it to spanish.
+
+  \`\`\`generate
+  name: foo
+  model: llama3.1@ollama
+  \`\`\`
+  `
+  const workflow = Workflow.parse(src)
+  const runner = workflow.run({})
+  
+  console.log(1)
+  setTimeout(() => {
+    console.dir(runner.state.results, { depth: 3 })
+    done()
+  }, 10000)
+  console.log(2)
+})

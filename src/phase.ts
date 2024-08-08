@@ -1,8 +1,10 @@
 import { is } from 'unist-util-is'
 import { visit } from 'unist-util-visit'
-import { validateActionNode, type ActionNode, type ContextNode, type PhaseNode } from './ast'
+import type { RootContent } from 'mdast'
+import { validateActionNode, type ContextNode, type PhaseNode } from './ast'
 import type { ContextMap2 } from './context'
-import { Action } from './actions/action'
+import type { Action } from './actions/action'
+import { createAction } from './actions'
 import { default as dd } from 'ts-dedent'
 
 /**
@@ -10,10 +12,11 @@ import { default as dd } from 'ts-dedent'
  * can utilize context from previous phases.
  */
 export class Phase {
+  cursor: number = 0
+  actions: Action[] = []
   dependencies: Set<string> = new Set()
   inputs: ContextMap2 = new Map()
   outputs: ContextMap2 = new Map()
-  #actions: ActionRecord[] = []
   #ast: PhaseNode;
 
   constructor(ast: PhaseNode, inputs: ContextMap2) {
@@ -33,51 +36,54 @@ export class Phase {
     })
 
     // iterate ast children to build action pointers
-    let start = 0
     for (let i = 0; i < ast.children.length; i++) {
       const node = ast.children[i]
       if (is(node, 'action')) {
-        this.#actions.push({ name: node.data.name, index: i, start })
-        start = i + 1
+        this.actions.push(createAction(node, ast.children.slice(this.cursor, i)))
+        this.cursor = i + 1
       }
     }
   }
 
-  get actions(): Iterable<Action> {
-    return {
-      [Symbol.iterator]: () => this.actionIterator(),
-    }
+  get trailingNodes(): RootContent[] {
+    return this.#ast.children.slice(this.cursor)
   }
 
-  private *actionIterator(): Generator<Action, void, undefined> {
-    const nodes = this.#ast.children
-    let cursor = 0
+  //get actions(): Iterable<Action> {
+  //  return {
+  //    [Symbol.iterator]: () => this.actionIterator(),
+  //  }
+  //}
+  //
+  //private *actionIterator(): Generator<Action, void, undefined> {
+  //  const nodes = this.#ast.children
+  //  let cursor = 0
+  //
+  //  for (let i = 0; i < nodes.length; i++) {
+  //    const node = nodes[i]
+  //    if (is(node, 'action')) {
+  //      yield new Action(node, nodes.slice(cursor, i))
+  //      cursor = i + 1
+  //    }
+  //  }
+  //}
 
-    for (let i = 0; i < nodes.length; i++) {
-      const node = nodes[i]
-      if (is(node, 'action')) {
-        yield new Action(node, nodes.slice(cursor, i))
-        cursor = i + 1
-      }
-    }
-  }
-
-  getAction(name: string): Action | undefined
-  getAction(index: number): Action | undefined
-  getAction(search: string | number): Action | undefined {
-    let record = typeof search === 'string'
-      ? this.#actions.find(a => a.name === search)
-      : this.#actions[search]
-    
-    if (typeof record === 'undefined') {
-      console.error(`No action found for lookup: ${search}`)
-      return
-    }
-
-    const node = this.#ast.children[record.index] as ActionNode
-    const content = this.#ast.children.slice(record.start, record.index)
-    return new Action(node, content)
-  }
+  //getAction(name: string): Action | undefined
+  //getAction(index: number): Action | undefined
+  //getAction(search: string | number): Action | undefined {
+  //  let record = typeof search === 'string'
+  //    ? this.actionsRefs.find(a => a.name === search)
+  //    : this.actionsRefs[search]
+  //  
+  //  if (typeof record === 'undefined') {
+  //    console.error(`No action found for lookup: ${search}`)
+  //    return
+  //  }
+  //
+  //  const node = this.#ast.children[record.index] as ActionNode
+  //  const content = this.#ast.children.slice(record.start, record.index)
+  //  return new GenerateAction(node, content)
+  //}
 
   private validateDependency(node: ContextNode) {
     if (!this.inputs.has(node.value)) {
@@ -89,7 +95,7 @@ export class Phase {
   }
 }
 
-interface ActionRecord {
+interface ActionRef {
   name: string;
   index: number;
   start: number;

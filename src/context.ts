@@ -6,11 +6,11 @@ export interface ContextInput {
 
 
 
-export type ContextMap2 = Map<ContextName, ContextType>
+export type ContextMap2 = Map<string, ContextType>
 
-export type ContextName = string
 export type ContextType = 'text' | 'image'
-export type ContextMap = Map<ContextName, ContextValue>
+
+export type ContextMap = { [name: string]: ContextValue }
 
 export type ContextValue = ContextTextValue | ContextImageValue
 

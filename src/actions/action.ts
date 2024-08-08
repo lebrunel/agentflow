@@ -1,6 +1,11 @@
 import { Type, type Static } from '@sinclair/typebox'
-import type { RootContent } from 'mdast'
-import type { ActionNode } from '../ast'
+import { unified, type Transformer } from 'unified'
+import { u } from 'unist-builder'
+import remarkStringify from 'remark-stringify'
+import type { Paragraph, Root, RootContent } from 'mdast'
+import type { ActionNode, ContextNode } from '../ast'
+import type { ContextMap, ContextValue } from '../context'
+import { visit } from 'unist-util-visit'
 
 /**
  * **Action** - An individual step within a phase, representing a single request
@@ -15,11 +20,37 @@ export abstract class Action {
     this.contentNodes = content
   }
 
+  get name(): string {
+    return this.props.name
+  }
+
   get props(): ActionProps {
     return this.#node.data
   }
 
-  abstract execute(): Promise<ActionResult>;
+  getContent(context: ContextMap): string {
+    return unified()
+      .use(interpolateContext, context)
+      .use(remarkStringify)
+      .stringify(u('root', this.contentNodes))
+      .trim()
+  }
+
+  abstract execute(
+    context: ContextMap,
+    prevResults: ActionResult[],
+  ): Promise<ActionResult>;
+}
+
+function interpolateContext(context: ContextMap): Transformer<Root> {
+  return root => {
+    visit(root, 'context', (node, i, parent) => {
+      // todo - handle different ContextValue types
+      const contextValue = context[node.value] as ContextValue & { type: 'text' }
+      parent!.children[i as number] = u('text', { value: contextValue.text })
+      return 'skip'
+    })
+  }
 }
 
 // Schemas
@@ -41,4 +72,9 @@ export const ActionPropsSchema = Type.Object({
 
 export type ActionProps = Static<typeof ActionPropsSchema>
 
-export type ActionResult = any
+export interface ActionResult {
+  type: string;
+  name: string;
+  input: ContextValue;
+  output: ContextValue;
+}

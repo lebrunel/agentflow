@@ -1,10 +1,10 @@
 import { default as dd } from 'ts-dedent'
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { ExecutionState } from './state'
-import type { Action, ActionResult } from '../actions/action'
-import type { ContextMap } from '../context'
-import type { Workflow } from '../workflow'
-import type { Phase } from '../phase'
+import type { Action, ActionResult } from './actions/action'
+import type { ContextMap } from '@ada/core/src/context'
+import type { Workflow } from '@ada/core/src/workflow'
+import type { Phase } from '@ada/core/src/phase'
 
 export class ExecutionRunner {
   #status = ExecutionStatus.Paused

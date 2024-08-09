@@ -1,0 +1,15 @@
+{
+  "name": "@ada/engine",
+  "private": true,
+  "module": "src/index.ts",
+  "type": "module",
+  "dependencies": {
+    "@ada/core": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  }
+}

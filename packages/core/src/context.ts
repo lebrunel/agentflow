@@ -4,8 +4,6 @@ export interface ContextInput {
   type: ContextType;
 }
 
-
-
 export type ContextMap2 = Map<string, ContextType>
 
 export type ContextType = 'text' | 'image'

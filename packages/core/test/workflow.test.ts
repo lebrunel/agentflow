@@ -58,43 +58,43 @@ describe('Workflow.parse()', () => {
   })
 })
 
-test.skip('testing runner', (done) => {
-  const src = dd`
-  Paragraph
-
-  ---
-
-  Create a "hello world" haiku
-
-  \`\`\`generate
-  name: foo
-  model: llama3.1@ollama
-  \`\`\`
-
-  Now translate it to spanish.
-
-  \`\`\`generate
-  name: foo
-  model: llama3.1@ollama
-  \`\`\`
-  `
-  const workflow = Workflow.parse(src)
-  const runner = workflow.run({})
-
-  runner.on('error', error => { throw error })
-
-  runner.on('action.call', async action => {
-    if (action.textStream) {
-      for await (const text of action.textStream) {
-        process.stdout.write(text)
-      }
-      console.log('\n---')
-    }
-  })
-
-  runner.on('success', (state) => {
-    console.dir(state.results, { depth: 3 })
-    done()
-  })
-
-})
+//test.skip('testing runner', (done) => {
+//  const src = dd`
+//  Paragraph
+//
+//  ---
+//
+//  Create a "hello world" haiku
+//
+//  \`\`\`generate
+//  name: foo
+//  model: llama3.1@ollama
+//  \`\`\`
+//
+//  Now translate it to spanish.
+//
+//  \`\`\`generate
+//  name: foo
+//  model: llama3.1@ollama
+//  \`\`\`
+//  `
+//  const workflow = Workflow.parse(src)
+//  const runner = workflow.run({})
+//
+//  runner.on('error', error => { throw error })
+//
+//  runner.on('action.call', async action => {
+//    if (action.textStream) {
+//      for await (const text of action.textStream) {
+//        process.stdout.write(text)
+//      }
+//      console.log('\n---')
+//    }
+//  })
+//
+//  runner.on('success', (state) => {
+//    console.dir(state.results, { depth: 3 })
+//    done()
+//  })
+//
+//})

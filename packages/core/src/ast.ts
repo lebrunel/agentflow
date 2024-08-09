@@ -1,8 +1,8 @@
 import { is } from 'unist-util-is'
 import { Value } from '@sinclair/typebox/value'
 import { default as dd } from 'ts-dedent'
+import { ActionPropsSchema, type ActionProps } from '@ada/engine/src/actions/action'
 import type { Literal, Node, Root, Parent } from 'mdast'
-import { ActionPropsSchema, type ActionProps } from './actions/action'
 import type { Workflow } from './workflow'
 
 export interface WorkflowNode extends Node {

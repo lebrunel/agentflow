@@ -9,7 +9,7 @@ import type { PhaseNode, WorkflowNode } from './ast'
 import type { ContextInput, ContextMap, ContextMap2 } from './context'
 import { parseProcessor } from './parser'
 import { Phase } from './phase'
-import { ExecutionRunner } from './execution/runner'
+//import { ExecutionRunner } from './execution/runner'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.
@@ -54,11 +54,11 @@ export class Workflow {
     return new Map(this.inputs.map(({ name, type }) => [name, type]))
   }
 
-  run(context: ContextMap): ExecutionRunner {
-    const runner = new ExecutionRunner(this, context)
-    queueMicrotask(() => runner.run())
-    return runner
-  }
+  //run(context: ContextMap): ExecutionRunner {
+  //  const runner = new ExecutionRunner(this, context)
+  //  queueMicrotask(() => runner.run())
+  //  return runner
+  //}
 }
 
 // Types

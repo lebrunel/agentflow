@@ -1,6 +1,6 @@
-import type { ActionResult } from '../actions/action'
-import type { ContextMap } from '../context'
-import type { Workflow } from '../workflow'
+import type { ContextMap } from '@ada/core/src/context'
+import type { Workflow } from '@ada/core/src/workflow'
+import type { ActionResult } from './actions/action'
 
 export class ExecutionState {
   cursor: ExecutionCursor = [0, 0]

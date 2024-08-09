@@ -56,7 +56,7 @@ export class Workflow {
 
   run(context: ContextMap): ExecutionRunner {
     const runner = new ExecutionRunner(this, context)
-    runner.run()
+    queueMicrotask(() => runner.run())
     return runner
   }
 }

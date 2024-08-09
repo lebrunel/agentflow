@@ -19,7 +19,7 @@ export class ExecutionState {
     this.context = context
   }
 
-  get isFinished(): boolean {
+  get isDone(): boolean {
     return this.cursor[0] >= this.actionIndex.size - 1 &&
            this.cursor[1] >= this.getPhaseActions().length -1 &&
            this.results.get(this.cursor[0])!.length >= this.getPhaseActions().length
@@ -52,7 +52,7 @@ export class ExecutionState {
   }
 
   next() {
-    if (this.isFinished) {
+    if (this.isDone) {
       console.error('Execution is finished.')
     }
 

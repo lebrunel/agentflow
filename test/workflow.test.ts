@@ -80,11 +80,21 @@ test.skip('testing runner', (done) => {
   `
   const workflow = Workflow.parse(src)
   const runner = workflow.run({})
-  
-  console.log(1)
-  setTimeout(() => {
-    console.dir(runner.state.results, { depth: 3 })
+
+  runner.on('error', error => { throw error })
+
+  runner.on('action.call', async action => {
+    if (action.textStream) {
+      for await (const text of action.textStream) {
+        process.stdout.write(text)
+      }
+      console.log('\n---')
+    }
+  })
+
+  runner.on('success', (state) => {
+    console.dir(state.results, { depth: 3 })
     done()
-  }, 10000)
-  console.log(2)
+  })
+
 })

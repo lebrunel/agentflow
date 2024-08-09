@@ -1,11 +1,26 @@
-import { generateText, type CoreMessage, type CompletionTokenUsage } from 'ai'
-import { ollama } from 'ollama-ai-provider'
-import { default as dd } from 'ts-dedent'
+import { generateText, streamText, type CoreMessage, type CompletionTokenUsage } from 'ai'
 //import { openai } from '@ai-sdk/openai'
+import { ollama } from 'ollama-ai-provider'
+import { pushable } from 'it-pushable'
+import { default as dd } from 'ts-dedent'
+import type { RootContent } from 'mdast'
 import { Action, type ActionResult } from './action'
-import type { ContextMap } from '../context';
+import type { ActionNode } from '../ast'
+import type { ContextMap } from '../context'
+
+// Polyfill TextDecoderStream for bun
+import TextDecoderStream from 'polyfill-text-decoder-stream'
+global.TextDecoderStream = TextDecoderStream
 
 export class GenerateAction extends Action {
+  constructor(node: ActionNode, content: RootContent[]) {
+    super(node, content)
+    if (node.data.stream !== false) {
+      this.textStream = pushable<string>({
+        objectMode: true,
+      })
+    }
+  }
 
   async execute(
     context: ContextMap,
@@ -21,19 +36,30 @@ export class GenerateAction extends Action {
     }
     messages.push({ role: 'user', content: [{ type: 'text', text: input }]})
     
-    const { text, usage } = await generateText({
+    const { textStream, text: textP, usage: usageP } = await streamText({
       model: ollama('llama3.1'),
       system: SYSTEM_PROMPT,
       messages
     })
 
+    this.pushTextStream(textStream)
+
+    const [text, usage] = await Promise.all([textP, usageP])
+
     return {
       type: 'generate',
       name: this.name,
       input: { type: 'text', text: input },
-      output: { type: 'text', text: text },
-      usage,
+      output: { type: 'text', text: text.trim() },
+      usage: usage,
     }
+  }
+
+  private async pushTextStream(stream: AsyncIterable<string>) {
+    for await (const chunk of stream) {
+      this.textStream!.push(chunk)
+    }
+    this.textStream!.end()
   }
 }
 

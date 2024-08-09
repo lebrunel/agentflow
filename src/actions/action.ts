@@ -2,8 +2,9 @@ import { Type, type Static } from '@sinclair/typebox'
 import { unified, type Transformer } from 'unified'
 import { u } from 'unist-builder'
 import remarkStringify from 'remark-stringify'
-import type { Paragraph, Root, RootContent } from 'mdast'
-import type { ActionNode, ContextNode } from '../ast'
+import type { Pushable } from 'it-pushable'
+import type { Root, RootContent } from 'mdast'
+import type { ActionNode } from '../ast'
 import type { ContextMap, ContextValue } from '../context'
 import { visit } from 'unist-util-visit'
 
@@ -14,6 +15,7 @@ import { visit } from 'unist-util-visit'
 export abstract class Action {
   #node: ActionNode;
   contentNodes: RootContent[];
+  textStream?: Pushable<any>;
 
   constructor(node: ActionNode, content: RootContent[]) {
     this.#node = node
@@ -66,6 +68,7 @@ export const ActionPropsSchema = Type.Object({
     Type.String(),
     ModelSchema,
   ]),
+  stream: Type.Optional(Type.Boolean())
 })
 
 // Types

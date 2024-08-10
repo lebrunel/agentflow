@@ -1,33 +1,32 @@
 import { is } from 'unist-util-is'
 import { visit } from 'unist-util-visit'
-import { default as dd } from 'ts-dedent'
-import type { RootContent } from 'mdast'
-import { createAction, type Action } from '@ada/engine/src/actions'
-import { validateActionNode, type ContextNode, type PhaseNode } from './ast'
-import type { ContextMap2 } from './context'
+import { useAction } from './actions'
 
+import type { RootContent } from 'mdast'
+import type { Action, ActionProps } from './action'
+import type { ContextTypeMap } from './context'
+import type { ActionNode, ContextNode, PhaseNode } from './ast'
 
 /**
  * **Phase** -  A sub-section of a Workflow, representing a mini-program that
  * can utilize context from previous phases.
  */
 export class Phase {
-  cursor: number = 0
-  actions: Action[] = []
-  dependencies: Set<string> = new Set()
-  inputs: ContextMap2 = new Map()
-  outputs: ContextMap2 = new Map()
-  #ast: PhaseNode;
+  #ast: PhaseNode
+  #cursor: number = 0
+  readonly actions: Action[] = []
+  readonly dependencies: Set<string> = new Set()
+  readonly inputTypes: ContextTypeMap
+  readonly outputTypes: ContextTypeMap = {}
 
-  constructor(ast: PhaseNode, inputs: ContextMap2) {
+  constructor(ast: PhaseNode, inputTypes: ContextTypeMap) {
     this.#ast = ast
-    this.inputs = new Map(inputs)
+    this.inputTypes = inputTypes
     
     // walk ast to collect outpus and dependenies
     visit(ast, node => {
       if (is(node, 'action')) {
-        validateActionNode(node)
-        this.outputs.set(node.data.name, 'text')
+        this.outputTypes[node.data.name] = 'text'
       }
       if (is(node, 'context')) {
         this.validateDependency(node)
@@ -37,66 +36,24 @@ export class Phase {
 
     // iterate ast children to build action pointers
     for (let i = 0; i < ast.children.length; i++) {
-      const node = ast.children[i]
+      const node = ast.children[i] as ActionNode
       if (is(node, 'action')) {
-        this.actions.push(createAction(node, ast.children.slice(this.cursor, i)))
-        this.cursor = i + 1
+        const Action = useAction(node.data.type)
+        const action = new Action(node, ast.children.slice(this.#cursor, i))
+        action.validate()
+        this.actions.push(action)
+        this.#cursor = i + 1
       }
     }
   }
 
   get trailingNodes(): RootContent[] {
-    return this.#ast.children.slice(this.cursor)
+    return this.#ast.children.slice(this.#cursor)
   }
-
-  //get actions(): Iterable<Action> {
-  //  return {
-  //    [Symbol.iterator]: () => this.actionIterator(),
-  //  }
-  //}
-  //
-  //private *actionIterator(): Generator<Action, void, undefined> {
-  //  const nodes = this.#ast.children
-  //  let cursor = 0
-  //
-  //  for (let i = 0; i < nodes.length; i++) {
-  //    const node = nodes[i]
-  //    if (is(node, 'action')) {
-  //      yield new Action(node, nodes.slice(cursor, i))
-  //      cursor = i + 1
-  //    }
-  //  }
-  //}
-
-  //getAction(name: string): Action | undefined
-  //getAction(index: number): Action | undefined
-  //getAction(search: string | number): Action | undefined {
-  //  let record = typeof search === 'string'
-  //    ? this.actionsRefs.find(a => a.name === search)
-  //    : this.actionsRefs[search]
-  //  
-  //  if (typeof record === 'undefined') {
-  //    console.error(`No action found for lookup: ${search}`)
-  //    return
-  //  }
-  //
-  //  const node = this.#ast.children[record.index] as ActionNode
-  //  const content = this.#ast.children.slice(record.start, record.index)
-  //  return new GenerateAction(node, content)
-  //}
 
   private validateDependency(node: ContextNode) {
-    if (!this.inputs.has(node.value)) {
-      throw new Error(dd`
-      Dependency not met as line ${node.position!.start.line}.
-        Error: @${node.value} not found in phase inputs.
-      `)
+    if (!this.inputTypes[node.value]) {
+      throw new Error(`Dependency '@${node.value}' not met. Line ${node.position!.start.line}.`)
     }
   }
-}
-
-interface ActionRef {
-  name: string;
-  index: number;
-  start: number;
 }

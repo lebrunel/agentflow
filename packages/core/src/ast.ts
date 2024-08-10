@@ -1,9 +1,8 @@
 import { is } from 'unist-util-is'
-import { Value } from '@sinclair/typebox/value'
-import { default as dd } from 'ts-dedent'
-import { ActionPropsSchema, type ActionProps } from '@ada/engine/src/actions/action'
 import type { Literal, Node, Root, Parent } from 'mdast'
 import type { Workflow } from './workflow'
+
+// Interfaces
 
 export interface WorkflowNode extends Node {
   type: 'workflow';
@@ -14,9 +13,9 @@ export interface PhaseNode extends Parent {
   type: 'phase';
 }
 
-export interface ActionNode extends Literal {
+export interface ActionNode<P = any> extends Literal {
   type: 'action';
-  data: ActionProps;
+  data: { type: string, name: string, props: P };
 }
 
 export interface ContextNode extends Literal {
@@ -31,17 +30,7 @@ export function isContextNode(node: Node): node is ContextNode {
   return is(node, 'context')
 }
 
-export function validateActionNode(node: Node): asserts node is ActionNode {
-  const error = Value.Errors(ActionPropsSchema, node.data).First()
-  if (error) {
-    throw new Error(dd`
-    Invalid action as line ${node.position!.start.line}.
-      Path: ${error.path}
-      Error: ${error.message}
-      Value: ${JSON.stringify(error.value)}
-    `)
-  }
-}
+// Augment mdast and unified with custom types
 
 declare module 'mdast' {
   interface PhrasingContentMap {
@@ -49,7 +38,7 @@ declare module 'mdast' {
   }
 
   interface RootContentMap {
-    actionNode: ActionNode;
+    actionNode: ActionNode<unknown>;
   }
 }
 

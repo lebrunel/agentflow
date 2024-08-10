@@ -1,14 +1,12 @@
-export interface ContextInput {
-  name: string;
-  description?: string;
-  type: ContextType;
-}
+// Types
 
-export type ContextMap2 = Map<string, ContextType>
+export type ContextName = string
 
 export type ContextType = 'text' | 'image'
 
-export type ContextMap = { [name: string]: ContextValue }
+export type ContextTypeMap = Record<ContextName, ContextType>
+
+export type ContextValueMap = Record<ContextName, ContextValue>
 
 export type ContextValue = ContextTextValue | ContextImageValue
 

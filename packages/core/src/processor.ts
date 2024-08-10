@@ -1,4 +1,4 @@
-import { unified, type Processor, type Transformer } from 'unified'
+import { unified } from 'unified'
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
 import { selectAll } from 'unist-util-select'
@@ -6,29 +6,49 @@ import { visit } from 'unist-util-visit'
 import { parse as parseYAML } from 'yaml'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
-import type { Code, InlineCode, Node, Paragraph, Parent, Root, RootContent, ThematicBreak } from 'mdast'
-import { isActionNode, type WorkflowNode, type PhaseNode } from './ast'
+import { isActionNode } from './ast'
+import { Workflow } from './workflow'
 
-export function parseProcessor(): Processor<Root, Root, WorkflowNode> {
+import type { Processor, Transformer } from 'unified'
+import type { Code, InlineCode, Node, PhrasingContent, Root, RootContent, ThematicBreak, Yaml } from 'mdast'
+import type { WorkflowNode, PhaseNode } from './ast'
+
+/**
+ * Creates a unified processor for transforming Markdown into a structured
+ * workflow representation.
+ */
+export function useProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
-    .use(workflowVisitor)
-    .use(workflowPhases)
+    .use(customNodes)
+    .use(groupPhases)
+    .use<[], WorkflowNode, Workflow>(workflowCompiler)
 }
 
-function workflowVisitor(): Transformer<Root> {
+// Plugins
+
+// Walks the AST tree and processes custom node types (actions, contexts).
+function customNodes(): Transformer<Root> {
   return function(root) {
     visit(root, (node, i, parent) => {
       if (typeof i === 'undefined') return
 
       if (is(node, 'yaml')) {
-        node.data = parseYAML(node.value)
+        const nodeT = node as Yaml
+        node.data = parseYAML(nodeT.value)
       }
 
       if (isActionDef(node)) {
-        (parent as Parent).children[i] = u('action', {
-          data: parseYAML(node.value),
+        const parentT = parent as {children: RootContent[]}
+
+        const match = node.lang!.match(/^(\w+)@(\w+)/) as RegExpMatchArray
+        const type = match[1]
+        const name = match[2]
+        const props = parseYAML(node.value)
+        
+        parentT.children[i] = u('action', {
+          data: { type, name, props },
           value: node.value,
           position: node.position,
         })
@@ -36,7 +56,9 @@ function workflowVisitor(): Transformer<Root> {
       }
 
       if (isContextDef(node)) {
-        (parent as Paragraph).children[i] = u('context', {
+        const parentT = parent as {children: PhrasingContent[]}
+
+        parentT.children[i] = u('context', {
           value: node.value.replace(/^@/, ''),
           position: node.position,
         })
@@ -46,7 +68,8 @@ function workflowVisitor(): Transformer<Root> {
   }
 }
 
-function workflowPhases(): Transformer<Root, WorkflowNode> {
+// Iterates over root children, grouping nodes content into phases.
+function groupPhases(): Transformer<Root, WorkflowNode> {
   return function(root) {
     const workflow: WorkflowNode = u('workflow', [])
     const workflowRoot: Root = u('root', [])
@@ -88,8 +111,20 @@ function workflowPhases(): Transformer<Root, WorkflowNode> {
   }
 }
 
+// Attaches a compiler to the processor.
+function workflowCompiler(this: Processor) {
+  this.compiler = (node, file) => Workflow.compile(node as WorkflowNode, file)
+}
+
+// Helpers
+
 function isActionDef(node: Node): node is Code {
-  return is(node, { type: 'code', lang: 'generate' })
+  return is(node, n => n.type === 'code' && hasActionIdentifier(n as Code))
+}
+
+function hasActionIdentifier(node: Code): boolean {
+  const match = node.lang?.match(/^(\w+)@(\w+)/)
+  return !!match && ['generate'].includes(match[1])
 }
 
 function isContextDef(node: Node): node is InlineCode {

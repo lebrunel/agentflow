@@ -1,6 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { default as dd } from 'ts-dedent'
 import { Workflow } from '../src/workflow'
+import { dd } from '../src/util'
+import '../src/actions'
 
 describe('Phase', () => {
   const workflow = Workflow.parse(dd`
@@ -8,23 +9,20 @@ describe('Phase', () => {
 
   This is an instruction
 
-  \`\`\`generate
-  name: foo1
-  model: test
+  \`\`\`generate@foo
+  model: openai:gpt-4o
   \`\`\`
 
   This is a second instruction
 
-  \`\`\`generate
-  name: foo2
-  model: test
+  \`\`\`generate@bar
+  model: openai:gpt-4o
   \`\`\`
 
   This is a third instruction
 
-  \`\`\`generate
-  name: foo3
-  model: test
+  \`\`\`generate@qux
+  model: openai:gpt-4o
   \`\`\`
   `)
 
@@ -32,9 +30,9 @@ describe('Phase', () => {
     const phase = workflow.phases[0]
     const actions = [...phase.actions]
     expect(actions.length).toBe(3)
-    expect(actions[0].name).toBe('foo1')
+    expect(actions[0].name).toBe('foo')
     expect(actions[0].getContent({})).toBe('# Sample workflow\n\nThis is an instruction')
-    expect(actions[2].name).toBe('foo3')
+    expect(actions[2].name).toBe('qux')
     expect(actions[2].getContent({})).toBe('This is a third instruction')
   })
 })

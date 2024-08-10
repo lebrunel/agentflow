@@ -1,15 +1,16 @@
-import { unified, type Processor } from 'unified'
+import { unified } from 'unified'
 import { filter } from 'unist-util-filter'
 import { select, selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
+import { Phase } from './phase'
+import { useProcessor } from './processor'
+import { ExecutionRunner } from './execution/runner'
+
 import type { Root, Yaml } from 'mdast'
 import type { PhaseNode, WorkflowNode } from './ast'
-import type { ContextInput, ContextMap, ContextMap2 } from './context'
-import { parseProcessor } from './parser'
-import { Phase } from './phase'
-//import { ExecutionRunner } from './execution/runner'
+import type { ContextType, ContextTypeMap, ContextValueMap } from './context'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.
@@ -17,7 +18,7 @@ import { Phase } from './phase'
 export class Workflow {
   title: string;
   readonly description: string;
-  readonly inputs: ContextInput[];
+  readonly inputs: WorkflowInput[];
   readonly meta: Record<string, unknown>;
   readonly phases: Phase[] = [];
 
@@ -27,16 +28,7 @@ export class Workflow {
     this.inputs = opts.inputs
     this.meta = opts.meta
 
-    // init mutatable contextMap
-    const context = this.createInputMap()
-    // build phases
-    for (const phaseNode of opts.phases) {
-      const phase = new Phase(phaseNode, context)
-      for (const [name, type] of phase.outputs) {
-        context.set(name, type)
-      }
-      this.phases.push(phase)
-    }
+    this.mapPhases(opts.phases)
   }
 
   static compile(ast: WorkflowNode, file?: VFile): Workflow {
@@ -44,21 +36,30 @@ export class Workflow {
   }
 
   static parse(input: string | VFile): Workflow {
-    const file = parseProcessor()
-      .use<[], WorkflowNode, Workflow>(compiler)
+    const file = useProcessor()
       .processSync(input)
     return file.result
   }
 
-  private createInputMap(): ContextMap2 {
-    return new Map(this.inputs.map(({ name, type }) => [name, type]))
+  run(context: ContextValueMap): ExecutionRunner {
+    const runner = new ExecutionRunner(this, context)
+    queueMicrotask(() => runner.run())
+    return runner
   }
 
-  //run(context: ContextMap): ExecutionRunner {
-  //  const runner = new ExecutionRunner(this, context)
-  //  queueMicrotask(() => runner.run())
-  //  return runner
-  //}
+  private mapPhases(phaseNodes: PhaseNode[]) {
+    // create mutatable ContextTypeMap
+    const context: ContextTypeMap = this.inputs.reduce((map, { name, type }) => {
+      return Object.assign(map, { name, type })
+    }, {})
+
+    // build phases
+    for (const node of phaseNodes) {
+      const phase = new Phase(node, context)
+      this.phases.push(phase)
+      Object.assign(context, phase.outputTypes)
+    }
+  }
 }
 
 // Types
@@ -66,9 +67,15 @@ export class Workflow {
 export interface WorkflowInitOpts {
   title: string;
   description: string;
-  inputs: ContextInput[];
+  inputs: WorkflowInput[];
   meta: Record<string, unknown>;
   phases: PhaseNode[];
+}
+
+export interface WorkflowInput {
+  name: string;
+  description?: string;
+  type: ContextType;
 }
 
 // Helpers
@@ -106,8 +113,4 @@ function createWorkflowInitOpts(ast: WorkflowNode, file?: VFile): WorkflowInitOp
   const phases = selectAll('phase', ast) as PhaseNode[]
   
   return { title, description, inputs, meta, phases }
-}
-
-function compiler(this: Processor) {
-  this.compiler = (node, file) => Workflow.compile(node as WorkflowNode, file)
 }

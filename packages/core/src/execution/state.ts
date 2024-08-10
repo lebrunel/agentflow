@@ -1,14 +1,15 @@
-import type { ContextMap } from '@ada/core/src/context'
-import type { Workflow } from '@ada/core/src/workflow'
-import type { ActionResult } from './actions/action'
+import type { ContextValueMap } from '../context'
+import type { Workflow } from '../workflow'
+import type { ActionResult } from '../action'
 
 export class ExecutionState {
   cursor: ExecutionCursor = [0, 0]
-  context: ContextMap
+  context: ContextValueMap
   actionIndex: Map<number, string[]> = new Map()
   results: Map<number, ActionResult[]> = new Map()
+  // todo - add push only log that can't be rewound
 
-  constructor(workflow: Workflow, context: ContextMap) {
+  constructor(workflow: Workflow, context: ContextValueMap) {
     // iterate over phases to create action index
     for (let i = 0; i < workflow.phases.length; i++) {
       const phase = workflow.phases[i]
@@ -39,11 +40,11 @@ export class ExecutionState {
     return this.results.get(index)!
   }
 
-  getContext(): ContextMap {
+  getContext(): ContextValueMap {
     const resultMap = this.getPhaseResults().reduce((map, res) => {
       map[res.name] = res.output
       return map
-    }, {} as ContextMap)
+    }, {} as ContextValueMap)
     return { ...this.context, ...resultMap }
   }
 
@@ -82,6 +83,13 @@ export class ExecutionState {
 
     this.cursor = nextCursor 
   }
+}
+
+export enum ExecutionStatus {
+  Error = -1,
+  Paused,
+  Running,
+  Success,
 }
 
 // Helpers

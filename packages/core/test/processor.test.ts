@@ -1,16 +1,17 @@
 import { describe, expect, test } from 'bun:test'
-import { default as dd } from 'ts-dedent'
 import { selectAll } from 'unist-util-select'
+import { useProcessor } from '../src/processor'
+import { dd } from '../src/util'
+
 import type { Root } from 'mdast'
-import { parseProcessor } from '../src/parser'
 import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '../src/ast'
 
 function parse(src: string): WorkflowNode {
-  const proc = parseProcessor()
+  const proc = useProcessor()
   return proc.runSync(proc.parse(src))
 }
 
-describe('parseProcessor()', () => {
+describe('useProcessor()', () => {
   test('handles no phases', () => {
     const src = dd`
     # Introduction
@@ -44,8 +45,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: foo
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)
@@ -68,8 +69,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: foo
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)
@@ -94,8 +95,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: foo
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
 
     ---
@@ -104,8 +105,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: bar
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)
@@ -135,8 +136,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: foo
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
 
     ---
@@ -145,8 +146,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: bar
+    \`\`\`generate@bar
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)
@@ -172,8 +173,8 @@ describe('parseProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate
-    name: foo
+    \`\`\`generate@foo
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)
@@ -203,14 +204,14 @@ describe('parseProcessor()', () => {
 
     \`@foo\`
 
-    \`\`\`generate
-    name: res1
+    \`\`\`generate@res1
+    model: openai:gpt-4o
     \`\`\`
 
     \`@bar\`
 
-    \`\`\`generate
-    name: res2
+    \`\`\`generate@res2
+    model: openai:gpt-4o
     \`\`\`
     `
     const ast = parse(src)

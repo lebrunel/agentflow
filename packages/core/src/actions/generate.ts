@@ -1,74 +1,76 @@
-import { generateText, streamText, type CoreMessage, type CompletionTokenUsage } from 'ai'
-//import { openai } from '@ai-sdk/openai'
+import { Type, type Static, type TSchema } from '@sinclair/typebox'
+import { generateText, streamText, experimental_createProviderRegistry as createProviderRegistry } from 'ai'
+import { openai } from '@ai-sdk/openai'
 import { ollama } from 'ollama-ai-provider'
 import { pushable } from 'it-pushable'
-import { default as dd } from 'ts-dedent'
-import type { RootContent } from 'mdast'
-import { Action, type ActionResult } from './action'
-import type { ActionNode } from '../ast'
-import type { ContextMap } from '../context'
+import { Action } from '../action'
+import { dd } from '../util'
 
-// Polyfill TextDecoderStream for bun
+import type { RootContent } from 'mdast'
+import type { CoreMessage } from 'ai'
+import type { ActionProps, ActionResult } from '../action'
+import type { ActionNode } from '../ast'
+import type { ContextValueMap } from '../context'
+
 import TextDecoderStream from 'polyfill-text-decoder-stream'
 global.TextDecoderStream = TextDecoderStream
 
-export class GenerateAction extends Action {
-  constructor(node: ActionNode, content: RootContent[]) {
+export class GenerateAction extends Action<Props> {
+  schema = GenerateProps
+
+  constructor(node: ActionNode<Props>, content: RootContent[]) {
     super(node, content)
-    if (node.data.stream !== false) {
-      this.textStream = pushable<string>({
-        objectMode: true,
-      })
+
+    if (this.props.stream !== false) {
+      this.stream = pushable({ objectMode: true })
     }
   }
 
-  async execute(
-    context: ContextMap,
-    prevResults: ActionResult[],
-  ): Promise<GenerateTextResult> {
+  async execute(context: ContextValueMap, prevResults: ActionResult[]): Promise<ActionResult> {
     const input = this.getContent(context)
-
     const messages: CoreMessage[] = []
+    
     for (const res of prevResults) {
       // todo - better handling of context value to messages
-      messages.push({ role: 'user', content: [res.input as { type: 'text', text: string }] })
-      messages.push({ role: 'assistant', content: [res.output as { type: 'text', text: string }] })
+      messages.push({ role: 'user', content: [res.input as any] })
+      messages.push({ role: 'assistant', content: [res.output as any] })
     }
+
     messages.push({ role: 'user', content: [{ type: 'text', text: input }]})
-    
-    const { textStream, text: textP, usage: usageP } = await streamText({
+
+    const opts = {
       model: ollama('llama3.1'),
       system: SYSTEM_PROMPT,
-      messages
-    })
+      messages,
+    }
 
-    this.pushTextStream(textStream)
+    const { text, usage } = this.props.stream === false
+      ? await generateText(opts)
+      : await new Promise<{ text: string, usage: any }>(async resolve => {
+        const { textStream } = await streamText({
+          ...opts,
+          onFinish: event => resolve(event)
+        })
 
-    const [text, usage] = await Promise.all([textP, usageP])
+        for await (const chunk of textStream) {
+          this.stream!.push(chunk)
+        }
+      })
 
     return {
       type: 'generate',
       name: this.name,
       input: { type: 'text', text: input },
-      output: { type: 'text', text: text.trim() },
+      output: { type: 'text', text: text },
       usage: usage,
     }
   }
-
-  private async pushTextStream(stream: AsyncIterable<string>) {
-    for await (const chunk of stream) {
-      this.textStream!.push(chunk)
-    }
-    this.textStream!.end()
-  }
 }
 
-// Types
-
-export interface GenerateTextResult extends ActionResult {
-  type: 'generate';
-  usage: CompletionTokenUsage;
-}
+export const registry = createProviderRegistry({
+  ollama,
+  openai,
+})
 
 const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.
@@ -106,3 +108,20 @@ Response:
 
 Remember, you are interpreting and executing English instructions as if they were code. Precision and accuracy are paramount.
 `
+
+// Schema
+
+const GenerateProps = Type.Object({
+  model: Type.String(),
+  stream: Type.Optional(Type.Boolean()),
+})
+
+// Types
+
+type Props = ActionProps & Static<typeof GenerateProps>
+
+//export interface GenerateActionResult extends ActionResult {
+//  type: 'generate';
+//  usage: CompletionTokenUsage;
+//}
+

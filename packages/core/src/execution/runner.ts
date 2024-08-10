@@ -1,18 +1,19 @@
-import { default as dd } from 'ts-dedent'
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
-import { ExecutionState } from './state'
-import type { Action, ActionResult } from './actions/action'
-import type { ContextMap } from '@ada/core/src/context'
-import type { Workflow } from '@ada/core/src/workflow'
-import type { Phase } from '@ada/core/src/phase'
+import { ExecutionState, ExecutionStatus } from './state'
+import { dd } from '../util'
+
+import type { Action, ActionResult } from '../action'
+import type { ContextValueMap } from '../context'
+import type { Phase } from '../phase'
+import type { Workflow } from '../workflow'
 
 export class ExecutionRunner {
   #status = ExecutionStatus.Paused
   #events = createNanoEvents<ExecutionEvents>()
-  workflow: Workflow;
-  state: ExecutionState;
+  readonly workflow: Workflow;
+  readonly state: ExecutionState;
 
-  constructor(workflow: Workflow, input: ContextMap) {
+  constructor(workflow: Workflow, input: ContextValueMap) {
     this.workflow = workflow
     this.state = new ExecutionState(workflow, input)
   }
@@ -26,6 +27,43 @@ export class ExecutionRunner {
     this.#events.emit('status', val, this.state)
   }
 
+  getFinalResult() {
+    if (this.#status !== ExecutionStatus.Success) {
+      console.error(dd`
+      Cannot get results whilst status is ${ExecutionStatus[this.status]}.
+      `)
+      return
+    }
+
+    let resultChunks: string[] = []
+
+    for (let i = 0; i < this.workflow.phases.length; i++) {
+      const phase = this.workflow.phases[i]
+      const phaseResults = this.state.getPhaseResults(i)
+      const trailingNodes = phase.trailingNodes
+
+      for (const result of phaseResults) {
+        // todo - better stringifying of ContextValue types
+        if (result.input.type === 'text') {
+          resultChunks.push(result.input.text)
+        }
+        if (result.output.type === 'text') {
+          resultChunks.push(result.output.text)
+        }
+      }
+
+      if (trailingNodes.length) {
+        // todo - add compiled trailing nodes (insertContext)
+      }
+
+      if (i < this.workflow.phases.length - 1) {
+        resultChunks.push('---')
+      }
+    }
+
+    return resultChunks.join('\n\n')
+  }
+
   async run() {
     if (this.status !== ExecutionStatus.Paused) {
       console.error(dd`
@@ -37,7 +75,7 @@ export class ExecutionRunner {
     let prevPhase: Phase | undefined
 
     while (!this.state.isDone) {
-      const phase = this.workflow.phases[this.state.cursor[0]]      
+      const phase = this.workflow.phases[this.state.cursor[0]]
 
       if (phase !== prevPhase) {
         this.#events.emit('phase', phase, prevPhase, this.state)
@@ -109,9 +147,3 @@ export interface ExecutionEvents {
   'action.result': (result: ActionResult, state: ExecutionState) => void;
 }
 
-export enum ExecutionStatus {
-  Error = -1,
-  Paused,
-  Running,
-  Success,
-}

@@ -6,7 +6,7 @@ import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
 import { Phase } from './phase'
 import { useProcessor } from './processor'
-import { ExecutionRunner } from './execution/runner'
+import { ExecutionController } from './execution/controller'
 
 import type { Root, Yaml } from 'mdast'
 import type { PhaseNode, WorkflowNode } from './ast'
@@ -41,10 +41,10 @@ export class Workflow {
     return file.result
   }
 
-  run(context: ContextValueMap): ExecutionRunner {
-    const runner = new ExecutionRunner(this, context)
-    queueMicrotask(() => runner.run())
-    return runner
+  run(context: ContextValueMap): ExecutionController {
+    const controller = new ExecutionController(this, context)
+    queueMicrotask(() => controller.runAll())
+    return controller
   }
 
   private mapPhases(phaseNodes: PhaseNode[]) {

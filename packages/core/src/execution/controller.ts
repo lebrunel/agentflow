@@ -7,7 +7,7 @@ import type { ContextValueMap } from '../context'
 import type { Phase } from '../phase'
 import type { Workflow } from '../workflow'
 
-export class ExecutionRunner {
+export class ExecutionController {
   #events = createNanoEvents<ExecutionEvents>()
   readonly workflow: Workflow;
   private state: ExecutionState;

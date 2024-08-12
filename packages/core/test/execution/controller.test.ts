@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { Workflow } from '../../src/workflow'
-import { ExecutionRunner } from '../../src/execution/runner'
+import { ExecutionController } from '../../src/execution/controller'
 import { dd } from '../../src/util'
 
 test.skip('testing runner', (done) => {
@@ -23,17 +23,17 @@ test.skip('testing runner', (done) => {
   `
 
   const workflow = Workflow.parse(src)
-  const runner = new ExecutionRunner(workflow, {})
+  const controller = new ExecutionController(workflow, {})
 
-  queueMicrotask(() => runner.runAll())
+  queueMicrotask(() => controller.runAll())
 
-  runner.on('error', error => { throw error })
+  controller.on('error', error => { throw error })
 
-  runner.on('phase', phase => {
+  controller.on('phase', phase => {
     console.log('PHASE')
   })
 
-  runner.on('action.start', async action => {
+  controller.on('action.start', async action => {
     console.log('ACTION')
     if (action.stream) {
       for await (const text of action.stream) {
@@ -43,7 +43,7 @@ test.skip('testing runner', (done) => {
     }
   })
 
-  runner.on('complete', (result) => {
+  controller.on('complete', (result) => {
     console.log('COMPLETE')
     console.log(result)
     done()

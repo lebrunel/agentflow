@@ -55,6 +55,7 @@ export class GenerateAction extends Action<Props> {
         for await (const chunk of textStream) {
           this.stream!.push(chunk)
         }
+        this.stream!.end()
       })
 
     return {
@@ -119,9 +120,3 @@ const GenerateProps = Type.Object({
 // Types
 
 type Props = ActionProps & Static<typeof GenerateProps>
-
-//export interface GenerateActionResult extends ActionResult {
-//  type: 'generate';
-//  usage: CompletionTokenUsage;
-//}
-

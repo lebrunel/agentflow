@@ -3,6 +3,7 @@ import { unified, type Transformer } from 'unified'
 import { u } from 'unist-builder'
 import { visit } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
+import { stringifyWithContext } from './processor'
 import { dd } from './util'
 
 import type { TSchema } from '@sinclair/typebox'
@@ -35,11 +36,7 @@ export abstract class Action<P extends ActionProps = ActionProps> {
   }
 
   getContent(context: ContextValueMap): string {
-    return unified()
-      .use(insertContext, context)
-      .use(remarkStringify)
-      .stringify(u('root', this.#content))
-      .trim()
+    return stringifyWithContext(this.#content, context)
   }
 
   validate(): void {
@@ -74,15 +71,3 @@ export interface ActionResult {
   usage?: CompletionTokenUsage;
 }
 
-// Helpers
-
-function insertContext(context: ContextValueMap): Transformer<Root> {
-  return root => {
-    visit(root, 'context', (node, i, parent) => {
-      // todo - handle different ContextValue types
-      const contextValue = context[node.value] as ContextValue & { type: 'text' }
-      parent!.children[i as number] = u('text', { value: contextValue.text })
-      return 'skip'
-    })
-  }
-}

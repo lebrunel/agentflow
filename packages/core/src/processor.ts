@@ -5,6 +5,7 @@ import { selectAll } from 'unist-util-select'
 import { visit } from 'unist-util-visit'
 import { parse as parseYAML } from 'yaml'
 import remarkParse from 'remark-parse'
+import remarkStringify from 'remark-stringify'
 import remarkFrontmatter from 'remark-frontmatter'
 import { isActionNode } from './ast'
 import { Workflow } from './workflow'
@@ -12,6 +13,7 @@ import { Workflow } from './workflow'
 import type { Processor, Transformer } from 'unified'
 import type { Code, InlineCode, Node, PhrasingContent, Root, RootContent, ThematicBreak, Yaml } from 'mdast'
 import type { WorkflowNode, PhaseNode } from './ast'
+import type { ContextValue, ContextValueMap } from './context'
 
 /**
  * Creates a unified processor for transforming Markdown into a structured
@@ -24,6 +26,14 @@ export function useProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode
     .use(customNodes)
     .use(groupPhases)
     .use<[], WorkflowNode, Workflow>(workflowCompiler)
+}
+
+export function stringifyWithContext(content: RootContent[], context: ContextValueMap): string {
+  return unified()
+    .use(insertContext, context)
+    .use(remarkStringify)
+    .stringify(u('root', content))
+    .trim()
 }
 
 // Plugins
@@ -110,6 +120,18 @@ function groupPhases(): Transformer<Root, WorkflowNode> {
     return workflow
   }
 }
+
+function insertContext(context: ContextValueMap): Transformer<Root> {
+  return root => {
+    visit(root, 'context', (node, i, parent) => {
+      // todo - handle different ContextValue types
+      const contextValue = context[node.value] as ContextValue & { type: 'text' }
+      parent!.children[i as number] = u('text', { value: contextValue.text })
+      return 'skip'
+    })
+  }
+}
+
 
 // Attaches a compiler to the processor.
 function workflowCompiler(this: Processor) {

@@ -1,5 +1,5 @@
-import { GenerateAction } from './generate'
-import { MockAction } from './mock'
+import { GenerateAction } from '~/actions/generate'
+import { MockAction } from '~/actions/mock'
 
 // Todo - create a registry so actions can dynamically be added
 

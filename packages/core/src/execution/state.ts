@@ -1,6 +1,6 @@
-import type { ContextValueMap } from '../context'
-import type { Workflow } from '../workflow'
-import type { ActionResult } from '../action'
+import type { ContextValueMap } from '~/context'
+import type { Workflow } from '~/workflow'
+import type { ActionResult } from '~/action'
 
 /**
  * Maintains the state of a workflow execution.

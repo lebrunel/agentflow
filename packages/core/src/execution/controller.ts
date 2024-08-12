@@ -1,11 +1,11 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
-import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
-import { stringifyWithContext } from '../processor'
 
-import type { Action, ActionResult } from '../action'
-import type { ContextValueMap } from '../context'
-import type { Phase } from '../phase'
-import type { Workflow } from '../workflow'
+import { ExecutionState, ExecutionStatus, type ExecutionCursor } from '~/execution/state'
+import { stringifyWithContext } from '~/processor'
+import type { Action, ActionResult } from '~/action'
+import type { ContextValueMap } from '~/context'
+import type { Phase } from '~/phase'
+import type { Workflow } from '~/workflow'
 
 /**
  * Manages the execution of a workflow, controlling its state and progression.

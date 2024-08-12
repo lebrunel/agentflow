@@ -4,13 +4,13 @@ import { select, selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
-import { Phase } from './phase'
-import { useProcessor } from './processor'
-import { ExecutionController } from './execution/controller'
-
 import type { Root, Yaml } from 'mdast'
-import type { PhaseNode, WorkflowNode } from './ast'
-import type { ContextType, ContextTypeMap, ContextValueMap } from './context'
+
+import { Phase } from '~/phase'
+import { useProcessor } from '~/processor'
+import { ExecutionController } from '~/execution/controller'
+import type { PhaseNode, WorkflowNode } from '~/ast'
+import type { ContextType, ContextTypeMap, ContextValueMap } from '~/context'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.

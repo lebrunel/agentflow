@@ -1,6 +1,7 @@
 import { Type, type Static } from '@sinclair/typebox'
-import { Action, type ActionProps, type ActionResult } from '../action'
-import type { ContextValueMap } from '../context'
+
+import { Action, type ActionProps, type ActionResult } from '~/action'
+import type { ContextValueMap } from '~/context'
 
 export class MockAction extends Action<Props> {
   schema = MockProps

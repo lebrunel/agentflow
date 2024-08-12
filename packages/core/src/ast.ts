@@ -1,6 +1,7 @@
 import { is } from 'unist-util-is'
 import type { Literal, Node, Root, Parent } from 'mdast'
-import type { Workflow } from './workflow'
+
+import type { Workflow } from '~/workflow'
 
 // Interfaces
 

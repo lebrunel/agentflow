@@ -3,17 +3,14 @@ import { generateText, streamText, experimental_createProviderRegistry as create
 import { openai } from '@ai-sdk/openai'
 import { ollama } from 'ollama-ai-provider'
 import { pushable } from 'it-pushable'
-import { Action } from '../action'
-import { dd } from '../util'
-
-import type { RootContent } from 'mdast'
 import type { CoreMessage } from 'ai'
-import type { ActionProps, ActionResult } from '../action'
-import type { ActionNode } from '../ast'
-import type { ContextValueMap } from '../context'
+import type { RootContent } from 'mdast'
 
-import TextDecoderStream from 'polyfill-text-decoder-stream'
-global.TextDecoderStream = TextDecoderStream
+import { Action } from '~/action'
+import { dd } from '~/util'
+import type { ActionProps, ActionResult } from '~/action'
+import type { ActionNode } from '~/ast'
+import type { ContextValueMap } from '~/context'
 
 export class GenerateAction extends Action<Props> {
   schema = GenerateProps

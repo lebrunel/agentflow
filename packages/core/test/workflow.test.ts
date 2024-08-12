@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
-import { Workflow } from '../src/workflow'
-import { dd } from '../src/util'
+
+import { Workflow } from '~/index'
+import { dd } from '~/util'
 
 describe('Workflow.parse()', () => {
   test('title from meta data', () => {

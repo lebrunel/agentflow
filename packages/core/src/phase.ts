@@ -1,11 +1,11 @@
 import { is } from 'unist-util-is'
 import { visit } from 'unist-util-visit'
-import { useAction } from './actions'
-
 import type { RootContent } from 'mdast'
-import type { Action } from './action'
-import type { ContextTypeMap } from './context'
-import type { ActionNode, ContextNode, PhaseNode } from './ast'
+
+import { useAction } from '~/actions'
+import type { Action } from '~/action'
+import type { ActionNode, ContextNode, PhaseNode } from '~/ast'
+import type { ContextTypeMap } from '~/context'
 
 /**
  * **Phase** -  A sub-section of a Workflow, representing a mini-program that

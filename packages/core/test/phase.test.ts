@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
-import { Workflow } from '../src/workflow'
-import { dd } from '../src/util'
-import '../src/actions'
+
+import { Workflow } from '~/workflow'
+import { dd } from '~/util'
 
 describe('Phase', () => {
   const workflow = Workflow.parse(dd`

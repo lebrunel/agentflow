@@ -7,14 +7,14 @@ import { parse as parseYAML } from 'yaml'
 import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
 import remarkFrontmatter from 'remark-frontmatter'
-import { isActionNode } from './ast'
-import { actions } from './actions'
-import { Workflow } from './workflow'
-
 import type { Processor, Transformer } from 'unified'
 import type { Code, InlineCode, Node, PhrasingContent, Root, RootContent, ThematicBreak, Yaml } from 'mdast'
-import type { WorkflowNode, PhaseNode } from './ast'
-import type { ContextValue, ContextValueMap } from './context'
+
+import { isActionNode } from '~/ast'
+import { actions } from '~/actions'
+import { Workflow } from '~/workflow'
+import type { WorkflowNode, PhaseNode } from '~/ast'
+import type { ContextValue, ContextValueMap } from '~/context'
 
 /**
  * Creates a unified processor for transforming Markdown into a structured

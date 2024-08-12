@@ -1,10 +1,10 @@
 import { describe, expect, test } from 'bun:test'
 import { selectAll } from 'unist-util-select'
-import { useProcessor } from '../src/processor'
-import { dd } from '../src/util'
-
 import type { Root } from 'mdast'
-import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '../src/ast'
+
+import { useProcessor } from '~/processor'
+import { dd } from '~/util'
+import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '~/ast'
 
 function parse(src: string): WorkflowNode {
   const proc = useProcessor()

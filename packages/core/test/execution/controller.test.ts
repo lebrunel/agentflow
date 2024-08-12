@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
-import { Workflow } from '../../src/workflow'
-import { ExecutionController } from '../../src/execution/controller'
-import { dd } from '../../src/util'
-import type { ContextValueMap } from '../../src/context'
-import { ExecutionStatus } from '../../src/execution/state'
+
+import { ExecutionController, ExecutionStatus, Workflow } from '~/index'
+import { dd } from '~/util'
+import type { ContextValueMap } from '~/context'
 
 const workflow = Workflow.parse(dd`
 ---

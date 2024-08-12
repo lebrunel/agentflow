@@ -2,6 +2,9 @@ import type { ContextValueMap } from '../context'
 import type { Workflow } from '../workflow'
 import type { ActionResult } from '../action'
 
+/**
+ * Maintains the state of a workflow execution.
+ */
 export class ExecutionState {
   #cursor: ExecutionCursor = [0, 0]
   status: ExecutionStatus = ExecutionStatus.Ready
@@ -21,23 +24,30 @@ export class ExecutionState {
     this.initialContext = {...context}
   }
 
+  /** The current position in the workflow, represented as [phaseIndex, actionIndex]. */
   get cursor(): ExecutionCursor {
     return [...this.#cursor]
   }
 
+  /** The total number of phases in the workflow. */
   get phaseCount(): number {
     return this.phaseSizeMap.size
   }
 
+  /** Indicates if the cursor is at the first action of the first phase. */
   get isFirstAction(): boolean {
     return this.cursor.every(n => n === 0)
   }
 
+  /** Indicates if the cursor is at the last action of the last phase. */
   get isLastAction(): boolean {
     return this.cursor[0] === this.phaseCount - 1 &&
            this.cursor[1] === this.getPhaseSize() - 1
   }
 
+  /**
+   * Moves the cursor to the next action or phase.
+   */
   advanceCursor(): void {
     if (this.cursor[1] < this.getPhaseSize() - 1) {
       this.cursor = [this.cursor[0], this.cursor[1] + 1]
@@ -46,6 +56,9 @@ export class ExecutionState {
     }
   }
 
+  /**
+   * Moves the cursor to a previous position and clears subsequent results.
+   */
   rewindCursor(cursor: ExecutionCursor) {
     if (cursor.some(n => n < 0)) {
       throw new Error(`Cursor cannot have negative index: ${JSON.stringify(cursor)}`)
@@ -68,6 +81,9 @@ export class ExecutionState {
     }
   }
 
+  /**
+   * Returns the current context, including results of executed actions.
+   */
   getContext(): ContextValueMap {
     const context: ContextValueMap = { ...this.initialContext }
     for (const [phaseIdx, results] of this.resultMap) {
@@ -80,14 +96,23 @@ export class ExecutionState {
     return context
   }
 
+  /**
+   * Returns the number of actions in a specific phase.
+   */
   getPhaseSize(index: number = this.cursor[0]): number {
     return this.phaseSizeMap.get(index)!
   }
 
+  /**
+   * Returns the action results for a specific phase.
+   */
   getPhaseResults(index: number = this.cursor[0]): ActionResult[] {
     return this.resultMap.get(index)!
   }
 
+  /**
+   * Adds a new action result to the current phase and the result log.
+   */
   pushResult(result: ActionResult) {
     const results = this.getPhaseResults()
     results.push(result)
@@ -99,14 +124,27 @@ export class ExecutionState {
   }
 }
 
+/**
+ * Represents the current state of workflow execution.
+ */
 export enum ExecutionStatus {
-  Ready,      // Initial state, cursor at [0,0]
-  Running,    // Workflow is in progress
-  Paused,     // Execution paused, waiting for next action
-  Completed,  // All actions executed successfully
-  Error,      // An error occurred during execution
+  /** Initial state, cursor at [0,0] */
+  Ready,
+
+  /** Workflow is in progress */
+  Running,
+
+  /** Execution paused, waiting for next action */
+  Paused,
+
+  /** All actions executed successfully */
+  Completed,
+
+  /** An error occurred during execution */
+  Error,
 }
 
-// Types
-
+/**
+ * Represents the current position in the workflow as [phaseIndex, actionIndex].
+ */
 export type ExecutionCursor = [number, number]

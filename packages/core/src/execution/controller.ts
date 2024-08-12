@@ -7,6 +7,9 @@ import type { ContextValueMap } from '../context'
 import type { Phase } from '../phase'
 import type { Workflow } from '../workflow'
 
+/**
+ * Manages the execution of a workflow, controlling its state and progression.
+ */
 export class ExecutionController {
   #events = createNanoEvents<ExecutionEvents>()
   readonly workflow: Workflow;
@@ -19,26 +22,36 @@ export class ExecutionController {
     this.state = new ExecutionState(workflow, input)
   }
 
+  /** The current position in the workflow, represented as [phaseIndex, actionIndex]. */
   get cursor(): ExecutionCursor {
     return this.state.cursor
   }
 
+  /** The current phase of the workflow being executed. */
   get currentPhase(): Phase {
     return this.workflow.phases[this.state.cursor[0]]
   }
 
+  /** The current action of the workflow being executed. */
   get currentAction(): Action {
     return this.currentPhase.actions[this.state.cursor[1]]
   }
 
+  /** A string representation of the current position in the workflow. */
   get position(): string {
     return `${this.state.cursor[0]}.${this.currentAction.name}`
   }
 
+  /** The current status of the workflow execution. */
   get status(): ExecutionStatus {
     return this.state.status
   }
 
+  /**
+   * Executes the entire workflow from the current position to completion. 
+   * The optional callback is called synchronously after each action, allowing 
+   * inspection of results and pausing of the workflow if necessary.
+   */
   async runAll(afterEachAction?: AfterActionCallback): Promise<void> {
     this.isRunAll = true
     this.status = ExecutionStatus.Running
@@ -56,6 +69,11 @@ export class ExecutionController {
     this.isRunAll = false
   }
 
+  /**
+   * Executes the next action in the workflow. The optional callback is called 
+   * synchronously after the action completes, allowing inspection of the result 
+   * and pausing of the workflow if necessary.
+   */
   async runNext(afterAction?: AfterActionCallback): Promise<ExecutionCursor> {
     if (
       this.status === ExecutionStatus.Completed ||
@@ -102,12 +120,18 @@ export class ExecutionController {
     return cursor
   }
 
+  /**
+   * Pauses the execution of the workflow if it's currently running.
+   */
   pause(): void {
     if (this.status === ExecutionStatus.Running) {
       this.status = ExecutionStatus.Paused
     }
   }
 
+  /**
+   * Moves the execution cursor to a specified position in the workflow.
+   * */
   rewindTo(cursor: ExecutionCursor): void
   rewindTo(position: string): void
   rewindTo(target: ExecutionCursor | string): void {
@@ -142,15 +166,24 @@ export class ExecutionController {
     this.#events.emit('rewind', this.cursor)
   }
 
+  /**
+   * Resets the workflow to its initial state.
+   */
   reset(): void {
     this.rewindTo([0, 0])
   }
 
+  /**
+   * Returns the current context of the workflow execution.
+   */
   getCurrentContext(): Readonly<ContextValueMap> {
     // todo - clone results for better saftey
     return Object.freeze({...this.state.getContext()})
   }
 
+  /**
+   * Returns a map of all action results grouped by phase.
+   */
   getCurrentResults(): ReadonlyMap<Phase, ActionResult[]> {
     const resultMap = new Map<Phase, ActionResult[]>() 
     for (const [phaseIdx, results] of this.state.resultMap) {
@@ -160,6 +193,9 @@ export class ExecutionController {
     return resultMap
   }
 
+  /**
+   * Returns the action results for a specific phase.
+   */
   getPhaseResults(phase: Phase): ActionResult[] {
     const phaseIdx = this.getPhaseIndex(phase)
     const results = this.state.getPhaseResults(phaseIdx)
@@ -167,6 +203,9 @@ export class ExecutionController {
     return [...results]
   }
 
+  /**
+   * Generates the output for a specific phase of the workflow.
+   */
   getPhaseOutput(phase: Phase): string {
     const phaseIdx = this.getPhaseIndex(phase)
     const phaseResults = this.state.getPhaseResults(phaseIdx)
@@ -195,6 +234,9 @@ export class ExecutionController {
     return resultChunks.join('\n\n')
   }
 
+  /**
+   * Generates the complete output for the entire workflow.
+   */
   getCompleteOutput(): string {
     if (this.state.status !== ExecutionStatus.Completed) {
       throw new Error(`Cannot get results whilst status is ${ExecutionStatus[this.status]}.`)
@@ -205,6 +247,9 @@ export class ExecutionController {
       .join('\n\n---\n\n')
   }
 
+  /**
+   * Subscribes to execution events.
+   */
   on<E extends keyof ExecutionEvents>(
     event: E,
     handler: ExecutionEvents[E],
@@ -228,23 +273,34 @@ export class ExecutionController {
   }
 }
 
-// Types
-
+/**
+ * Events emitted during workflow execution.
+ */
 export interface ExecutionEvents {
   /** Status has changed */ 
   'status': (status: ExecutionStatus, cursor: ExecutionCursor) => void;
+
   /** Action is starting */
   'action.start': (action: Action, cursor: ExecutionCursor) => void;
+
   /** Action has completed */
   'action.complete': (result: ActionResult, cursor: ExecutionCursor) => void;
+
   /** A new phase is starting */
   'phase': (phase: Phase, prev: Phase | undefined, cursor: ExecutionCursor) => void;
+
   /** The runner has completed  */
   'complete': (output: string, cursor: ExecutionCursor) => void;
+
   /** The runner has errors */
   'error': (error: Error, cursor: ExecutionCursor) => void;
+
   /** The cursor has been rewound */
   'rewind': (cursor: ExecutionCursor) => void;
 }
 
-export type AfterActionCallback = (result: ActionResult, cursor: ExecutionCursor) => void | Promise<void>
+/**
+ * Callback function executed after each action in the workflow.
+ */
+export type AfterActionCallback = 
+  (result: ActionResult, cursor: ExecutionCursor) => void | Promise<void>

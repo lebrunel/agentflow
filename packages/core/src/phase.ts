@@ -3,7 +3,7 @@ import { visit } from 'unist-util-visit'
 import { useAction } from './actions'
 
 import type { RootContent } from 'mdast'
-import type { Action, ActionProps } from './action'
+import type { Action } from './action'
 import type { ContextTypeMap } from './context'
 import type { ActionNode, ContextNode, PhaseNode } from './ast'
 
@@ -52,7 +52,9 @@ export class Phase {
   }
 
   private validateDependency(node: ContextNode) {
-    if (!this.inputTypes[node.value]) {
+    // todo - improve this is it will validate future outputs in same phase
+    // it should throw is the context appears before the output
+    if (!this.inputTypes[node.value] && !this.outputTypes[node.value]) {
       throw new Error(`Dependency '@${node.value}' not met. Line ${node.position!.start.line}.`)
     }
   }

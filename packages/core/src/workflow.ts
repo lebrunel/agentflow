@@ -50,7 +50,7 @@ export class Workflow {
   private mapPhases(phaseNodes: PhaseNode[]) {
     // create mutatable ContextTypeMap
     const context: ContextTypeMap = this.inputs.reduce((map, { name, type }) => {
-      return Object.assign(map, { name, type })
+      return Object.assign(map, { [name]: type })
     }, {})
 
     // build phases

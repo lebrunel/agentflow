@@ -8,6 +8,7 @@ import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
 import remarkFrontmatter from 'remark-frontmatter'
 import { isActionNode } from './ast'
+import { actions } from './actions'
 import { Workflow } from './workflow'
 
 import type { Processor, Transformer } from 'unified'
@@ -29,10 +30,13 @@ export function useProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode
 }
 
 export function stringifyWithContext(content: RootContent[], context: ContextValueMap): string {
-  return unified()
+  const processed = unified()
     .use(insertContext, context)
+    .runSync(u('root', content))
+
+  return unified()
     .use(remarkStringify)
-    .stringify(u('root', content))
+    .stringify(processed)
     .trim()
 }
 
@@ -121,7 +125,7 @@ function groupPhases(): Transformer<Root, WorkflowNode> {
   }
 }
 
-function insertContext(context: ContextValueMap): Transformer<Root> {
+function insertContext(context: ContextValueMap): Transformer<Root> {  
   return root => {
     visit(root, 'context', (node, i, parent) => {
       // todo - handle different ContextValue types
@@ -146,7 +150,7 @@ function isActionDef(node: Node): node is Code {
 
 function hasActionIdentifier(node: Code): boolean {
   const match = node.lang?.match(/^(\w+)@(\w+)/)
-  return !!match && ['generate'].includes(match[1])
+  return !!match && Object.keys(actions).includes(match[1])
 }
 
 function isContextDef(node: Node): node is InlineCode {

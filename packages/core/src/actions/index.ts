@@ -1,7 +1,11 @@
 import { GenerateAction } from './generate'
+import { MockAction } from './mock'
 
-const actions = {
-  generate: GenerateAction
+// Todo - create a registry so actions can dynamically be added
+
+export const actions = {
+  generate: GenerateAction,
+  mock: MockAction,
 }
 
 export function useAction(name: string) {

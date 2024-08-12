@@ -1,4 +1,4 @@
-import { Type, type Static, type TSchema } from '@sinclair/typebox'
+import { Type, type Static } from '@sinclair/typebox'
 import { generateText, streamText, experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import { openai } from '@ai-sdk/openai'
 import { ollama } from 'ollama-ai-provider'

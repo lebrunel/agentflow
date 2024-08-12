@@ -1,4 +1,3 @@
-import type { CompletionUsage } from 'ai'
 import type { ContextValueMap } from '../context'
 import type { Workflow } from '../workflow'
 import type { ActionResult } from '../action'
@@ -19,7 +18,7 @@ export class ExecutionState {
       this.phaseSizeMap.set(i, phase.actions.length)
       this.resultMap.set(i, [])
     }
-    this.initialContext = context
+    this.initialContext = {...context}
   }
 
   get cursor(): ExecutionCursor {

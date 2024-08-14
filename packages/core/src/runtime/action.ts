@@ -4,10 +4,10 @@ import { dd } from '~/util'
 import type { Static, TSchema } from '@sinclair/typebox'
 import type { CompletionUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-import type { ContextValue } from '~/context'
+import type { ContextName, ContextValue } from '~/runtime/context'
 import type { Runtime } from '~/runtime/runtime'
 
-export function defineAction<T extends TSchema>(options: ActionOptions<T>): Action<Static<T>> {
+export function defineAction<T extends TSchema>(options: ActionOptions<T>): ActionHandler<Static<T>> {
   const { name, schema, execute } = options
 
   // Compile the schema for faster validation
@@ -34,22 +34,22 @@ export function defineAction<T extends TSchema>(options: ActionOptions<T>): Acti
   }
 }
 
-export interface Action<T = any> {
-  name: ActionName;
-  execute: ActionHandler<T>
+export interface ActionHandler<T = any> {
+  name: ActionTypeName;
+  execute: ActionFn<T>
   validate: (props: T) => void;
 }
 
 export interface ActionOptions<T extends TSchema> {
-  name: ActionName;
+  name: ActionTypeName;
   schema: T;
-  execute: ActionHandler<Static<T>>;
+  execute: ActionFn<Static<T>>;
   validate?: (props: Static<T>) => void;
 }
 
 export interface ActionResult {
-  name: ActionName;
-  contextName: string;
+  type: ActionTypeName;
+  name: ContextName;
   input: ContextValue;
   output: ContextValue;
   usage?: CompletionUsage;
@@ -61,9 +61,9 @@ export interface ActionContext<T> {
   stream?: Pushable<string>;
 }
 
-export type ActionName = string
+export type ActionTypeName = string
 
-export type ActionHandler<T> = (
+export type ActionFn<T> = (
   ctx: ActionContext<T>,
   input: ContextValue,
   prevResults: ActionResult[],

@@ -1,11 +1,12 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { runtime } from 'test/support/runtime'
 
-import { Workflow } from '~/index'
-import { ExecutionState } from '~/execution/state'
+import { compileWorkflow } from '~/index'
+import { ExecutionState } from '~/runtime/state'
 import { dd } from '~/util'
-import type { ContextValueMap } from '~/context'
+import type { ContextValueMap } from '~/runtime/context'
 
-const workflow = Workflow.parse(dd`
+const src = dd`
 ---
 inputs:
   - name: foo
@@ -46,7 +47,8 @@ A final thing
 type: text
 text: Result of B2
 \`\`\`
-`)
+`
+const workflow = compileWorkflow(src, runtime)
 
 describe('ExecutionState', () => {
   let context: ContextValueMap

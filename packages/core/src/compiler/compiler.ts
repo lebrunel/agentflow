@@ -5,45 +5,37 @@ import { selectAll } from 'unist-util-select'
 import { visit } from 'unist-util-visit'
 import { parse as parseYAML } from 'yaml'
 import remarkParse from 'remark-parse'
-import remarkStringify from 'remark-stringify'
 import remarkFrontmatter from 'remark-frontmatter'
-import type { Processor, Transformer } from 'unified'
-import type { Code, InlineCode, Node, PhrasingContent, Root, RootContent, ThematicBreak, Yaml } from 'mdast'
+import type { Plugin, Processor, Transformer } from 'unified'
+import type { VFile } from 'vfile'
+import type { PhrasingContent, Root, RootContent, Yaml } from 'mdast'
 
-import { isActionNode } from '~/ast'
-import { actions } from '~/actions'
-import { Workflow } from '~/workflow'
-import type { WorkflowNode, PhaseNode } from '~/ast'
-import type { ContextValue, ContextValueMap } from '~/context'
+import { isActionDef, isActionNode, isBreak, isContextDef } from '~/compiler/ast'
+import { Runtime } from '~/runtime/runtime'
+import type { WorkflowNode, PhaseNode } from '~/compiler/ast'
+import { Workflow } from '~/compiler/workflow'
 
-/**
- * Creates a unified processor for transforming Markdown into a structured
- * workflow representation.
- */
-export function useProcessor(): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
-  return unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ['yaml'])
-    .use(customNodes)
-    .use(groupPhases)
-    .use<[], WorkflowNode, Workflow>(workflowCompiler)
+export function compileWorkflow(markdown: string | VFile, runtime: Runtime): Workflow {
+  const file = compileProcessor(runtime).processSync(markdown)
+  if (runtime) {
+    // todo - validateWorkflow(file.result, runtime)
+  }
+  return file.result
 }
 
-export function stringifyWithContext(content: RootContent[], context: ContextValueMap): string {
-  const processed = unified()
-    .use(insertContext, context)
-    .runSync(u('root', content))
-
+export function compileProcessor(runtime: Runtime): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
   return unified()
-    .use(remarkStringify)
-    .stringify(processed)
-    .trim()
+      .use(remarkParse)
+      .use(remarkFrontmatter, ['yaml'])
+      .use(customNodes, runtime)
+      .use(groupPhases)
+      .use(createWorkflow)
 }
 
 // Plugins
 
 // Walks the AST tree and processes custom node types (actions, contexts).
-function customNodes(): Transformer<Root> {
+function customNodes(runtime: Runtime): Transformer<Root> {
   return function(root) {
     visit(root, (node, i, parent) => {
       if (typeof i === 'undefined') return
@@ -60,6 +52,13 @@ function customNodes(): Transformer<Root> {
         const type = match[1]
         const name = match[2]
         const props = parseYAML(node.value)
+
+        try {
+          runtime.useAction(type).validate(props)
+        } catch(e: any) {
+          const start = node.position!.start
+          throw new Error(`Parse error at ${start.line}:${start.column}\n${e.message}`)
+        }        
         
         parentT.children[i] = u('action', {
           data: { type, name, props },
@@ -110,7 +109,7 @@ function groupPhases(): Transformer<Root, WorkflowNode> {
         cursor = 1
       }
 
-      if (isSectionDivider(node)) {
+      if (isBreak(node)) {
         if (i > cursor) processNodes(nodes.slice(cursor, i))
         cursor = i + 1
       }
@@ -125,38 +124,7 @@ function groupPhases(): Transformer<Root, WorkflowNode> {
   }
 }
 
-function insertContext(context: ContextValueMap): Transformer<Root> {  
-  return root => {
-    visit(root, 'context', (node, i, parent) => {
-      // todo - handle different ContextValue types
-      const contextValue = context[node.value] as ContextValue & { type: 'text' }
-      parent!.children[i as number] = u('text', { value: contextValue.text })
-      return 'skip'
-    })
-  }
-}
-
-
 // Attaches a compiler to the processor.
-function workflowCompiler(this: Processor) {
-  this.compiler = (node, file) => Workflow.compile(node as WorkflowNode, file)
-}
-
-// Helpers
-
-function isActionDef(node: Node): node is Code {
-  return is(node, n => n.type === 'code' && hasActionIdentifier(n as Code))
-}
-
-function hasActionIdentifier(node: Code): boolean {
-  const match = node.lang?.match(/^(\w+)@(\w+)/)
-  return !!match && Object.keys(actions).includes(match[1])
-}
-
-function isContextDef(node: Node): node is InlineCode {
-  return is(node, n => n.type === 'inlineCode' && /^@\w+/.test((n as InlineCode).value))
-}
-
-function isSectionDivider(node: Node): node is ThematicBreak {
-  return is(node, 'thematicBreak')
+const createWorkflow: Plugin<[], WorkflowNode, Workflow> = function(this: Processor) {
+  this.compiler = (node, file) => new Workflow(node as WorkflowNode, file)
 }

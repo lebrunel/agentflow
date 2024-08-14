@@ -9,12 +9,22 @@ import { openai } from '@ai-sdk/openai'
 import { google } from '@ai-sdk/google'
 import { ollama } from 'ollama-ai-provider'
 
-import type { Action } from '~/runtime/action'
+import { generateTextAction } from '~/actions/generate'
+
+import type { ActionHandler } from '~/runtime/action'
+
+// Default actions
+const actions: ActionHandler[] = [
+  generateTextAction
+]
+
+// Default tools
+const tools: __Tool[] = []
 
 export class Runtime {
-  private actions: ActionRegistry = defaultActions()
-  private tools: ToolRegistry = defaultTools()
-  private providers: ProviderRegistry
+  private actions: ActionRegistry = defaultRegistry(actions)
+  private tools: ToolRegistry = defaultRegistry(tools)
+  private providers: ProviderRegistry = defaultProviders()
 
   constructor(config: UserConfig) {
     // Register user actions
@@ -49,7 +59,7 @@ export class Runtime {
     return !!this.tools[name]
   }
 
-  registerAction(name: string, action: Action): void {
+  registerAction(name: string, action: ActionHandler): void {
     if (this.hasAction(name)) {
       throw new Error(`Action already registered: ${name}`)
     }
@@ -63,7 +73,7 @@ export class Runtime {
     this.tools[name] = tool
   }
 
-  useAction(name: string): Action {
+  useAction(name: string): ActionHandler {
     if (!this.hasAction(name)) {
       throw new Error(`Action not found: ${name}`)
     }
@@ -82,12 +92,10 @@ export class Runtime {
   }
 }
 
-function defaultActions(): ActionRegistry {
-  return {}
-}
-
-function defaultTools(): ToolRegistry {
-  return {}
+function defaultRegistry<T extends { name: string }>(items: T[]): Record<string, T> {
+  return items.reduce((map, item) => {
+    return { ...map, [item.name]: item }
+  }, {})
 }
 
 function defaultProviders(): ProviderRegistry {
@@ -110,6 +118,6 @@ export interface UserConfig {
   plugins?: Plugin[];
 }
 
-type ActionRegistry = Record<string, Action>
+type ActionRegistry = Record<string, ActionHandler>
 type ToolRegistry = Record<string, __Tool>
-type __Tool = any
+type __Tool = { name: string }

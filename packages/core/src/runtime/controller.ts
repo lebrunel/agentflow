@@ -1,24 +1,28 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 
-import { ExecutionState, ExecutionStatus, type ExecutionCursor } from '~/execution/state'
-import { stringifyWithContext } from '~/processor'
-import type { Action, ActionResult } from '~/action'
-import type { ContextValueMap } from '~/context'
-import type { Phase } from '~/phase'
-import type { Workflow } from '~/workflow'
+import { ExecutionState, ExecutionStatus, type ExecutionCursor } from '~/runtime/state'
+import { stringifyNodes } from '~/util'
+import type { Action } from '~/compiler/action'
+import type { Phase } from '~/compiler/phase'
+import type { Workflow } from '~/compiler/workflow'
+import type { ActionResult } from '~/runtime/action'
+import type { ContextValueMap } from '~/runtime/context'
+import type { Runtime } from '~/runtime/runtime'
 
 /**
  * Manages the execution of a workflow, controlling its state and progression.
  */
 export class ExecutionController {
   #events = createNanoEvents<ExecutionEvents>()
-  readonly workflow: Workflow;
   private state: ExecutionState;
   private isRunAll = false 
   private prevPhase?: Phase
 
-  constructor(workflow: Workflow, input: ContextValueMap) {
-    this.workflow = workflow
+  constructor(
+    readonly workflow: Workflow,
+    input: ContextValueMap,
+    private runtime: Runtime,
+  ) {
     this.state = new ExecutionState(workflow, input)
   }
 
@@ -86,21 +90,32 @@ export class ExecutionController {
 
     const cursor = this.cursor
     const phase = this.currentPhase
-    const action = this.currentAction
 
     if (phase !== this.prevPhase) {
       this.#events.emit('phase', phase, this.prevPhase, this.cursor)
     }
 
+    const action = this.currentAction
+    const handler = this.runtime.useAction(action.type)
+    const input = action.getInputValue(this.state.getContext())
+
     this.#events.emit('action.start', action, this.cursor)
 
-    const result = await action.execute(
-      this.state.getContext(),
+    const output = await handler.execute(
+      { props: action.props, runtime: this.runtime },
+      input,
       this.state.getPhaseResults(),
     )
 
+    const result: ActionResult = {
+      type: action.type,
+      name: action.name,
+      input,
+      output,
+    }
+
     this.state.pushResult(result)
-    this.#events.emit('action.complete', {...result}, this.cursor)
+    this.#events.emit('action.complete', result, this.cursor)
 
     if (this.state.isLastAction) {
       this.status = ExecutionStatus.Completed
@@ -227,7 +242,7 @@ export class ExecutionController {
     }
 
     if (trailingNodes.length) {
-      const trailingText = stringifyWithContext(trailingNodes, this.state.getContext())
+      const trailingText = stringifyNodes(trailingNodes, this.state.getContext())
       resultChunks.push(trailingText)
     }
 
@@ -274,6 +289,20 @@ export class ExecutionController {
 }
 
 /**
+ * TODO
+ */
+export function executeWorkflow(
+  workflow: Workflow,
+  input: ContextValueMap,
+  runtime: Runtime,
+  { start = true, afterAction }: ExecutionOpts = {},
+) {
+  const controller = new ExecutionController(workflow, input, runtime)
+  if (start) { queueMicrotask(() => controller.runAll(afterAction) )}
+  return controller
+}
+
+/**
  * Events emitted during workflow execution.
  */
 export interface ExecutionEvents {
@@ -297,6 +326,14 @@ export interface ExecutionEvents {
 
   /** The cursor has been rewound */
   'rewind': (cursor: ExecutionCursor) => void;
+}
+
+/**
+ * TODO
+ */
+export interface ExecutionOpts {
+  start?: boolean;
+  afterAction?: AfterActionCallback;
 }
 
 /**

@@ -2,14 +2,18 @@
 import TextDecoderStream from 'polyfill-text-decoder-stream'
 global.TextDecoderStream = TextDecoderStream
 
-export { Action } from '~/action'
-export { ExecutionController } from '~/execution/controller'
-export { ExecutionStatus } from '~/execution/state'
-export { Phase } from '~/phase'
-export { Workflow } from '~/workflow'
+// Compiler exports
+export { compileWorkflow } from '~/compiler/compiler'
+export { Action } from '~/compiler/action'
+export { Phase } from '~/compiler/phase'
+export { Workflow, type WorkflowInput } from '~/compiler/workflow'
 
-export type { ActionProps, ActionResult } from '~/action'
-export type {  } from '~/context'
-export type { ExecutionEvents, AfterActionCallback } from '~/execution/controller'
-export type { ExecutionCursor } from '~/execution/state'
-export type { WorkflowInput, WorkflowInitOpts } from '~/workflow'
+// Runtime exports
+export { defineAction } from '~/runtime/action'
+export { executeWorkflow, ExecutionController } from '~/runtime/controller'
+export { Runtime } from '~/runtime/runtime'
+export { ExecutionStatus } from '~/runtime/state'
+export type { ActionHandler, ActionOptions, ActionResult } from '~/runtime/action'
+export type { ExecutionOpts, ExecutionEvents, AfterActionCallback } from '~/runtime/controller'
+export type { Plugin, UserConfig } from '~/runtime/runtime'
+export type { ExecutionCursor } from '~/runtime/state'

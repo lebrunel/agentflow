@@ -1,10 +1,11 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { runtime } from 'test/support/runtime'
 
-import { ExecutionController, ExecutionStatus, Workflow } from '~/index'
+import { compileWorkflow, executeWorkflow, ExecutionController, ExecutionStatus } from '~/index'
 import { dd } from '~/util'
-import type { ContextValueMap } from '~/context'
+import type { ContextValueMap } from '~/runtime/context'
 
-const workflow = Workflow.parse(dd`
+const src = dd`
 ---
 inputs:
   - name: foo
@@ -47,14 +48,15 @@ text: Result of B2
 \`\`\`
 
 Testing the suffix: \`@a1\`
-`)
+`
+const workflow = compileWorkflow(src, runtime)
 
 describe('ExecutionController', () => {
   let controller: ExecutionController
 
   beforeEach(() => {
     const context: ContextValueMap = { foo: { type: 'text', text: 'bar' } }
-    controller = new ExecutionController(workflow, context)
+    controller = executeWorkflow(workflow, context, runtime, { start: false })
   })
 
   test('Initializes with correct initial state', () => {
@@ -219,6 +221,7 @@ describe('ExecutionController', () => {
     controller.on('phase', () => phaseEvents++)
     controller.on('complete', () => completeEvents++)
     controller.on('error', () => errorEvents++)
+    controller.on('error', console.error)
     controller.on('rewind', () => rewindEvents++)
 
     await controller.runAll()

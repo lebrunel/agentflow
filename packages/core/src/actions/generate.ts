@@ -1,30 +1,18 @@
-import { Type, type Static } from '@sinclair/typebox'
-import { generateText, streamText, experimental_createProviderRegistry as createProviderRegistry } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { ollama } from 'ollama-ai-provider'
-import { pushable } from 'it-pushable'
-import type { CoreMessage } from 'ai'
-import type { RootContent } from 'mdast'
+import { Type } from '@sinclair/typebox'
+import { generateText, streamText, type CoreMessage } from 'ai'
 
-import { Action } from '~/action'
+import { defineAction } from '~/runtime/action'
 import { dd } from '~/util'
-import type { ActionProps, ActionResult } from '~/action'
-import type { ActionNode } from '~/ast'
-import type { ContextValueMap } from '~/context'
 
-export class GenerateAction extends Action<Props> {
-  schema = GenerateProps
+const schema = Type.Object({
+  model: Type.String(),
+  stream: Type.Optional(Type.Boolean()),
+})
 
-  constructor(node: ActionNode<Props>, content: RootContent[]) {
-    super(node, content)
-
-    if (this.props.stream !== false) {
-      this.stream = pushable({ objectMode: true })
-    }
-  }
-
-  async execute(context: ContextValueMap, prevResults: ActionResult[]): Promise<ActionResult> {
-    const input = this.getContent(context)
+export const generateTextAction = defineAction({
+  name: 'generate',
+  schema,
+  execute: async ({ props, runtime }, input, prevResults) => {
     const messages: CoreMessage[] = []
     
     for (const res of prevResults) {
@@ -32,16 +20,18 @@ export class GenerateAction extends Action<Props> {
       messages.push({ role: 'user', content: [res.input as any] })
       messages.push({ role: 'assistant', content: [res.output as any] })
     }
-
-    messages.push({ role: 'user', content: [{ type: 'text', text: input }]})
+    // todo - better handling of context value to messages
+    messages.push({ role: 'user', content: [input as any]})
 
     const opts = {
-      model: ollama('llama3.1'),
+      model: runtime.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
     }
 
-    const { text, usage } = this.props.stream === false
+    // todo - figure out how to push stream to controller
+    // todo - figure out how to push usage to controller/state
+    const { text, usage } = props.stream === false
       ? await generateText(opts)
       : await new Promise<{ text: string, usage: any }>(async resolve => {
         const { textStream } = await streamText({
@@ -49,25 +39,15 @@ export class GenerateAction extends Action<Props> {
           onFinish: event => resolve(event)
         })
 
-        for await (const chunk of textStream) {
-          this.stream!.push(chunk)
-        }
-        this.stream!.end()
+        //for await (const chunk of textStream) {
+        //  this.stream!.push(chunk)
+        //}
+        //this.stream!.end()
       })
+    
 
-    return {
-      type: 'generate',
-      name: this.name,
-      input: { type: 'text', text: input },
-      output: { type: 'text', text: text },
-      usage: usage,
-    }
+    return { type: 'text', text }
   }
-}
-
-export const registry = createProviderRegistry({
-  ollama,
-  openai,
 })
 
 const SYSTEM_PROMPT = dd`
@@ -106,14 +86,3 @@ Response:
 
 Remember, you are interpreting and executing English instructions as if they were code. Precision and accuracy are paramount.
 `
-
-// Schema
-
-const GenerateProps = Type.Object({
-  model: Type.String(),
-  stream: Type.Optional(Type.Boolean()),
-})
-
-// Types
-
-type Props = ActionProps & Static<typeof GenerateProps>

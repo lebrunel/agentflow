@@ -1,6 +1,6 @@
-import type { ContextValueMap } from '~/context'
-import type { Workflow } from '~/workflow'
-import type { ActionResult } from '~/action'
+import type { ContextValueMap } from '~/runtime/context'
+import type { Workflow } from '~/compiler/workflow'
+import type { ActionResult } from '~/runtime/action'
 
 /**
  * Maintains the state of a workflow execution.
@@ -113,7 +113,7 @@ export class ExecutionState {
   /**
    * Adds a new action result to the current phase and the result log.
    */
-  pushResult(result: ActionResult) {
+  pushResult({ ...result }: ActionResult) {
     const results = this.getPhaseResults()
     results.push(result)
     this.resultLog.push(result)

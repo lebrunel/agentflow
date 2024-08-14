@@ -1,17 +1,18 @@
 import { describe, expect, test } from 'bun:test'
 import { selectAll } from 'unist-util-select'
 import type { Root } from 'mdast'
+import { runtime } from 'test/support/runtime'
 
-import { useProcessor } from '~/processor'
+import { compileProcessor } from '~/compiler/compiler'
 import { dd } from '~/util'
-import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '~/ast'
+import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '~/compiler/ast'
 
 function parse(src: string): WorkflowNode {
-  const proc = useProcessor()
+  const proc = compileProcessor(runtime)
   return proc.runSync(proc.parse(src))
 }
 
-describe('useProcessor()', () => {
+describe('compileProcessor()', () => {
   test('handles no phases', () => {
     const src = dd`
     # Introduction

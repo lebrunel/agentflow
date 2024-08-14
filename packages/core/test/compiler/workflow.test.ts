@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
+import { runtime } from 'test/support/runtime'
 
 import { Workflow } from '~/index'
 import { dd } from '~/util'
@@ -14,7 +15,7 @@ describe('Workflow.parse()', () => {
 
     Paragraph
     `
-    const workflow = Workflow.parse(src)
+    const workflow = Workflow.parse(src, runtime)
     expect(workflow.title).toBe('Foo')
   })
 
@@ -24,7 +25,21 @@ describe('Workflow.parse()', () => {
 
     Paragraph
     `
-    const workflow = Workflow.parse(src)
+    const workflow = Workflow.parse(src, runtime)
+    expect(workflow.title).toBe('Bar')
+  })
+
+  test('title from document 2', () => {
+    const src = dd`
+    # Bar
+
+    Paragraph
+
+    \`\`\`generate@foo
+    model: openai:gpt-4o
+    \`\`\`
+    `
+    const workflow = Workflow.parse(src, runtime)
     expect(workflow.title).toBe('Bar')
   })
 
@@ -32,12 +47,12 @@ describe('Workflow.parse()', () => {
     const workflow = Workflow.parse(new VFile({
       path: '/path/to/example.md',
       value: 'Paragraph',
-    }))
+    }), runtime)
     expect(workflow.title).toBe('example.md')
   })
 
   test('fallback to default title', () => {
-    const workflow = Workflow.parse('Paragraph')
+    const workflow = Workflow.parse('Paragraph', runtime)
     expect(workflow.title).toBe('Untitled')
   })
 
@@ -53,7 +68,7 @@ describe('Workflow.parse()', () => {
     model: openai:gpt-4o
     \`\`\`
     `
-    const workflow = Workflow.parse(src)
+    const workflow = Workflow.parse(src, runtime)
     expect(workflow.description).toBe('Paragraph')
   })
 })

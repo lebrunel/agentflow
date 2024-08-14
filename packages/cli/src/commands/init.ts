@@ -1,4 +1,5 @@
 import { Command, Option } from 'commander'
+import { Workflow } from '@ada/core'
 
 const cmd = new Command
 
@@ -8,7 +9,7 @@ cmd
   .action(initProject)
 
 function initProject() {
-  console.log('TODO')
+  console.log('TODO', Workflow)
 }
 
 export default cmd

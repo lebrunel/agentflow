@@ -4,7 +4,7 @@ import { select, selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
-import type { Root, Yaml } from 'mdast'
+import type { Node, Root, Yaml } from 'mdast'
 
 import { compileWorkflow } from '~/compiler/compiler'
 import { Phase } from '~/compiler/phase'
@@ -35,10 +35,16 @@ export class Workflow {
     this.title = this.meta.title
 
     if (!this.title) {
-      const firstNode = root ? root.children[0] : phaseNodes[0].children[0]
+      const firstNode = root
+        ? (yaml ? root.children[1] : root.children[0])
+        : phaseNodes[0].children[0]
       if (firstNode?.type === 'heading') {
         this.title = toString(firstNode)
       }
+    }
+
+    if (!this.title && root) {
+
     }
 
     this.title ||= file?.basename || 'Untitled'

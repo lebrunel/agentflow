@@ -2,11 +2,14 @@
   "name": "@ada/cli",
   "version": "0.0.1",
   "private": true,
+  "bin": "src/index.ts",
   "module": "src/index.ts",
   "type": "module",
   "dependencies": {
     "@ada/core": "workspace:*",
-    "commander": "^12.1.0"
+    "commander": "^12.1.0",
+    "fast-glob": "^3.3.2",
+    "picocolors": "^1.0.1"
   },
   "devDependencies": {
     "@types/bun": "latest"

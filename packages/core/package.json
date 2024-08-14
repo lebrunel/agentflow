@@ -1,8 +1,14 @@
 {
   "name": "@ada/core",
   "private": true,
-  "module": "src/index.ts",
   "type": "module",
+  "module": "src/index.ts",
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },  
   "dependencies": {
     "@ai-sdk/openai": "^0.0.44",
     "@sinclair/typebox": "^0.33.0",

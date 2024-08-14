@@ -26,7 +26,7 @@ export class Runtime {
   private tools: ToolRegistry = defaultRegistry(tools)
   private providers: ProviderRegistry = defaultProviders()
 
-  constructor(config: UserConfig) {
+  constructor(config: RuntimeConfig) {
     // Register user actions
     for (const name in config.actions) {
       this.registerAction(name, config.actions[name])
@@ -111,7 +111,7 @@ function defaultProviders(): ProviderRegistry {
 
 export type Plugin = (runtime: Runtime) => void
 
-export interface UserConfig {
+export interface RuntimeConfig {
   actions?: ActionRegistry;
   tools?: ToolRegistry;
   providers?: ProviderRegistry;

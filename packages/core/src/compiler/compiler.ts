@@ -10,10 +10,10 @@ import type { Plugin, Processor, Transformer } from 'unified'
 import type { VFile } from 'vfile'
 import type { PhrasingContent, Root, RootContent, Yaml } from 'mdast'
 
-import { isActionDef, isActionNode, isBreak, isContextDef } from '~/compiler/ast'
-import { Runtime } from '~/runtime/runtime'
-import type { WorkflowNode, PhaseNode } from '~/compiler/ast'
-import { Workflow } from '~/compiler/workflow'
+import { isActionDef, isActionNode, isBreak, isContextDef } from './ast'
+import { Workflow } from './workflow'
+import { Runtime } from '../runtime/runtime'
+import type { WorkflowNode, PhaseNode } from './ast'
 
 export function compileWorkflow(markdown: string | VFile, runtime: Runtime): Workflow {
   const file = compileProcessor(runtime).processSync(markdown)

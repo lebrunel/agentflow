@@ -1,6 +1,6 @@
-import type { ContextValueMap } from '~/runtime/context'
-import type { Workflow } from '~/compiler/workflow'
-import type { ActionResultLog } from '~/runtime/action'
+import type { ContextValueMap } from './context'
+import type { ActionResultLog } from './action'
+import type { Workflow } from '../compiler/workflow'
 
 /**
  * Maintains the state of a workflow execution.

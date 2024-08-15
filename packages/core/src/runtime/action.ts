@@ -1,12 +1,12 @@
 import { TypeCompiler } from '@sinclair/typebox/compiler'
-import { dd } from '~/util'
-
 import type { Static, TSchema } from '@sinclair/typebox'
 import type { CompletionUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-import type { Action } from '~/compiler/action'
-import type { ContextName, ContextValue, ContextValueMap } from '~/runtime/context'
-import type { Runtime } from '~/runtime/runtime'
+
+import { dd } from '../util'
+import type { Action } from '../compiler/action'
+import type { ContextName, ContextValue } from './context'
+import type { Runtime } from './runtime'
 
 export function defineAction<T extends TSchema>(options: ActionOptions<T>): ActionHandler<Static<T>> {
   const { name, schema, execute } = options

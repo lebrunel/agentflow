@@ -6,12 +6,12 @@ import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
 import type { Node, Root, Yaml } from 'mdast'
 
-import { compileWorkflow } from '~/compiler/compiler'
-import { Phase } from '~/compiler/phase'
-import { ExecutionController } from '~/runtime/controller'
-import type { PhaseNode, WorkflowNode } from '~/compiler/ast'
-import type { ContextType, ContextTypeMap, ContextValueMap } from '~/runtime/context'
-import type { Runtime } from '~/runtime/runtime'
+import { compileWorkflow } from './compiler'
+import { Phase } from './phase'
+import { ExecutionController } from '../runtime/controller'
+import type { PhaseNode, WorkflowNode } from './ast'
+import type { ContextType, ContextTypeMap, ContextValueMap } from '../runtime/context'
+import type { Runtime } from '../runtime/runtime'
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.

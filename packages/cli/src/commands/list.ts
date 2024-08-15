@@ -4,7 +4,8 @@ import { Command } from 'commander'
 import { bold } from 'picocolors'
 import { globSync } from 'fast-glob'
 import { compileWorkflow, Runtime } from '@ada/core'
-import { resolveConfig } from '~/config'
+
+import { resolveConfig } from '../config'
 
 const cmd = new Command
 

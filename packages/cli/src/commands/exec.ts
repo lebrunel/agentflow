@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
-import { compileWorkflow, executeWorkflow, ExecutionController, Runtime, type RuntimeConfig } from '../../../core/src/index.ts'
+import { compileWorkflow, executeWorkflow, Runtime, type RuntimeConfig } from '@ada/core'
 
-import { resolveConfig } from '~/config'
+import { resolveConfig } from '../config'
 
 const cmd = new Command()
   .name('exec')

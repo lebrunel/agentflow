@@ -1,8 +1,8 @@
 import { Type } from '@sinclair/typebox'
 import { generateText, streamText, type CoreMessage, type UserContent } from 'ai'
 
-import { defineAction } from '~/runtime/action'
-import { dd } from '~/util'
+import { defineAction } from '../runtime/action'
+import { dd } from '../util'
 
 const schema = Type.Object({
   model: Type.String(),

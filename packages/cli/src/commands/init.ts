@@ -1,4 +1,4 @@
-import { Command, Option } from 'commander'
+import { Command } from 'commander'
 import { Workflow } from '@ada/core'
 
 const cmd = new Command

@@ -9,9 +9,8 @@ import { openai } from '@ai-sdk/openai'
 import { google } from '@ai-sdk/google'
 import { ollama } from 'ollama-ai-provider'
 
-import { generateTextAction } from '~/actions/generate'
-
-import type { ActionHandler } from '~/runtime/action'
+import { generateTextAction } from '../actions/generate'
+import type { ActionHandler } from './action'
 
 // Default actions
 const actions: ActionHandler[] = [

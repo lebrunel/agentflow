@@ -127,6 +127,7 @@ export class ExecutionController {
 
     this.#events.emit('action', { action, stream, result: actionResult }, this.cursor)
     const result = await actionResult
+    stream.end()
     this.state.pushResult(result)
 
     if (this.state.isLastAction) {

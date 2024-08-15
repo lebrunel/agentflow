@@ -4,8 +4,7 @@
   "compilerOptions": {
     "baseUrl": ".",
     "paths": {
-      "~/*": ["./src/*"],
-      "@ada/*": ["../packages/*/src"]
+      "~/*": ["./src/*"]
     }
   }
 }

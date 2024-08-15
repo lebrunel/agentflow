@@ -2,14 +2,19 @@
   "name": "@ada/core",
   "private": true,
   "type": "module",
-  "module": "src/index.ts",
   "exports": {
     ".": {
       "import": "./src/index.ts",
-      "types": "./src/index.ts"
+      "types": "./dist/src/index.d.ts"
     }
-  },  
+  },
+  "scripts": {
+    "build": "bun build ./src/index.ts --outdir=./dist && bun run build:tsc",
+    "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"
+  },
   "dependencies": {
+    "@ai-sdk/anthropic": "^0.0.41",
+    "@ai-sdk/google": "^0.0.37",
     "@ai-sdk/openai": "^0.0.44",
     "@sinclair/typebox": "^0.33.0",
     "ai": "^3.3.4",
@@ -29,11 +34,5 @@
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.2",
     "yaml": "^2.5.0"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   }
 }

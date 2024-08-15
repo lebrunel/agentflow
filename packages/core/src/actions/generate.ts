@@ -36,15 +36,19 @@ export const generateTextAction = defineAction({
       : await new Promise<{ text: string, usage: any }>(async resolve => {
         const { textStream } = await streamText({
           ...opts,
-          onFinish: event => resolve(event)
+          onFinish: event => {
+            console.log('finished', event)
+            resolve(event)
+          }
         })
 
-        //for await (const chunk of textStream) {
-        //  this.stream!.push(chunk)
-        //}
+        for await (const chunk of textStream) {
+          process.stdout.write(chunk)
+          //this.stream!.push(chunk)
+        }
+        process.stdout.write('\n')
         //this.stream!.end()
       })
-    
 
     return { type: 'text', text }
   }

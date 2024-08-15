@@ -1,12 +1,13 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
+import { pushable } from 'it-pushable'
 
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from '~/runtime/state'
 import { stringifyNodes } from '~/util'
 import type { Action } from '~/compiler/action'
 import type { Phase } from '~/compiler/phase'
 import type { Workflow } from '~/compiler/workflow'
-import type { ActionResult } from '~/runtime/action'
-import type { ContextValueMap } from '~/runtime/context'
+import type { ActionContext, ActionEvent, ActionResultLog } from '~/runtime/action'
+import type { ContextValue, ContextValueMap } from '~/runtime/context'
 import type { Runtime } from '~/runtime/runtime'
 
 /**
@@ -97,25 +98,36 @@ export class ExecutionController {
 
     const action = this.currentAction
     const handler = this.runtime.useAction(action.type)
-    const input = action.getInputValue(this.state.getContext())
+    // todo - better handling of context value to messages
+    // we need a function that splits the content+context into blocks as may
+    // include images
+    const input: ContextValue[] = [
+      { type: 'text', text: stringifyNodes(action.content, this.state.getContext()) }
+    ]
 
-    this.#events.emit('action.start', action, this.cursor)
+    const stream = pushable<string>({ objectMode: true })
 
-    const output = await handler.execute(
-      { props: action.props, runtime: this.runtime },
+    const context: ActionContext = {
+      action,
       input,
-      this.state.getPhaseResults(),
-    )
-
-    const result: ActionResult = {
-      type: action.type,
-      name: action.name,
-      input,
-      output,
+      results: this.state.getPhaseResults(),
+      stream,
     }
 
+    const actionResult = new Promise<ActionResultLog>(async resolve => {
+      const { output, usage } = await handler.execute(context, this.runtime)
+      resolve({
+        type: action.type,
+        name: action.name,
+        input,
+        output,
+        usage,
+      })
+    })
+
+    this.#events.emit('action', { action, stream, result: actionResult }, this.cursor)
+    const result = await actionResult
     this.state.pushResult(result)
-    this.#events.emit('action.complete', result, this.cursor)
 
     if (this.state.isLastAction) {
       this.status = ExecutionStatus.Completed
@@ -199,8 +211,8 @@ export class ExecutionController {
   /**
    * Returns a map of all action results grouped by phase.
    */
-  getCurrentResults(): ReadonlyMap<Phase, ActionResult[]> {
-    const resultMap = new Map<Phase, ActionResult[]>() 
+  getCurrentResults(): ReadonlyMap<Phase, ActionResultLog[]> {
+    const resultMap = new Map<Phase, ActionResultLog[]>() 
     for (const [phaseIdx, results] of this.state.resultMap) {
       // todo - clone results for better saftey
       resultMap.set(this.workflow.phases[phaseIdx], [...results])
@@ -211,7 +223,7 @@ export class ExecutionController {
   /**
    * Returns the action results for a specific phase.
    */
-  getPhaseResults(phase: Phase): ActionResult[] {
+  getPhaseResults(phase: Phase): ActionResultLog[] {
     const phaseIdx = this.getPhaseIndex(phase)
     const results = this.state.getPhaseResults(phaseIdx)
     // todo - clone results for better saftey
@@ -233,8 +245,10 @@ export class ExecutionController {
     let resultChunks: string[] = []
     for (const result of phaseResults) {
       // todo - better stringifying of ContextValue types
-      if (result.input.type === 'text') {
-        resultChunks.push(result.input.text)
+      for (const res of result.input) {
+        if (res.type === 'text') {
+          resultChunks.push(res.text)
+        }
       }
       if (result.output.type === 'text') {
         resultChunks.push(result.output.text)
@@ -309,11 +323,14 @@ export interface ExecutionEvents {
   /** Status has changed */ 
   'status': (status: ExecutionStatus, cursor: ExecutionCursor) => void;
 
-  /** Action is starting */
-  'action.start': (action: Action, cursor: ExecutionCursor) => void;
+  /** TODO */
+  'action': (event: ActionEvent, cursor: ExecutionCursor) => void;
 
-  /** Action has completed */
-  'action.complete': (result: ActionResult, cursor: ExecutionCursor) => void;
+  ///** Action is starting */
+  //'action.start': (action: Action, cursor: ExecutionCursor) => void;
+
+  ///** Action has completed */
+  //'action.complete': (result: ActionResultLog, cursor: ExecutionCursor) => void;
 
   /** A new phase is starting */
   'phase': (phase: Phase, prev: Phase | undefined, cursor: ExecutionCursor) => void;
@@ -340,4 +357,4 @@ export interface ExecutionOpts {
  * Callback function executed after each action in the workflow.
  */
 export type AfterActionCallback = 
-  (result: ActionResult, cursor: ExecutionCursor) => void | Promise<void>
+  (result: ActionResultLog, cursor: ExecutionCursor) => void | Promise<void>

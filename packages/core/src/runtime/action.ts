@@ -4,7 +4,8 @@ import { dd } from '~/util'
 import type { Static, TSchema } from '@sinclair/typebox'
 import type { CompletionUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-import type { ContextName, ContextValue } from '~/runtime/context'
+import type { Action } from '~/compiler/action'
+import type { ContextName, ContextValue, ContextValueMap } from '~/runtime/context'
 import type { Runtime } from '~/runtime/runtime'
 
 export function defineAction<T extends TSchema>(options: ActionOptions<T>): ActionHandler<Static<T>> {
@@ -47,24 +48,41 @@ export interface ActionOptions<T extends TSchema> {
   validate?: (props: Static<T>) => void;
 }
 
+//export interface ActionContext<T> {
+//  props: T;
+//  runtime: Runtime;
+//  stream?: Pushable<string>;
+//}
+
+export interface ActionContext<T = any> {
+  action: Action<T>;
+  input: ContextValue[];
+  results: ActionResultLog[];
+  stream: Pushable<string>;
+}
+
+export interface ActionEvent {
+  action: Action;
+  stream: Pushable<string>;
+  result: PromiseLike<ActionResultLog>;
+}
+
 export interface ActionResult {
-  type: ActionTypeName;
-  name: ContextName;
-  input: ContextValue;
   output: ContextValue;
   usage?: CompletionUsage;
 }
 
-export interface ActionContext<T> {
-  props: T;
-  runtime: Runtime;
-  stream?: Pushable<string>;
+export interface ActionResultLog {
+  type: ActionTypeName;
+  name: ContextName;
+  input: ContextValue[];
+  output: ContextValue;
+  usage?: CompletionUsage;
 }
 
 export type ActionTypeName = string
 
 export type ActionFn<T> = (
   ctx: ActionContext<T>,
-  input: ContextValue,
-  prevResults: ActionResult[],
-) => ContextValue | PromiseLike<ContextValue>
+  runtime: Runtime,
+) => ActionResult | PromiseLike<ActionResult>

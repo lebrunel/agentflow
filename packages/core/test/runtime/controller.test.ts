@@ -208,16 +208,14 @@ describe('ExecutionController', () => {
 
   test('Events are emitted correctly', async () => {
     let statusEvents = 0
-    let actionStartEvents = 0
-    let actionCompleteEvents = 0
+    let actionEvents = 0
     let phaseEvents = 0
     let completeEvents = 0
     let errorEvents = 0
     let rewindEvents = 0
 
     controller.on('status', () => statusEvents++)
-    controller.on('action.start', () => actionStartEvents++)
-    controller.on('action.complete', () => actionCompleteEvents++)
+    controller.on('action', () => actionEvents++)
     controller.on('phase', () => phaseEvents++)
     controller.on('complete', () => completeEvents++)
     controller.on('error', () => errorEvents++)
@@ -228,8 +226,7 @@ describe('ExecutionController', () => {
     controller.reset()
 
     expect(statusEvents).toBe(3)
-    expect(actionStartEvents).toBe(4)
-    expect(actionCompleteEvents).toBe(4)
+    expect(actionEvents).toBe(4)
     expect(phaseEvents).toBe(2)
     expect(completeEvents).toBe(1)
     expect(errorEvents).toBe(0)

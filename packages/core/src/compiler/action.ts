@@ -8,13 +8,13 @@ import type { ContextValue, ContextValueMap } from '~/runtime/context'
  * **Action** - An individual step within a phase, representing a single request
  * sent to the LLM for generating a response.
  */
-export class Action {
+export class Action<T = any> {
   #node: ActionNode
-  #content: RootContent[]
+  content: RootContent[]
 
   constructor(node: ActionNode, content: RootContent[]) {
     this.#node = node
-    this.#content = content
+    this.content = content
   }
 
   get name(): string {
@@ -25,12 +25,12 @@ export class Action {
     return this.#node.data.type
   }
 
-  get props(): any {
+  get props(): T {
     return this.#node.data.props
   }
 
-  getInputValue(context: ContextValueMap): ContextValue {
-    const text = stringifyNodes(this.#content, context)
-    return { type: 'text', text }
-  }
+  //getInputValue(context: ContextValueMap): ContextValue {
+  //  const text = stringifyNodes(this.#content, context)
+  //  return { type: 'text', text }
+  //}
 }

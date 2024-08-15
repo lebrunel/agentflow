@@ -1,5 +1,5 @@
 import { Type } from '@sinclair/typebox'
-import { generateText, streamText, type CoreMessage } from 'ai'
+import { generateText, streamText, type CoreMessage, type UserContent } from 'ai'
 
 import { defineAction } from '~/runtime/action'
 import { dd } from '~/util'
@@ -12,26 +12,25 @@ const schema = Type.Object({
 export const generateTextAction = defineAction({
   name: 'generate',
   schema,
-  execute: async ({ props, runtime }, input, prevResults) => {
+  execute: async ({ action, input, results, stream }, runtime) => {
     const messages: CoreMessage[] = []
     
-    for (const res of prevResults) {
+    for (const res of results) {
       // todo - better handling of context value to messages
       messages.push({ role: 'user', content: [res.input as any] })
       messages.push({ role: 'assistant', content: [res.output as any] })
     }
-    // todo - better handling of context value to messages
-    messages.push({ role: 'user', content: [input as any]})
+    messages.push({ role: 'user', content: input as UserContent })
 
     const opts = {
-      model: runtime.useLanguageModel(props.model),
+      model: runtime.useLanguageModel(action.props.model),
       system: SYSTEM_PROMPT,
       messages,
     }
 
     // todo - figure out how to push stream to controller
     // todo - figure out how to push usage to controller/state
-    const { text, usage } = props.stream === false
+    const { text, usage } = action.props.stream === false
       ? await generateText(opts)
       : await new Promise<{ text: string, usage: any }>(async resolve => {
         const { textStream } = await streamText({
@@ -43,14 +42,14 @@ export const generateTextAction = defineAction({
         })
 
         for await (const chunk of textStream) {
-          process.stdout.write(chunk)
-          //this.stream!.push(chunk)
+          stream.push(chunk)
         }
-        process.stdout.write('\n')
-        //this.stream!.end()
       })
 
-    return { type: 'text', text }
+    return {
+      output: { type: 'text', text },
+      usage,
+    }
   }
 })
 

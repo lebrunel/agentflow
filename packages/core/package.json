@@ -2,12 +2,7 @@
   "name": "@ada/core",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "types": "./dist/src/index.d.ts"
-    }
-  },
+  "module": "src/index.ts",
   "scripts": {
     "build": "bun build ./src/index.ts --outdir=./dist && bun run build:tsc",
     "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"

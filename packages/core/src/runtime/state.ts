@@ -1,6 +1,6 @@
 import type { ContextValueMap } from '~/runtime/context'
 import type { Workflow } from '~/compiler/workflow'
-import type { ActionResult } from '~/runtime/action'
+import type { ActionResultLog } from '~/runtime/action'
 
 /**
  * Maintains the state of a workflow execution.
@@ -11,8 +11,8 @@ export class ExecutionState {
   
   initialContext: ContextValueMap
   phaseSizeMap: Map<number, number> = new Map()
-  resultMap: Map<number, ActionResult[]> = new Map()
-  resultLog: ActionResult[] = []
+  resultMap: Map<number, ActionResultLog[]> = new Map()
+  resultLog: ActionResultLog[] = []
 
   constructor(workflow: Workflow, context: ContextValueMap) {
     // iterate over phases to populate size map and result map
@@ -106,14 +106,14 @@ export class ExecutionState {
   /**
    * Returns the action results for a specific phase.
    */
-  getPhaseResults(index: number = this.cursor[0]): ActionResult[] {
+  getPhaseResults(index: number = this.cursor[0]): ActionResultLog[] {
     return this.resultMap.get(index)!
   }
 
   /**
    * Adds a new action result to the current phase and the result log.
    */
-  pushResult({ ...result }: ActionResult) {
+  pushResult({ ...result }: ActionResultLog) {
     const results = this.getPhaseResults()
     results.push(result)
     this.resultLog.push(result)

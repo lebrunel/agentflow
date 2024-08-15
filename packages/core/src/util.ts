@@ -7,7 +7,6 @@ import type { Transformer } from 'unified'
 
 import type { ContextValue, ContextValueMap } from './runtime/context'
 
-
 export { default as dd } from 'ts-dedent'
 
 export function stringifyNodes(nodes: RootContent[], context: ContextValueMap = {}): string {

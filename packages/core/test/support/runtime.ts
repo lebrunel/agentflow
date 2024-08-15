@@ -8,8 +8,8 @@ export const mockAction = defineAction({
     type: Type.Literal('text'),
     text: Type.String(),
   }),
-  execute({ props }, _input, _prevResults) {
-    return props
+  execute(ctx, _runtime) {
+    return { output: ctx.action.props }
   }
 })
 

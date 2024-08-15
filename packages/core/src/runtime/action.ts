@@ -5,7 +5,7 @@ import type { Pushable } from 'it-pushable'
 
 import { dd } from '../util'
 import type { Action } from '../compiler/action'
-import type { ContextName, ContextValue } from './context'
+import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime } from './runtime'
 
 export function defineAction<T extends TSchema>(options: ActionOptions<T>): ActionHandler<Static<T>> {
@@ -64,11 +64,12 @@ export interface ActionContext<T = any> {
 export interface ActionEvent {
   action: Action;
   stream: Pushable<string>;
+  input: string;
   result: PromiseLike<ActionResultLog>;
 }
 
 export interface ActionResult {
-  output: ContextValue;
+  output: ContextTextValue;
   usage?: CompletionUsage;
 }
 
@@ -76,7 +77,7 @@ export interface ActionResultLog {
   type: ActionTypeName;
   name: ContextName;
   input: ContextValue[];
-  output: ContextValue;
+  output: ContextTextValue;
   usage?: CompletionUsage;
 }
 

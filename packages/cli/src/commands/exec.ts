@@ -27,18 +27,25 @@ async function execWorkflow(name: string) {
     style: { type: 'text', text: 'Raggae' }
   }, runtime)
 
-  ctrl.on('action', async ({ action, result, stream }) => {
+  ctrl.on('action', async ({ action, stream, input, result }) => {
+    let isStreaming = false
     console.log('ACTION', `${action.type}@${action.name}`)
-    result.then(() => {
+    console.log(input)
+    
+    result.then((result) => {
+      if (isStreaming) {
+        process.stdout.write('\n')
+      } else {
+        console.log(result.output.text)
+      }
+      // either way, end the stream
       stream.end()
-      console.log('DONE')
     })
 
     for await (const chunk of stream) {
+      isStreaming = true
       process.stdout.write(chunk)
     }
-    process.stdout.write('\n')
-    stream.end()
   })
 
   //ctrl.on('action.start', action => {
@@ -55,8 +62,8 @@ async function execWorkflow(name: string) {
 
   return new Promise<void>(resolve => {
     ctrl.on('complete', (result) => {
-      console.log('=======')
-      console.log(result)
+      //console.log('=======')
+      //console.log(result)
       resolve()
     })
   })

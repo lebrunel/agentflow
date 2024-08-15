@@ -1,5 +1,6 @@
 import { Type } from '@sinclair/typebox'
-import { generateText, streamText, type CoreMessage, type UserContent } from 'ai'
+import { generateText, streamText } from 'ai'
+import type { CoreMessage, AssistantContent, UserContent } from 'ai'
 
 import { defineAction } from '../runtime/action'
 import { dd } from '../util'
@@ -16,9 +17,8 @@ export const generateTextAction = defineAction({
     const messages: CoreMessage[] = []
     
     for (const res of results) {
-      // todo - better handling of context value to messages
-      messages.push({ role: 'user', content: [res.input as any] })
-      messages.push({ role: 'assistant', content: [res.output as any] })
+      messages.push({ role: 'user', content: res.input })
+      messages.push({ role: 'assistant', content: [res.output] })
     }
     messages.push({ role: 'user', content: input as UserContent })
 
@@ -28,8 +28,6 @@ export const generateTextAction = defineAction({
       messages,
     }
 
-    // todo - figure out how to push stream to controller
-    // todo - figure out how to push usage to controller/state
     const { text, usage } = action.props.stream === false
       ? await generateText(opts)
       : await new Promise<{ text: string, usage: any }>(async resolve => {

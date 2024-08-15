@@ -4,7 +4,7 @@ import { pushable } from 'it-pushable'
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
 import { stringifyNodes } from '../util'
 import type { ActionContext, ActionEvent, ActionResultLog } from './action'
-import type { ContextValue, ContextValueMap } from './context'
+import { contextToString, type ContextValue, type ContextValueMap } from './context'
 import type { Runtime } from './runtime'
 import type { Action } from '../compiler/action'
 import type { Phase } from '../compiler/phase'
@@ -125,7 +125,13 @@ export class ExecutionController {
       })
     })
 
-    this.#events.emit('action', { action, stream, result: actionResult }, this.cursor)
+    this.#events.emit('action', {
+      action,
+      stream,
+      input: contextToString(input),
+      result: actionResult
+    }, this.cursor)
+
     const result = await actionResult
     stream.end()
     this.state.pushResult(result)

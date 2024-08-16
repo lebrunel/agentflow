@@ -1,9 +1,12 @@
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
-import { compileWorkflow, executeWorkflow, Runtime, type RuntimeConfig } from '@ada/core'
-
+import { blue, bold, dim } from 'picocolors'
+import { compileWorkflow, executeWorkflow, ExecutionStatus, Runtime } from '@ada/core'
 import { resolveConfig } from '../config'
+
+import type { UserConfig } from '@ada/core'
+import { dd } from '../../../core/src/util'
 
 const cmd = new Command()
   .name('exec')
@@ -16,7 +19,7 @@ const cmd = new Command()
 async function execWorkflow(name: string) {
   const cwd = process.cwd()
   const config = await resolveConfig(cwd)
-  const runtime = new Runtime(config as RuntimeConfig)
+  const runtime = new Runtime(config as UserConfig)
   const flowName = name.trim().replace(/(.md)?$/, '.md')
   const flowPath = join(cwd, config.paths.flows, flowName)
   const flowStr = readFileSync(flowPath, { encoding: 'utf8' })
@@ -27,10 +30,17 @@ async function execWorkflow(name: string) {
     style: { type: 'text', text: 'Raggae' }
   }, runtime)
 
+  console.log(`🚀 ${bold(workflow.title)}`)
+  console.log()
+  
+
   ctrl.on('action', async ({ action, stream, input, result }) => {
+    console.log(dim('[['), `${blue(action.type)}@${blue(action.name)}`, dim(']]'))
+    console.log()
+    console.log(dim(input))
+    console.log()
+
     let isStreaming = false
-    console.log('ACTION', `${action.type}@${action.name}`)
-    console.log(input)
     
     result.then((result) => {
       if (isStreaming) {
@@ -40,6 +50,7 @@ async function execWorkflow(name: string) {
       }
       // either way, end the stream
       stream.end()
+      console.log()
     })
 
     for await (const chunk of stream) {
@@ -62,12 +73,35 @@ async function execWorkflow(name: string) {
 
   return new Promise<void>(resolve => {
     ctrl.on('complete', (result) => {
-      //console.log('=======')
-      //console.log(result)
+      const now = new Date()
+      const outputName = `${generatePrefix(now)}-${flowName}`
+      const outputPath = join(cwd, config.paths.outputs, outputName)
+      const content = appendFrontmatter(workflow.title, now, result)
+      writeFileSync(outputPath, content, { encoding: 'utf8' })
+      // todo - print token stats/costs and add to output metadata
       resolve()
     })
   })
 }
+
+function appendFrontmatter(title: string, created: Date, body: string) {
+  return dd`
+  ---
+  title: ${title}
+  created: ${created.toISOString()}
+  ---
+
+  ${body}
+  `
+}
+
+function generatePrefix(created: Date): string {
+  const datePrefix = created.toISOString().slice(2, 8).replace(/-/g, '')
+  const daySeconds = (created.getHours() * 3600) + (created.getMinutes() * 60) + created.getSeconds()
+  const slug = daySeconds.toString(36).padStart(4, '0')
+  return `${datePrefix}-${slug}`
+}
+
 
 export default cmd
 

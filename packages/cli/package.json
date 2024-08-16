@@ -5,14 +5,7 @@
   "type": "module",
   "bin": {
     "ada": "./bin/ada.ts"
-  },
-  "exports": {
-    ".": {
-      "import": "./src/index.ts",
-      "types": "./src/index.ts"
-    }
-  },
-  
+  },  
   "dependencies": {
     "@ada/core": "workspace:*",
     "commander": "^12.1.0",

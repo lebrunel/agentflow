@@ -1,12 +1,12 @@
 import {
   experimental_createProviderRegistry as createProviderRegistry,
-  type experimental_Provider as Provider,
   type experimental_ProviderRegistry as ProviderRegistry,
   type LanguageModel
 } from 'ai'
 
 import { generateTextAction } from '../actions/generate'
 import type { ActionHandler } from './action'
+import type { UserConfig } from './config'
 
 // Default actions
 const actions: ActionHandler[] = [
@@ -21,7 +21,7 @@ export class Runtime {
   private tools: ToolRegistry = defaultRegistry(tools)
   private providers: ProviderRegistry = createProviderRegistry({})
 
-  constructor(config: RuntimeConfig) {
+  constructor(config: UserConfig) {
     // Register user actions
     if (config.actions?.length) {
       for (const action of config.actions) {
@@ -99,13 +99,6 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
 
 export type Plugin = (runtime: Runtime) => void
 
-export interface RuntimeConfig {
-  actions?: ActionHandler[];
-  tools?: __Tool[];
-  providers?: Record<string, Provider>;
-  plugins?: Plugin[];
-}
-
 type ActionRegistry = Record<string, ActionHandler>
 type ToolRegistry = Record<string, __Tool>
-type __Tool = { name: string }
+export type __Tool = { name: string }

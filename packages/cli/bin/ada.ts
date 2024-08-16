@@ -1,2 +1,2 @@
 #!/usr/bin/env bun
-import '../src/cli'
+import '../src/index'

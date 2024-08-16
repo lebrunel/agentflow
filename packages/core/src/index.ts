@@ -10,10 +10,12 @@ export { Workflow, type WorkflowInput } from './compiler/workflow'
 
 // Runtime exports
 export { defineAction } from './runtime/action'
+export { defineConfig } from './runtime/config'
 export { executeWorkflow, ExecutionController } from './runtime/controller'
 export { Runtime } from './runtime/runtime'
 export { ExecutionStatus } from './runtime/state'
 export type { ActionHandler, ActionOptions, ActionResult } from './runtime/action'
 export type { ExecutionOpts, ExecutionEvents, AfterActionCallback } from './runtime/controller'
-export type { Plugin, RuntimeConfig } from './runtime/runtime'
+export type { UserConfig } from './runtime/config'
+export type { Plugin } from './runtime/runtime'
 export type { ExecutionCursor } from './runtime/state'

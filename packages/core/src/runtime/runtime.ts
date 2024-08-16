@@ -1,13 +1,9 @@
 import {
   experimental_createProviderRegistry as createProviderRegistry,
+  type experimental_Provider as Provider,
   type experimental_ProviderRegistry as ProviderRegistry,
   type LanguageModel
 } from 'ai'
-
-import { anthropic } from '@ai-sdk/anthropic'
-import { openai } from '@ai-sdk/openai'
-import { google } from '@ai-sdk/google'
-import { ollama } from 'ollama-ai-provider'
 
 import { generateTextAction } from '../actions/generate'
 import type { ActionHandler } from './action'
@@ -23,27 +19,29 @@ const tools: __Tool[] = []
 export class Runtime {
   private actions: ActionRegistry = defaultRegistry(actions)
   private tools: ToolRegistry = defaultRegistry(tools)
-  private providers: ProviderRegistry = defaultProviders()
+  private providers: ProviderRegistry = createProviderRegistry({})
 
   constructor(config: RuntimeConfig) {
     // Register user actions
-    for (const name in config.actions) {
-      this.registerAction(name, config.actions[name])
+    if (config.actions?.length) {
+      for (const action of config.actions) {
+        this.registerAction(action.name, action)
+      }
     }
 
     // Register user tools
-    for (const name in config.tools) {
-      this.registerTool(name, config.tools[name])
+    if (config.tools?.length) {
+      for (const tool of config.tools) {
+        this.registerTool(tool.name, tool)
+      }
     }
 
     // Set default or user providers
     if (config.providers) {
-      this.providers = config.providers
-    } else {
-      this.providers = defaultProviders()
+      this.providers = createProviderRegistry(config.providers)
     }
 
-    if (config.plugins) {
+    if (config.plugins?.length) {
       for (const plugin of config.plugins) {
         plugin(this)
       }
@@ -97,23 +95,14 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
   }, {})
 }
 
-function defaultProviders(): ProviderRegistry {
-  return createProviderRegistry({
-    anthropic,
-    openai,
-    google,
-    ollama,
-  })
-}
-
 // Types
 
 export type Plugin = (runtime: Runtime) => void
 
 export interface RuntimeConfig {
-  actions?: ActionRegistry;
-  tools?: ToolRegistry;
-  providers?: ProviderRegistry;
+  actions?: ActionHandler[];
+  tools?: __Tool[];
+  providers?: Record<string, Provider>;
   plugins?: Plugin[];
 }
 

@@ -2,9 +2,17 @@
   "name": "@ada/cli",
   "version": "0.0.1",
   "private": true,
-  "bin": "src/index.ts",
-  "module": "src/index.ts",
   "type": "module",
+  "bin": {
+    "ada": "./bin/ada.ts"
+  },
+  "exports": {
+    ".": {
+      "import": "./src/index.ts",
+      "types": "./src/index.ts"
+    }
+  },
+  
   "dependencies": {
     "@ada/core": "workspace:*",
     "commander": "^12.1.0",

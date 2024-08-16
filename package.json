@@ -2,6 +2,7 @@
   "name": "project-ada-monorepo",
   "private": true,
   "workspaces": [
+    "examples",
     "packages/*"
   ],
   "devDependencies": {

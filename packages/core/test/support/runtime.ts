@@ -14,5 +14,5 @@ export const mockAction = defineAction({
 })
 
 export const runtime = new Runtime({
-  actions: { mock: mockAction }
+  actions: [ mockAction ]
 })

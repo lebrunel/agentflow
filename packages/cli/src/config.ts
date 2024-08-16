@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import { RuntimeConfig } from '@ada/core'
+import type { RuntimeConfig } from '@ada/core'
 
 export function defineConfig(config: UserConfig): UserConfig
 export function defineConfig(config: UserConfigFn): UserConfigFn

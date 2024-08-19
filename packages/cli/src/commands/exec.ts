@@ -2,18 +2,17 @@ import { readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim } from 'picocolors'
-import { compileWorkflow, executeWorkflow, ExecutionStatus, Runtime } from '@ada/core'
-import { resolveConfig } from '../config'
-
+import { compileWorkflow, executeWorkflow, util, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
-import { dd } from '../../../core/src/util'
+
+import { resolveConfig } from '../config'
+import { promptInputs } from '../prompts'
 
 const cmd = new Command()
   .name('exec')
   .alias('x')
   .description('executes the given workflow')
   .argument('<workflow>', 'name of the workflow')
-  .option('--foo', 'xxxx')
   .action(execWorkflow)
 
 async function execWorkflow(name: string) {
@@ -25,14 +24,15 @@ async function execWorkflow(name: string) {
   const flowStr = readFileSync(flowPath, { encoding: 'utf8' })
 
   const workflow = compileWorkflow(flowStr, runtime)
-  const ctrl = executeWorkflow(workflow, {
-    name: { type: 'text', text: 'Bob' },
-    style: { type: 'text', text: 'Raggae' }
-  }, runtime)
 
   console.log(`🚀 ${bold(workflow.title)}`)
   console.log()
-  
+  //console.log(workflow.description)
+  //console.log()
+
+  const context = await promptInputs(workflow.inputs)
+  console.log()
+  const ctrl = executeWorkflow(workflow, context, runtime)
 
   ctrl.on('action', async ({ action, stream, input, result }) => {
     console.log(dim('[['), `${blue(action.type)}@${blue(action.name)}`, dim(']]'))
@@ -85,7 +85,7 @@ async function execWorkflow(name: string) {
 }
 
 function appendFrontmatter(title: string, created: Date, body: string) {
-  return dd`
+  return util.dd`
   ---
   title: ${title}
   created: ${created.toISOString()}

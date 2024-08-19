@@ -4,13 +4,13 @@ import { select, selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import remarkStringify from 'remark-stringify'
-import type { Node, Root, Yaml } from 'mdast'
+import type { Root, Yaml } from 'mdast'
 
 import { compileWorkflow } from './compiler'
 import { Phase } from './phase'
 import { ExecutionController } from '../runtime/controller'
 import type { PhaseNode, WorkflowNode } from './ast'
-import type { ContextType, ContextTypeMap, ContextValueMap } from '../runtime/context'
+import type { ContextTypeMap, ContextValueMap } from '../runtime/context'
 import type { Runtime } from '../runtime/runtime'
 
 /**
@@ -19,7 +19,7 @@ import type { Runtime } from '../runtime/runtime'
 export class Workflow {
   title: string
   readonly description: string = ''
-  readonly inputs: WorkflowInput[]
+  readonly inputs: WorkflowInputs
   readonly meta: Record<string, any>
   readonly phases: Phase[] = []
 
@@ -29,7 +29,8 @@ export class Workflow {
     const phaseNodes = selectAll('phase', workflowNode) as PhaseNode[]
 
     this.meta = yaml?.data || {}
-    this.inputs = this.meta?.inputs || []
+    // TODO - valid input schema
+    this.inputs = this.meta?.inputs || {}
 
     // get a title from either: meta, heading, file or fallback
     this.title = this.meta.title
@@ -41,10 +42,6 @@ export class Workflow {
       if (firstNode?.type === 'heading') {
         this.title = toString(firstNode)
       }
-    }
-
-    if (!this.title && root) {
-
     }
 
     this.title ||= file?.basename || 'Untitled'
@@ -59,9 +56,10 @@ export class Workflow {
     }
 
     // create mutatable ContextTypeMap
-    const context: ContextTypeMap = this.inputs.reduce((map, { name, type }) => {
-      return Object.assign(map, { [name]: type })
-    }, {})
+    const context: ContextTypeMap =
+      Object.entries(this.inputs).reduce((map, [name, { type }]) => {
+        return Object.assign(map, { [name]: type })
+      }, {})
 
     // collect phases
     for (const node of phaseNodes) {
@@ -89,8 +87,42 @@ export class Workflow {
 
 // Types
 
-export interface WorkflowInput {
-  name: string;
-  description?: string;
-  type: ContextType;
+export interface WorkflowInputs {
+  [name: string]: InputSchema;
+}
+
+export type InputSchema =
+  | TextInputSchema
+  | SelectInputSchema
+  | FileInputSchema
+  | ArrayInputSchema
+
+export type InputType =
+  | 'text'
+  | 'select'
+  | 'file'
+  | 'array'
+
+interface BaseInputSchema {
+  type: InputType;
+  message?: string;
+}
+
+export interface TextInputSchema extends BaseInputSchema {
+  type: 'text';
+  multiline?: boolean;
+}
+
+export interface SelectInputSchema extends BaseInputSchema {
+  type: 'select';
+  choices: Array<string | {name: string; value: string}>;
+}
+
+export interface FileInputSchema extends BaseInputSchema {
+  type: 'file';
+  fileType: 'text' | 'image';
+}
+
+export interface ArrayInputSchema extends BaseInputSchema {
+  type: 'array'
 }

@@ -5,11 +5,14 @@
   "type": "module",
   "bin": {
     "ada": "./bin/ada.ts"
-  },  
+  },
   "dependencies": {
     "@ada/core": "workspace:*",
+    "@inquirer/prompts": "^5.3.8",
+    "@types/mime-types": "^2.1.4",
     "commander": "^12.1.0",
     "fast-glob": "^3.3.2",
+    "mime-types": "^2.1.35",
     "picocolors": "^1.0.1"
   }
 }

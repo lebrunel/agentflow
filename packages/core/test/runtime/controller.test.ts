@@ -8,7 +8,7 @@ import type { ContextValueMap } from '~/runtime/context'
 const src = dd`
 ---
 inputs:
-  - name: foo
+  name:
     type: text
 ---
 # Hello

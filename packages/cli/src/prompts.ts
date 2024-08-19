@@ -7,10 +7,10 @@ import type {
   ContextValue,
   ContextValueMap,
   WorkflowInputs,
-  TextInputSchema,
-  SelectInputSchema,
-  ArrayInputSchema,
-  FileInputSchema,
+  TextInput,
+  SelectInput,
+  ArrayInput,
+  FileInput,
 } from '@ada/core'
 import { blue, bold, dim } from 'picocolors'
 
@@ -39,19 +39,19 @@ export async function promptInputs(inputs: WorkflowInputs): Promise<ContextValue
   return context
 }
 
-export async function promptText(name: string, schema: TextInputSchema): Promise<ContextValue> {
+export async function promptText(name: string, schema: TextInput): Promise<ContextValue> {
   const message = schema.message || `Enter ${name}`
   const text = await (schema.multiline ? editor({ message }) : input({ message }))
   return { type: 'text', text }
 }
 
-export async function promptSelect(name: string, schema: SelectInputSchema): Promise<ContextValue> {
+export async function promptSelect(name: string, schema: SelectInput): Promise<ContextValue> {
   const message = schema.message || `Select ${name}`
-  const choices = schema.choices.map(choice => {
-    if (typeof choice === 'string') {
-      return { value: choice }
+  const choices = schema.options.map(opt => {
+    if (typeof opt === 'string') {
+      return { value: opt }
     } else {
-      return choice
+      return opt
     }
   })
   
@@ -59,7 +59,7 @@ export async function promptSelect(name: string, schema: SelectInputSchema): Pro
   return { type: 'text', text }
 }
 
-export async function promptFile(name: string, schema: FileInputSchema): Promise<ContextValue> {
+export async function promptFile(name: string, schema: FileInput): Promise<ContextValue> {
   const message = schema.message || `Enter ${name}`
   const value = await input({ message, validate: isUrlOrPath })
 
@@ -85,7 +85,7 @@ export async function promptFile(name: string, schema: FileInputSchema): Promise
   }
 }
 
-export async function promptArray(name: string, schema: ArrayInputSchema): Promise<ContextValue> {
+export async function promptArray(name: string, schema: ArrayInput): Promise<ContextValue> {
   const message = schema.message || `Enter ${name}`
   const res = await multiline({ message })
   // todo - we need an array context type

@@ -9,12 +9,12 @@ export { Phase } from './compiler/phase'
 export { Workflow } from './compiler/workflow'
 export type {
   WorkflowInputs,
-  InputSchema,
-  TextInputSchema,
-  SelectInputSchema,
-  FileInputSchema,
-  ArrayInputSchema,
-} from './compiler/workflow'
+  Input,
+  TextInput,
+  SelectInput,
+  FileInput,
+  ArrayInput,
+} from './compiler/inputs'
 
 // Runtime exports
 export { defineAction } from './runtime/action'

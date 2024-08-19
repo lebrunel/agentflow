@@ -1,7 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command } from 'commander'
-import { bold, dim, green } from 'picocolors'
+import { bold, dim, green, bgRed } from 'picocolors'
 
 import init from './commands/init'
 import list from './commands/list'
@@ -25,4 +25,9 @@ cli
   .addCommand(list)
   .addCommand(exec)
 
-await cli.parseAsync()
+try {
+  await cli.parseAsync()
+} catch(e: any) {
+  console.log(bgRed('Error'), e.message)
+}
+

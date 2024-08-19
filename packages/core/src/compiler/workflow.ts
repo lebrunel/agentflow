@@ -7,11 +7,14 @@ import remarkStringify from 'remark-stringify'
 import type { Root, Yaml } from 'mdast'
 
 import { compileWorkflow } from './compiler'
+import { validateWorkflowInputs } from './inputs'
 import { Phase } from './phase'
 import { ExecutionController } from '../runtime/controller'
 import type { PhaseNode, WorkflowNode } from './ast'
 import type { ContextTypeMap, ContextValueMap } from '../runtime/context'
 import type { Runtime } from '../runtime/runtime'
+import type { WorkflowInputs } from './inputs'
+
 
 /**
  * **Workflow** - A complete program defined in plain English using markdown.
@@ -29,8 +32,8 @@ export class Workflow {
     const phaseNodes = selectAll('phase', workflowNode) as PhaseNode[]
 
     this.meta = yaml?.data || {}
-    // TODO - valid input schema
     this.inputs = this.meta?.inputs || {}
+    validateWorkflowInputs(this.inputs)
 
     // get a title from either: meta, heading, file or fallback
     this.title = this.meta.title
@@ -83,46 +86,4 @@ export class Workflow {
     // todo - implement validate
     return true
   }
-}
-
-// Types
-
-export interface WorkflowInputs {
-  [name: string]: InputSchema;
-}
-
-export type InputSchema =
-  | TextInputSchema
-  | SelectInputSchema
-  | FileInputSchema
-  | ArrayInputSchema
-
-export type InputType =
-  | 'text'
-  | 'select'
-  | 'file'
-  | 'array'
-
-interface BaseInputSchema {
-  type: InputType;
-  message?: string;
-}
-
-export interface TextInputSchema extends BaseInputSchema {
-  type: 'text';
-  multiline?: boolean;
-}
-
-export interface SelectInputSchema extends BaseInputSchema {
-  type: 'select';
-  choices: Array<string | {name: string; value: string}>;
-}
-
-export interface FileInputSchema extends BaseInputSchema {
-  type: 'file';
-  fileType: 'text' | 'image';
-}
-
-export interface ArrayInputSchema extends BaseInputSchema {
-  type: 'array'
 }

@@ -191,9 +191,11 @@ describe('compileProcessor()', () => {
   test('parses context tags and action blocks', () => {
     const src = dd`
     ---
-    input:
-      - name: foo
-      - name: bar
+    inputs:
+      foo:
+        type: text
+      bar:
+        type: text
     ---
     # Introduction
 

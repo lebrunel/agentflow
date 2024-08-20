@@ -1,6 +1,6 @@
 import { TypeCompiler } from '@sinclair/typebox/compiler'
 import type { Static, TSchema } from '@sinclair/typebox'
-import type { CompletionUsage } from 'ai'
+import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 
 import { dd } from '../util'
@@ -70,7 +70,7 @@ export interface ActionEvent {
 
 export interface ActionResult {
   output: ContextTextValue;
-  usage?: CompletionUsage;
+  usage?: CompletionTokenUsage;
 }
 
 export interface ActionResultLog {
@@ -78,7 +78,7 @@ export interface ActionResultLog {
   name: ContextName;
   input: ContextValue[];
   output: ContextTextValue;
-  usage?: CompletionUsage;
+  usage?: CompletionTokenUsage;
 }
 
 export type ActionTypeName = string

@@ -1,6 +1,6 @@
 import { Type } from '@sinclair/typebox'
 import { generateText, streamText } from 'ai'
-import type { CoreMessage, AssistantContent, UserContent } from 'ai'
+import type { CompletionTokenUsage, CompletionUsage, CoreMessage, UserContent } from 'ai'
 
 import { defineAction } from '../runtime/action'
 import { dd } from '../util'
@@ -31,7 +31,7 @@ export const generateTextAction = defineAction({
 
     const { text, usage } = action.props.stream === false
       ? await generateText(opts)
-      : await new Promise<{ text: string, usage: any }>(async resolve => {
+      : await new Promise<{ text: string, usage: CompletionTokenUsage }>(async resolve => {
         const { textStream } = await streamText({
           ...opts,
           onFinish: resolve

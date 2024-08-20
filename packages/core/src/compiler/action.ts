@@ -26,9 +26,4 @@ export class Action<T = any> {
   get props(): T {
     return this.#node.data.props
   }
-
-  //getInputValue(context: ContextValueMap): ContextValue {
-  //  const text = stringifyNodes(this.#content, context)
-  //  return { type: 'text', text }
-  //}
 }

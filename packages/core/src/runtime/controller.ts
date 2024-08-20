@@ -2,9 +2,9 @@ import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
 
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
-import { stringifyNodes } from '../util'
+import { contextToString, nodesToContext } from './context'
 import type { ActionContext, ActionEvent, ActionResultLog } from './action'
-import { contextToString, type ContextValue, type ContextValueMap } from './context'
+import type { ContextValueMap } from './context'
 import type { Runtime } from './runtime'
 import type { Action } from '../compiler/action'
 import type { Phase } from '../compiler/phase'
@@ -98,13 +98,7 @@ export class ExecutionController {
 
     const action = this.currentAction
     const handler = this.runtime.useAction(action.type)
-    // todo - better handling of context value to messages
-    // we need a function that splits the content+context into blocks as may
-    // include images
-    const input: ContextValue[] = [
-      { type: 'text', text: stringifyNodes(action.content, this.state.getContext()) }
-    ]
-
+    const input = nodesToContext(action.content, this.state.getContext())
     const stream = pushable<string>({ objectMode: true })
 
     const context: ActionContext = {
@@ -263,7 +257,9 @@ export class ExecutionController {
     }
 
     if (trailingNodes.length) {
-      const trailingText = stringifyNodes(trailingNodes, this.state.getContext())
+      const trailingText = contextToString(
+        nodesToContext(trailingNodes, this.state.getContext())
+      )
       resultChunks.push(trailingText)
     }
 

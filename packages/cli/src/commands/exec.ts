@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim } from 'picocolors'
@@ -74,8 +74,9 @@ async function execWorkflow(name: string) {
   return new Promise<void>(resolve => {
     ctrl.on('complete', (result) => {
       const now = new Date()
-      const outputName = `${generatePrefix(now)}-${flowName}`
-      const outputPath = join(cwd, config.paths.outputs, outputName)
+      const outputDir = ensureOutputDir(join(cwd, config.paths.outputs), now)
+      const outputName = generateOutputName(flowName, now)
+      const outputPath = join(outputDir, outputName)
       const content = appendFrontmatter(workflow.title, now, result)
       writeFileSync(outputPath, content, { encoding: 'utf8' })
       // todo - print token stats/costs and add to output metadata
@@ -95,11 +96,17 @@ function appendFrontmatter(title: string, created: Date, body: string) {
   `
 }
 
-function generatePrefix(created: Date): string {
-  const datePrefix = created.toISOString().slice(2, 8).replace(/-/g, '')
+function ensureOutputDir(outputsDir: string, created: Date) {
+  const date = created.toISOString().slice(2, 10).replace(/-/g, '')
+  const dirName = join(outputsDir, date)
+  if (!existsSync(dirName)) mkdirSync(dirName, { recursive: true })
+  return dirName
+}
+
+function generateOutputName(fileName: string, created: Date): string {
   const daySeconds = (created.getHours() * 3600) + (created.getMinutes() * 60) + created.getSeconds()
   const slug = daySeconds.toString(36).padStart(4, '0')
-  return `${datePrefix}-${slug}`
+  return `${slug}-${fileName}`
 }
 
 

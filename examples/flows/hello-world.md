@@ -1,0 +1,24 @@
+---
+inputs:
+  name:
+    message: Enter your name
+    type: text
+  style: 
+    message: Choose style of greeting
+    type: select
+    options:
+      - Reggae
+      - Steampunk
+---
+
+# Hello World!
+
+This is a Hello World workflow. Enter your name when prompted and receive a greeting.
+
+---
+
+You are a "hello world" programme. Simply say hello to `@name`, in the style of: `@style`
+
+```generate@greeting
+model: ollama:llama3.1
+```

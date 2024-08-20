@@ -1,0 +1,33 @@
+---
+inputs:
+  image:
+    message: Link to an image
+    type: file
+    fileType: image
+---
+
+# 1-star Trip Advisor review
+
+---
+
+Here's a picture taken from a vacation:
+
+`@image`
+
+Create a clear, factual description of the image. Describe the scene and setting, the type of location, mention any famous landmarks that are visible, and describe any captured activity. Be descriptive, but avoid hyberbole and emotional language. Just state what you see. Keep it breif.
+
+```generate@description
+model: ollama:llava-phi3
+```
+
+---
+
+Here is a description of a picture from a recent trip:
+
+`@description`
+
+Using the description as context, create a funny but harsh one-star TripAdvisor review. Describe the absolute worst possible experience you can imagine based on the description. Output only the review. Keep it brief.
+
+```generate@review
+model: ollama:llama3.1
+```

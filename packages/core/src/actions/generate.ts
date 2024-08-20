@@ -1,14 +1,14 @@
-import { Type } from '@sinclair/typebox'
+import { z } from 'zod'
 import { generateText, streamText } from 'ai'
-import type { CompletionTokenUsage, CompletionUsage, CoreMessage, UserContent } from 'ai'
+import type { CompletionTokenUsage, CoreMessage, UserContent } from 'ai'
 
 import { defineAction } from '../runtime/action'
 import { dd } from '../util'
 import type { ContextValue } from '~/runtime/context'
 
-const schema = Type.Object({
-  model: Type.String(),
-  stream: Type.Optional(Type.Boolean()),
+const schema = z.object({
+  model: z.string(),
+  stream: z.optional(z.boolean())
 })
 
 export const generateTextAction = defineAction({

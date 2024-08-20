@@ -13,7 +13,6 @@
     "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"
   },
   "dependencies": {
-    "@sinclair/typebox": "^0.33.0",
     "ai": "^3.3.4",
     "it-pushable": "^3.2.3",
     "mdast-util-to-string": "^4.0.0",
@@ -29,6 +28,7 @@
     "unist-util-select": "^5.1.0",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.2",
-    "yaml": "^2.5.0"
+    "yaml": "^2.5.0",
+    "zod": "^3.23.8"
   }
 }

@@ -1,12 +1,12 @@
-import { Type } from '@sinclair/typebox'
+import { z } from 'zod'
 import { Runtime } from '~/index'
 import { defineAction } from '~/index'
 
 export const mockAction = defineAction({
   name: 'mock',
-  schema: Type.Object({
-    type: Type.Literal('text'),
-    text: Type.String(),
+  schema: z.object({
+    type: z.literal('text'),
+    text: z.string(),
   }),
   execute(ctx, _runtime) {
     return { output: ctx.action.props }

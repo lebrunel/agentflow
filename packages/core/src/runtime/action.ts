@@ -1,5 +1,4 @@
-import { TypeCompiler } from '@sinclair/typebox/compiler'
-import type { Static, TSchema } from '@sinclair/typebox'
+import { z } from 'zod'
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 
@@ -8,24 +7,12 @@ import type { Action } from '../compiler/action'
 import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime } from './runtime'
 
-export function defineAction<T extends TSchema>(options: ActionOptions<T>): ActionHandler<Static<T>> {
+export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): ActionHandler<z.infer<T>> {
   const { name, schema, execute } = options
 
-  // Compile the schema for faster validation
-  const compiledSchema = TypeCompiler.Compile(schema)
-
   // Use validate option or default validator
-  const validate = options.validate || function(props: Static<T>) {
-    if (!compiledSchema.Check(props)) {
-      const errors: string[] = []
-      for (const error of compiledSchema.Errors(props)) {
-        errors.push(error.message)
-      }
-      throw new Error(dd`
-      Invalid props for action '${name}':
-      - ${errors.join('\n- ')}
-      `)
-    }
+  const validate = options.validate || function(props: z.infer<T>) {
+    schema.parse(props)
   }
 
   return {
@@ -41,18 +28,12 @@ export interface ActionHandler<T = any> {
   validate: (props: T) => void;
 }
 
-export interface ActionOptions<T extends TSchema> {
+export interface ActionOptions<T extends z.ZodType> {
   name: ActionTypeName;
   schema: T;
-  execute: ActionFn<Static<T>>;
-  validate?: (props: Static<T>) => void;
+  execute: ActionFn<z.infer<T>>;
+  validate?: (props: z.infer<T>) => void;
 }
-
-//export interface ActionContext<T> {
-//  props: T;
-//  runtime: Runtime;
-//  stream?: Pushable<string>;
-//}
 
 export interface ActionContext<T = any> {
   action: Action<T>;

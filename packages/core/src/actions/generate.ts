@@ -4,6 +4,7 @@ import type { CoreMessage, AssistantContent, UserContent } from 'ai'
 
 import { defineAction } from '../runtime/action'
 import { dd } from '../util'
+import type { ContextValue } from '~/runtime/context'
 
 const schema = Type.Object({
   model: Type.String(),
@@ -17,10 +18,10 @@ export const generateTextAction = defineAction({
     const messages: CoreMessage[] = []
     
     for (const res of results) {
-      messages.push({ role: 'user', content: res.input })
+      messages.push({ role: 'user', content: contextToContent(res.input) })
       messages.push({ role: 'assistant', content: [res.output] })
     }
-    messages.push({ role: 'user', content: input as UserContent })
+    messages.push({ role: 'user', content: contextToContent(input) })
 
     const opts = {
       model: runtime.useLanguageModel(action.props.model),
@@ -48,13 +49,19 @@ export const generateTextAction = defineAction({
   }
 })
 
+function contextToContent(values: ContextValue[]): UserContent {
+  return values.map(ctx => {
+    if (ctx.type === 'image') {
+      return { type: 'image', image: `data:${ctx.image.type};base64,${ctx.image.data}` }
+    } else {
+      return { ...ctx }
+    }
+  })
+  
+}
+
 const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.
-
-## Key Concepts:
-- Workflow: A series of tasks written in plain English, formatted in markdown.
-- Phase: A distinct section of a workflow, containing one or more actions.
-- Action: A specific task or instruction within a phase.
 
 ## Your Role:
 1. Interpret and execute each action presented by the user.
@@ -70,8 +77,8 @@ You are an AI-powered interpreter for a markdown-based workflow system. Your pri
 
 ## Response Format:
 - Provide only the result of the action, with no extraneous information.
-- Use markdown syntax when appropriate (e.g., for code blocks, lists, or emphasis).
 - Do not include any explanations, introductions, or conclusions.
+- Use markdown syntax when appropriate.
 - If the result is empty or null, respond with an empty string.
 - For multi-part results, use appropriate markdown structures (lists, tables, etc.) to organize the information clearly.
 

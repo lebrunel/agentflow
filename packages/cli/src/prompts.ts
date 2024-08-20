@@ -1,8 +1,9 @@
 import { existsSync, readFileSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { basename, resolve } from 'node:path'
 import { lookup } from 'mime-types'
 import { createPrompt, isEnterKey, usePrefix, useState, useKeypress } from '@inquirer/core'
 import { input, editor, select } from '@inquirer/prompts'
+import { blue, bold, dim } from 'picocolors'
 import type {
   ContextValue,
   ContextValueMap,
@@ -12,7 +13,7 @@ import type {
   ArrayInput,
   FileInput,
 } from '@ada/core'
-import { blue, bold, dim } from 'picocolors'
+import type { ContextImageValue } from '../../core/src/runtime/context'
 
 export async function promptInputs(inputs: WorkflowInputs): Promise<ContextValueMap> {
   const context: ContextValueMap = {}
@@ -64,14 +65,15 @@ export async function promptFile(name: string, schema: FileInput): Promise<Conte
   const value = await input({ message, validate: isUrlOrPath })
 
   if (schema.fileType === 'image') {
-    const blob = isUrl(value)
-      ? await fetch(value).then(r => r.blob())
-      : readFileAsBlob(resolve(process.cwd(), value))
+    const image: ContextImageValue['image'] = isUrl(value)
+      ? await loadRemoteImage(value)
+      : loadLocalImage(value)
+
+    // todo - validate that this is in fact an image
     
     return {
       type: 'image',
-      image: URL.createObjectURL(blob),
-      digest: 'a hash', // todo - define way to calculate quick digests
+      image
     }
   } else {
     const text = isUrl(value)
@@ -142,8 +144,17 @@ function isUrlOrPath(value: string): boolean | string {
   return 'must be URL or valid local file path'
 }
 
-function readFileAsBlob(path: string): Blob {
-  const buffer = readFileSync(path)
-  const type = lookup(path) || 'application/octet-stream'
-  return new Blob([buffer], { type })
+async function loadRemoteImage(value: string): Promise<ContextImageValue['image']> {
+  const url = new URL(value)
+  const name = url.pathname.split('/').pop() || 'Unknown'
+  const data = await fetch(url).then(r => r.arrayBuffer())
+  const type = lookup(name) || 'application/octet-stream' // todo - fallback based on byte prefix
+  return { name, type, data: Buffer.from(data).toString('base64') }
+}
+
+function loadLocalImage(path: string): ContextImageValue['image'] {
+  const name = basename(path)
+  const data = readFileSync(path)
+  const type = lookup(path) || 'application/octet-stream' // todo - fallback based on byte prefix
+  return { name, type, data: Buffer.from(data).toString('base64') }
 }

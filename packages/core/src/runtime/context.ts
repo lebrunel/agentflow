@@ -61,8 +61,7 @@ export function contextToString(ctx: ContextValue | ContextValue[]): string {
     case 'text':
       return ctx.text
     case 'image':
-      // todo - implement digests for images - should probably be in the context value
-      return '![IMAGE](todo-image-digest.png)'
+      return `![IMAGE](${ctx.image.name})`
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
   }
@@ -87,7 +86,9 @@ export type ContextTextValue = {
 
 export type ContextImageValue = {
   type: 'image',
-  image: string;
-  mimeType?: string;
-  digest?: string;
+  image: {
+    name: string,
+    type: string,
+    data: string,
+  }
 }

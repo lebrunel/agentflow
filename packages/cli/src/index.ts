@@ -2,10 +2,14 @@ import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command } from 'commander'
 import { bold, dim, green, bgRed } from 'picocolors'
+import dotenv from 'dotenv'
 
 import init from './commands/init'
 import list from './commands/list'
 import exec from './commands/exec'
+
+const cwd = process.cwd()
+dotenv.config({ path: resolve(cwd, '.env') })
 
 const pkgPath = resolve(__dirname, '../package.json')
 

@@ -5,6 +5,7 @@ import type { Pushable } from 'it-pushable'
 import type { Action } from '../compiler/action'
 import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime } from './runtime'
+import type { ExecutionCursor } from './state'
 
 export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): ActionHandler<z.infer<T>> {
   const { name, schema, execute } = options
@@ -54,6 +55,7 @@ export interface ActionResult {
 }
 
 export interface ActionResultLog {
+  cursor: ExecutionCursor;
   type: ActionTypeName;
   name: ContextName;
   input: ContextValue[];

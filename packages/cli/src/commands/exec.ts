@@ -1,12 +1,13 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Command } from 'commander'
-import { blue, bold, dim } from 'picocolors'
+import { blue, bold, dim, italic } from 'picocolors'
 import { compileWorkflow, executeWorkflow, util, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
 import { promptInputs } from '../prompts'
+import type { CostCalculator } from '@ada/core'
 
 const cmd = new Command()
   .name('exec')
@@ -59,20 +60,14 @@ async function execWorkflow(name: string) {
     }
   })
 
-  //ctrl.on('action.start', action => {
-  //  console.log(action.type)
-  //})
-  //
-  //ctrl.on('action.complete', result => {
-  //  console.log(result)
-  //})
-
   ctrl.on('error', (err) => {
     console.error(err)
   })
 
   return new Promise<void>(resolve => {
     ctrl.on('complete', (result) => {
+      const calculator = ctrl.getCostEstimate()
+      displayUsageCost(calculator)
       const now = new Date()
       const outputDir = ensureOutputDir(join(cwd, config.paths.outputs), now)
       const outputName = generateOutputName(flowName, now)
@@ -83,6 +78,22 @@ async function execWorkflow(name: string) {
       resolve()
     })
   })
+}
+
+function displayUsageCost(calculator: CostCalculator) {
+  const maxWidth = Math.min(80, process.stdout.columns || 80)
+  const formatCost = (cost: number) => (cost/100).toFixed(4)
+
+  console.log(dim('-'.repeat(maxWidth)))
+  console.log()
+  console.log(dim(italic(`Costs are estimated and will not be 100% accurate.`)))
+  console.log(dim(italic(`Refer to your AI provider for actual costs.`)))
+  console.log()
+  console.log(dim('Input cost'), '  ', dim('$'), formatCost(calculator.inputCost), ' ', dim(`${calculator.inputTokens} tks`))
+  console.log(dim('Output cost'), ' ', dim('$'), formatCost(calculator.outputCost), ' ', dim(`${calculator.outputTokens} tks`))
+  console.log(dim('-'.repeat(22)))
+  console.log(dim(bold('Total')), '       ', dim(bold('$')), bold(formatCost(calculator.totalCost)))
+  console.log()
 }
 
 function appendFrontmatter(title: string, created: Date, body: string) {

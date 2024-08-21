@@ -3,8 +3,10 @@ import { pushable } from 'it-pushable'
 
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
 import { contextToString, nodesToContext } from './context'
+import { CostCalculator } from './cost-calculator'
 import type { ActionContext, ActionEvent, ActionResultLog } from './action'
 import type { ContextValueMap } from './context'
+import type { ModelReference, ModelSpec } from '../models'
 import type { Runtime } from './runtime'
 import type { Action } from '../compiler/action'
 import type { Phase } from '../compiler/phase'
@@ -111,6 +113,7 @@ export class ExecutionController {
     const actionResult = new Promise<ActionResultLog>(async resolve => {
       const { output, usage } = await handler.execute(context, this.runtime)
       resolve({
+        cursor,
         type: action.type,
         name: action.name,
         input,
@@ -277,6 +280,22 @@ export class ExecutionController {
     return this.workflow.phases
       .map(phase => this.getPhaseOutput(phase))
       .join('\n\n---\n\n')
+  }
+
+  getCostEstimate(models?: Record<ModelReference, ModelSpec>): CostCalculator {
+    const calculator = new CostCalculator(models)
+    for (const res of this.state.resultLog) {
+      if (typeof res.usage === 'undefined') continue
+
+      const phase = this.workflow.phases[res.cursor[0]]
+      const action = phase.actions[res.cursor[1]]
+      const model = action.props?.model
+
+      if (typeof model === 'string') {
+        calculator.addUsage(model, res.usage)
+      }
+    }
+    return calculator
   }
 
   /**

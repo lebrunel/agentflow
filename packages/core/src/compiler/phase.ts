@@ -4,7 +4,7 @@ import type { RootContent } from 'mdast'
 
 import { Action } from './action'
 import { isActionNode } from './ast'
-import type { ContextNode, PhaseNode } from './ast'
+import type { ActionNode, ContextNode, PhaseNode } from './ast'
 import type { ContextTypeMap } from '../runtime/context'
 
 /**
@@ -20,10 +20,11 @@ export class Phase {
 
   constructor(ast: PhaseNode, inputTypes: ContextTypeMap) {
     this.inputTypes = inputTypes
-    
+
     // walk ast to collect outpus and dependenies
     visit(ast, node => {
       if (is(node, 'action')) {
+        this.validateAction(node)
         this.outputTypes[node.data.name] = 'text'
       }
       if (is(node, 'context')) {
@@ -47,12 +48,17 @@ export class Phase {
     this.trailingNodes = ast.children.slice(cursor)
   }
 
+  private validateAction(node: ActionNode) {
+    if (Object.keys(this.inputTypes).includes(node.data.name)) {
+      throw new Error(`Duplicate context '@${node.data.name}'. Line ${node.position!.start.line}.`)
+    }
+  }
+
   private validateDependency(node: ContextNode) {
     // todo - improve this is it will validate future outputs in same phase
     // it should throw is the context appears before the output
     if (!this.inputTypes[node.value] && !this.outputTypes[node.value]) {
-      throw new Error(`Dependency '@${node.value}' not met. Line ${node.position!.start.line}.`)
+      throw new Error(`Context dependency '@${node.value}' not met. Line ${node.position!.start.line}.`)
     }
   }
 }
-

@@ -2,7 +2,6 @@ import { z } from 'zod'
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 
-import { dd } from '../util'
 import type { Action } from '../compiler/action'
 import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime } from './runtime'

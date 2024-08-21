@@ -19,6 +19,7 @@ export type {
 // Runtime exports
 export { defineAction } from './runtime/action'
 export { defineConfig } from './runtime/config'
+export { defineTool } from './runtime/tool'
 export { executeWorkflow, ExecutionController } from './runtime/controller'
 export { Runtime } from './runtime/runtime'
 export { ExecutionStatus } from './runtime/state'
@@ -28,6 +29,7 @@ export type { ExecutionOpts, ExecutionEvents, AfterActionCallback } from './runt
 export type { UserConfig } from './runtime/config'
 export type { Plugin } from './runtime/runtime'
 export type { ExecutionCursor } from './runtime/state'
+export type { ToolDef } from './runtime/tool'
 
 // Other
 export * as util from './util'

@@ -3,10 +3,10 @@ import { Runtime } from '~/index'
 import { defineAction } from '~/index'
 
 export const mockAction = defineAction({
-  name: 'mock',
+  name: 'Mock',
   schema: z.object({
     type: z.literal('text'),
-    text: z.string(),
+    value: z.string(),
   }),
   execute(ctx, _runtime) {
     return { output: ctx.action.props }

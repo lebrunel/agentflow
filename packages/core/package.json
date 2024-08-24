@@ -13,12 +13,17 @@
     "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"
   },
   "dependencies": {
+    "acorn-walk": "^8.3.3",
     "ai": "^3.3.4",
+    "eval-estree-expression": "^2.0.0",
     "it-pushable": "^3.2.3",
+    "jse-eval": "^1.5.2",
+    "mdast-util-mdx-jsx": "^3.1.2",
     "mdast-util-to-string": "^4.0.0",
     "nanoevents": "^9.0.0",
     "polyfill-text-decoder-stream": "^0.0.9",
     "remark-frontmatter": "^5.0.0",
+    "remark-mdx": "^3.0.1",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
     "ts-dedent": "^2.2.0",

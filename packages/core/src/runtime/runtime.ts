@@ -1,20 +1,20 @@
-import {
-  experimental_createProviderRegistry as createProviderRegistry,
-  type experimental_ProviderRegistry as ProviderRegistry,
-  type LanguageModel
-} from 'ai'
+import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
+import type { experimental_ProviderRegistry as ProviderRegistry, LanguageModel } from 'ai'
+import type { z } from 'zod'
 
 import { generateTextAction } from '../actions/generate'
-import type { ActionHandler } from './action'
+import type { Action } from './action'
 import type { UserConfig } from './config'
+import type { Tool } from './tool'
+
 
 // Default actions
-const actions: ActionHandler[] = [
+const actions: Action[] = [
   generateTextAction
 ]
 
 // Default tools
-const tools: __Tool[] = []
+const tools: Tool<z.ZodType>[] = []
 
 export class Runtime {
   private actions: ActionRegistry = defaultRegistry(actions)
@@ -56,28 +56,28 @@ export class Runtime {
     return !!this.tools[name]
   }
 
-  registerAction(name: string, action: ActionHandler): void {
+  registerAction(name: string, action: Action): void {
     if (this.hasAction(name)) {
       throw new Error(`Action already registered: ${name}`)
     }
     this.actions[name] = action
   }
 
-  registerTool(name: string, tool: __Tool): void {
+  registerTool(name: string, tool: Tool<z.ZodType>): void {
     if (this.hasTool(name)) {
       throw new Error(`Tool already registered: ${name}`)
     }
     this.tools[name] = tool
   }
 
-  useAction(name: string): ActionHandler {
+  useAction(name: string): Action {
     if (!this.hasAction(name)) {
       throw new Error(`Action not found: ${name}`)
     }
     return this.actions[name]
   }
 
-  useTool(name: string): __Tool {
+  useTool(name: string): Tool<z.ZodType> {
     if (!this.hasTool(name)) {
       throw new Error(`Tool not found: ${name}`)
     }
@@ -99,6 +99,5 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
 
 export type Plugin = (runtime: Runtime) => void
 
-type ActionRegistry = Record<string, ActionHandler>
-type ToolRegistry = Record<string, __Tool>
-export type __Tool = { name: string }
+type ActionRegistry = Record<string, Action>
+type ToolRegistry = Record<string, Tool<z.ZodType>>

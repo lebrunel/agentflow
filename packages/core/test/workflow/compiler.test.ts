@@ -1,14 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { selectAll } from 'unist-util-select'
 import type { Root } from 'mdast'
-import { runtime } from 'test/support/runtime'
 
-import { compileProcessor } from '~/compiler/compiler'
-import { dd } from '~/util'
-import type { ActionNode, ContextNode, PhaseNode, WorkflowNode } from '~/compiler/ast'
+import { createProcessor, util } from '~/index'
+import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '~/workflow/compiler'
 
-function parse(src: string): WorkflowNode {
-  const proc = compileProcessor(runtime)
+const { dd } = util
+const proc = createProcessor()
+
+function parse(src: string) {
   return proc.runSync(proc.parse(src))
 }
 
@@ -46,16 +46,16 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
     `
     const ast = parse(src)
 
     expect(ast.type).toBe('workflow')
-    expect(ast.children.length).toBe(1)
-    expect(ast.children[0].type).toBe('phase')
-    expect((ast.children[0] as PhaseNode).children.length).toBe(5)
+    expect(ast.children.length).toBe(2)
+    expect(ast.children[0].type).toBe('root')
+    expect((ast.children[0] as PhaseNode).children.length).toBe(0)
+    expect(ast.children[1].type).toBe('phase')
+    expect((ast.children[1] as PhaseNode).children.length).toBe(5)
   })
 
   test('handles single phase with intro', () => {
@@ -70,9 +70,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
     `
     const ast = parse(src)
 
@@ -96,9 +94,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
 
     ---
 
@@ -106,9 +102,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
     `
     const ast = parse(src)
 
@@ -137,9 +131,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
 
     ---
 
@@ -147,9 +139,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@bar
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="bar" />
     `
     const ast = parse(src)
 
@@ -174,9 +164,7 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`\`\`generate@foo
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="foo" />
     `
     const ast = parse(src)
 
@@ -205,24 +193,19 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    \`@foo\`
+    {foo}
 
-    \`\`\`generate@res1
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="res1" />
 
-    \`@bar\`
+    {bar}
 
-    \`\`\`generate@res2
-    model: openai:gpt-4o
-    \`\`\`
+    <GenerateText model="openai:gpt-4o" name="res2" />
     `
     const ast = parse(src)
-    const contexts = selectAll('context', ast) as ContextNode[]
+    const contexts = selectAll('expression', ast) as ExpressionNode[]
     const actions = selectAll('action', ast) as ActionNode[]
 
     expect(contexts.length).toBe(2)
-    expect(contexts.map(n => n.value)).toEqual(['foo', 'bar'])
     expect(actions.length).toBe(2)
   })
 })

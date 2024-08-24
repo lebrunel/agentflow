@@ -1,10 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { runtime } from 'test/support/runtime'
 
-import { compileWorkflow } from '~/index'
-import { ExecutionState } from '~/runtime/state'
-import { dd } from '~/util'
-import type { ContextValueMap } from '~/runtime/context'
+import { compileSync, util, ExecutionState, type ContextValueMap } from '~/index'
+
+const { dd } = util
 
 const src = dd`
 ---
@@ -12,6 +11,7 @@ inputs:
   name:
     type: text
 ---
+
 # Hello
 
 This is an introduction
@@ -20,42 +20,31 @@ This is an introduction
 
 Do a thing
 
-\`\`\`mock@a1
-type: text
-text: Result of A1
-\`\`\`
+<Mock name="a1" type="text" value="Result of A1" />
 
 Do another thing
 
-\`\`\`mock@a2
-type: text
-text: Result of A2
-\`\`\`
+<Mock name="a2" type="text" value="Result of A2" />
 
 ---
 
 This is another phase
 
-\`\`\`mock@b1
-type: text
-text: Result of B1
-\`\`\`
+<Mock name="b1" type="text" value="Result of B1" />
 
 A final thing
 
-\`\`\`mock@b2
-type: text
-text: Result of B2
-\`\`\`
+<Mock name="b2" type="text" value="Result of B2" />
 `
-const workflow = compileWorkflow(src, runtime)
+const file = compileSync(src, { runtime })
+const workflow = file.result
 
 describe('ExecutionState', () => {
   let context: ContextValueMap
   let state: ExecutionState
 
   beforeEach(() => {
-    context = { foo: { type: 'text', text: 'bar' } }
+    context = { foo: { type: 'text', value: 'bar' } }
     state = new ExecutionState(workflow, context)
   })
 
@@ -63,8 +52,8 @@ describe('ExecutionState', () => {
     state.pushResult({
       type: 'mock',
       name,
-      input: { type: 'text', text: 'input' },
-      output: { type: 'text', text: name },
+      input: { type: 'text', value: 'input' },
+      output: { type: 'text', value: name },
     })
   }
 
@@ -102,7 +91,7 @@ describe('ExecutionState', () => {
     expect(state.resultMap.get(0)?.length).toBe(2)
     expect(state.resultMap.get(0)?.map(r => r.name)).toContain('a2')
     expect(state.resultLog.length).toBe(2)
-    
+
     state.rewindCursor([0, 1])
     expect(state.cursor).toEqual([0, 1])
     expect(state.resultMap.get(0)?.length).toBe(1)
@@ -124,8 +113,8 @@ describe('ExecutionState', () => {
     state.advanceCursor()
 
     const currentContext = state.getContext()
-    expect(currentContext.a1).toEqual({ type: 'text', text: 'a1' })
-    expect(currentContext.a2).toEqual({ type: 'text', text: 'a2' })
+    expect(currentContext.a1).toEqual({ type: 'text', value: 'a1' })
+    expect(currentContext.a2).toEqual({ type: 'text', value: 'a2' })
   })
 
   test('pushResult() adds result to correct phase and log', () => {

@@ -1,6 +1,6 @@
-import type { ContextValueMap } from './context'
 import type { ActionResultLog } from './action'
-import type { Workflow } from '../compiler/workflow'
+import type { ContextValueMap } from '../workflow/context'
+import type { Workflow } from '../workflow/workflow'
 
 /**
  * Maintains the state of a workflow execution.
@@ -8,7 +8,7 @@ import type { Workflow } from '../compiler/workflow'
 export class ExecutionState {
   #cursor: ExecutionCursor = [0, 0]
   status: ExecutionStatus = ExecutionStatus.Ready
-  
+
   initialContext: ContextValueMap
   phaseSizeMap: Map<number, number> = new Map()
   resultMap: Map<number, ActionResultLog[]> = new Map()

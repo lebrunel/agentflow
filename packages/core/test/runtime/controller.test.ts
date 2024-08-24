@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
 import { runtime } from 'test/support/runtime'
 
-import { compileWorkflow, executeWorkflow, ExecutionController, ExecutionStatus } from '~/index'
+import { compileSync, executeWorkflow, ExecutionController, ExecutionStatus } from '~/index'
 import { dd } from '~/util'
-import type { ContextValueMap } from '~/runtime/context'
+import type { ContextValueMap } from '~/index'
 
 const src = dd`
 ---
@@ -11,6 +11,7 @@ inputs:
   name:
     type: text
 ---
+
 # Hello
 
 This is an introduction
@@ -19,43 +20,32 @@ This is an introduction
 
 Do a thing
 
-\`\`\`mock@a1
-type: text
-text: Result of A1
-\`\`\`
+<Mock name="a1" type="text" value="Result of A1" />
 
 Do another thing
 
-\`\`\`mock@a2
-type: text
-text: Result of A2
-\`\`\`
+<Mock name="a2" type="text" value="Result of A2" />
 
 ---
 
 This is another phase
 
-\`\`\`mock@b1
-type: text
-text: Result of B1
-\`\`\`
+<Mock name="b1" type="text" value="Result of B1" />
 
 A final thing
 
-\`\`\`mock@b2
-type: text
-text: Result of B2
-\`\`\`
+<Mock name="b2" type="text" value="Result of B2" />
 
-Testing the suffix: \`@a1\`
+Testing the suffix: {a1}
 `
-const workflow = compileWorkflow(src, runtime)
+const file = compileSync(src, { runtime })
+const workflow = file.result
 
 describe('ExecutionController', () => {
   let controller: ExecutionController
 
   beforeEach(() => {
-    const context: ContextValueMap = { foo: { type: 'text', text: 'bar' } }
+    const context: ContextValueMap = { foo: { type: 'text', value: 'bar' } }
     controller = executeWorkflow(workflow, context, runtime, { start: false })
   })
 

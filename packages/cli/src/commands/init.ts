@@ -13,4 +13,3 @@ function initProject() {
 }
 
 export default cmd
-

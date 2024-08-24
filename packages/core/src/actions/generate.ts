@@ -4,7 +4,7 @@ import type { CompletionTokenUsage, CoreMessage, UserContent } from 'ai'
 
 import { defineAction } from '../runtime/action'
 import { dd } from '../util'
-import type { ContextValue } from '~/runtime/context'
+import type { ContextValue } from '../workflow/context'
 
 const schema = z.object({
   model: z.string(),
@@ -12,14 +12,17 @@ const schema = z.object({
 })
 
 export const generateTextAction = defineAction({
-  name: 'generate',
+  name: 'GenerateText',
   schema,
   execute: async ({ action, input, results, stream }, runtime) => {
     const messages: CoreMessage[] = []
-    
+
     for (const res of results) {
       messages.push({ role: 'user', content: contextToContent(res.input) })
-      messages.push({ role: 'assistant', content: [res.output] })
+      messages.push({ role: 'assistant', content: [{
+        type: 'text',
+        text: res.output.value,
+      }] })
     }
     messages.push({ role: 'user', content: contextToContent(input) })
 
@@ -43,7 +46,7 @@ export const generateTextAction = defineAction({
       })
 
     return {
-      output: { type: 'text', text },
+      output: { type: 'text', value: text },
       usage,
     }
   }
@@ -52,12 +55,13 @@ export const generateTextAction = defineAction({
 function contextToContent(values: ContextValue[]): UserContent {
   return values.map(ctx => {
     if (ctx.type === 'image') {
-      return { type: 'image', image: `data:${ctx.image.type};base64,${ctx.image.data}` }
+      const data = Buffer.from(ctx.value.data).toString('base64')
+      return { type: 'image', image: `data:${ctx.value.type};base64,${data}` }
     } else {
-      return { ...ctx }
+      return { type: 'text', text: ctx.value }
     }
   })
-  
+
 }
 
 const SYSTEM_PROMPT = dd`

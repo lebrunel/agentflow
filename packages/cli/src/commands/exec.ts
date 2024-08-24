@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, italic } from 'picocolors'
-import { compileWorkflow, executeWorkflow, util, Runtime } from '@ada/core'
+import { compileSync, executeWorkflow, util, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
@@ -20,34 +20,49 @@ async function execWorkflow(name: string) {
   const cwd = process.cwd()
   const config = await resolveConfig(cwd)
   const runtime = new Runtime(config as UserConfig)
-  const flowName = name.trim().replace(/(.md)?$/, '.md')
-  const flowPath = join(cwd, config.paths.flows, flowName)
+  const flowName = basename(name, extname(name))
+
+  let flowPath: string | undefined
+  for (const ext of ['md', 'mdx']) {
+    const possiblePath = join(cwd, config.paths.flows, `${flowName}.${ext}`)
+    if (existsSync(possiblePath)) {
+      flowPath = possiblePath
+      break
+    }
+  }
+
+  if (!flowPath) {
+    throw new Error(`Workflow file not found for: ${name}`);
+  }
+
   const flowStr = readFileSync(flowPath, { encoding: 'utf8' })
 
-  const workflow = compileWorkflow(flowStr, runtime)
+  const file = compileSync(flowStr, { runtime })
+  // todo - check for error messages on file
+  const workflow = file.result
 
   console.log(`🚀 ${bold(workflow.title)}`)
   console.log()
   //console.log(workflow.description)
   //console.log()
 
-  const context = await promptInputs(workflow.inputs)
+  const context = await promptInputs(workflow.inputSchema)
   console.log()
   const ctrl = executeWorkflow(workflow, context, runtime)
 
   ctrl.on('action', async ({ action, stream, input, result }) => {
-    console.log(dim('[['), `${blue(action.type)}@${blue(action.name)}`, dim(']]'))
+    console.log(dim('[['), `${blue(action.name)}@${blue(action.props.name)}`, dim(']]'))
     console.log()
     console.log(dim(input))
     console.log()
 
     let isStreaming = false
-    
+
     result.then((result) => {
       if (isStreaming) {
         process.stdout.write('\n')
       } else {
-        console.log(result.output.text)
+        console.log(result.output.value)
       }
       // either way, end the stream
       stream.end()
@@ -120,6 +135,4 @@ function generateOutputName(fileName: string, created: Date): string {
   return `${slug}-${fileName}`
 }
 
-
 export default cmd
-

@@ -1,3 +1,0 @@
-# @ada/core
-
-WIP - Todo

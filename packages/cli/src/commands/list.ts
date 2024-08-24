@@ -3,7 +3,7 @@ import { basename, join } from 'node:path'
 import { Command } from 'commander'
 import { bold } from 'picocolors'
 import { globSync } from 'fast-glob'
-import { compileSync, Runtime } from '@ada/core2'
+import { compileSync, Runtime } from '@ada/core'
 
 import { resolveConfig } from '../config'
 

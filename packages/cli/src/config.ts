@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { UserConfig } from '@ada/core2'
+import type { UserConfig } from '@ada/core'
 
 export async function resolveConfig(baseDir: string): Promise<ResolvedConfig> {
   const configPath = resolve(baseDir, 'ada.config.ts')

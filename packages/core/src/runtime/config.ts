@@ -1,22 +1,22 @@
 import type { experimental_Provider as Provider } from 'ai'
-import type { ActionHandler } from './action'
-import type { Plugin, __Tool } from './runtime'
+import type { z } from 'zod'
 
-export function defineConfig(config: UserConfig): UserConfig
-export function defineConfig(config: UserConfigFn): UserConfigFn
-export function defineConfig(config: ConfigExport): ConfigExport {
-  return config
+import type { Action } from './action'
+import type { Plugin } from './runtime'
+import type { Tool } from './tool'
+
+/**
+ * TODO
+ */
+export function defineConfig(config: UserConfig | (() => UserConfig)): UserConfig {
+  return typeof config === 'function' ? config() : config
 }
 
 // Types
 
 export interface UserConfig {
-  actions?: ActionHandler[];
-  tools?: __Tool[];
+  actions?: Action[];
+  tools?: Tool<z.ZodType>[];
   providers?: Record<string, Provider>;
   plugins?: Plugin[];
 }
-
-export type UserConfigFn = () => UserConfig
-
-export type ConfigExport = UserConfig | UserConfigFn

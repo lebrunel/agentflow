@@ -13,8 +13,8 @@ import type {
   ArrayInput,
   FileInput,
   WorkflowInputSchema
-} from '@ada/core2'
-import type {  } from '@ada/core2'
+} from '@ada/core'
+import type {  } from '@ada/core'
 
 export async function promptInputs(inputs: WorkflowInputSchema): Promise<ContextValueMap> {
   const context: ContextValueMap = {}

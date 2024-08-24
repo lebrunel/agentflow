@@ -4,7 +4,10 @@ import { visit, SKIP } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
 import type { Root, RootContent } from 'mdast'
 
-export function nodesToContext(nodes: RootContent[], context: ContextValueMap = {}): ContextValue[] {
+import type { ContextValue, ContextValueMap, ContextImageValue } from '../workflow/context'
+import { evalExpression } from './eval'
+
+export function nodesToContext(nodes: RootContent[] | Readonly<RootContent[]>, context: ContextValueMap = {}): ContextValue[] {
   const blocks: Array<Root | ContextImageValue> = [
     u('root', [])
   ]
@@ -22,15 +25,16 @@ export function nodesToContext(nodes: RootContent[], context: ContextValueMap = 
 
   for (const node of nodes) {
     const tip = getTip()
-    visit(node, 'context', (node, i, parent) => {
-      const contextValue: ContextValue = context[node.value]
+    visit(node, 'expression', (node, i, parent) => {
+      const tree = node.data!.estree!
+      const contextValue: ContextValue = evalExpression(tree, context) // todo - use vm here
       if (contextValue.type === 'text') {
-        parent!.children[i as number] = u('text', { value: contextValue.text })
+        parent!.children[i as number] = u('text', { value: contextValue.value })
         return SKIP
       } else {
         parent!.children.splice(i as number, 1)
         blocks.push({ ...contextValue })
-        return [SKIP, i as number] 
+        return [SKIP, i as number]
       }
     })
     tip.children.push(node)
@@ -38,19 +42,16 @@ export function nodesToContext(nodes: RootContent[], context: ContextValueMap = 
 
   return blocks.map(block => {
     if ('children' in block) {
-      const text = unified()
+      const value = unified()
         .use(remarkStringify)
         .stringify(block)
         .trim()
-      return { type: 'text', text }
+      return { type: 'text', value }
     } else {
       return block
     }
   })
 }
-
-
-
 
 export function contextToString(ctx: ContextValue | ContextValue[]): string {
   if (Array.isArray(ctx)) {
@@ -59,36 +60,10 @@ export function contextToString(ctx: ContextValue | ContextValue[]): string {
 
   switch(ctx.type) {
     case 'text':
-      return ctx.text
+      return ctx.value
     case 'image':
-      return `![IMAGE](${ctx.image.name})`
+      return `![IMAGE](${ctx.value.name})`
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
-  }
-}
-
-// Types
-
-export type ContextName = string
-
-export type ContextType = 'text' | 'image'
-
-export type ContextTypeMap = Record<ContextName, ContextType>
-
-export type ContextValueMap = Record<ContextName, ContextValue>
-
-export type ContextValue = ContextTextValue | ContextImageValue
-
-export type ContextTextValue = {
-  type: 'text',
-  text: string,
-}
-
-export type ContextImageValue = {
-  type: 'image',
-  image: {
-    name: string,
-    type: string,
-    data: string,
   }
 }

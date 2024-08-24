@@ -2,12 +2,12 @@ import { z } from 'zod'
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 
-import type { Action } from '../compiler/action'
-import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime } from './runtime'
 import type { ExecutionCursor } from './state'
+import type { WorkflowAction } from '../workflow/workflow'
+import type { ContextName, ContextValue, ContextTextValue } from '../workflow/context'
 
-export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): ActionHandler<z.infer<T>> {
+export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): Action<z.infer<T>> {
   const { name, schema, execute } = options
 
   // Use validate option or default validator
@@ -22,28 +22,28 @@ export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): Ac
   }
 }
 
-export interface ActionHandler<T = any> {
-  name: ActionTypeName;
+export interface Action<T = any> {
+  name: ActionName;
   execute: ActionFn<T>
   validate: (props: T) => void;
 }
 
 export interface ActionOptions<T extends z.ZodType> {
-  name: ActionTypeName;
+  name: ActionName;
   schema: T;
   execute: ActionFn<z.infer<T>>;
   validate?: (props: z.infer<T>) => void;
 }
 
 export interface ActionContext<T = any> {
-  action: Action<T>;
+  action: WorkflowAction<T>;
   input: ContextValue[];
   results: ActionResultLog[];
   stream: Pushable<string>;
 }
 
-export interface ActionEvent {
-  action: Action;
+export interface ActionEvent<T = any> {
+  action: WorkflowAction<T>;
   stream: Pushable<string>;
   input: string;
   result: PromiseLike<ActionResultLog>;
@@ -56,14 +56,14 @@ export interface ActionResult {
 
 export interface ActionResultLog {
   cursor: ExecutionCursor;
-  type: ActionTypeName;
+  type: ActionName;
   name: ContextName;
   input: ContextValue[];
   output: ContextTextValue;
   usage?: CompletionTokenUsage;
 }
 
-export type ActionTypeName = string
+export type ActionName = string
 
 export type ActionFn<T> = (
   ctx: ActionContext<T>,

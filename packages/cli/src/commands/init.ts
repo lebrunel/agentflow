@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { Workflow } from '@ada/core2'
+import { Workflow } from '@ada/core'
 
 const cmd = new Command
 

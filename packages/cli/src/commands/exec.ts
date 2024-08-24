@@ -2,12 +2,12 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, italic } from 'picocolors'
-import { compileSync, executeWorkflow, util, Runtime } from '@ada/core2'
-import type { UserConfig } from '@ada/core2'
+import { compileSync, executeWorkflow, util, Runtime } from '@ada/core'
+import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
 import { promptInputs } from '../prompts'
-import type { CostCalculator } from '@ada/core2'
+import type { CostCalculator } from '@ada/core'
 
 const cmd = new Command()
   .name('exec')

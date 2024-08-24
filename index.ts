@@ -1,1 +1,1 @@
-console.log('test scratchpad')
+console.log("test scratchpad");

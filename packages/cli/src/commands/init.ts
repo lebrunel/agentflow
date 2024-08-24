@@ -1,5 +1,5 @@
 import { Command } from 'commander'
-import { Workflow } from '@ada/core'
+import { Workflow } from '@ada/core2'
 
 const cmd = new Command
 
@@ -13,4 +13,3 @@ function initProject() {
 }
 
 export default cmd
-

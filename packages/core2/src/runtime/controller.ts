@@ -3,9 +3,9 @@ import { pushable } from 'it-pushable'
 
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
 import { contextToString, nodesToContext } from './context'
-//import { CostCalculator } from './cost-calculator'
+import { CostCalculator } from './calculator'
 import type { ActionContext, ActionEvent, ActionResultLog } from './action'
-//import type { ModelReference, ModelSpec } from '../models'
+import type { ModelReference, ModelSpec } from '../models'
 import type { Runtime } from './runtime'
 import type { ContextValueMap } from '../workflow/context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow/workflow'
@@ -280,24 +280,24 @@ export class ExecutionController {
       .join('\n\n---\n\n')
   }
 
-  ///**
-  // * TODO
-  // */
-  //getCostEstimate(models?: Record<ModelReference, ModelSpec>): CostCalculator {
-  //  const calculator = new CostCalculator(models)
-  //  for (const res of this.state.resultLog) {
-  //    if (typeof res.usage === 'undefined') continue
+  /**
+   * TODO
+   */
+  getCostEstimate(models?: Record<ModelReference, ModelSpec>): CostCalculator {
+    const calculator = new CostCalculator(models)
+    for (const res of this.state.resultLog) {
+      if (typeof res.usage === 'undefined') continue
 
-  //    const phase = this.workflow.phases[res.cursor[0]]
-  //    const action = phase.actions[res.cursor[1]]
-  //    const model = action.props?.model
+      const phase = this.workflow.phases[res.cursor[0]]
+      const action = phase.actions[res.cursor[1]]
+      const model = action.props?.model
 
-  //    if (typeof model === 'string') {
-  //      calculator.addUsage(model, res.usage)
-  //    }
-  //  }
-  //  return calculator
-  //}
+      if (typeof model === 'string') {
+        calculator.addUsage(model, res.usage)
+      }
+    }
+    return calculator
+  }
 
   /**
    * Subscribes to execution events.

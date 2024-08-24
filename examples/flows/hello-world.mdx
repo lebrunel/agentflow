@@ -3,7 +3,7 @@ inputs:
   name:
     message: Enter your name
     type: text
-  style: 
+  style:
     message: Choose style of greeting
     type: select
     options:
@@ -17,8 +17,6 @@ This is a Hello World workflow. Enter your name when prompted and receive a gree
 
 ---
 
-You are a "hello world" programme. Simply say hello to `@name`, in the style of: `@style`
+You are a "hello world" programme. Simply say hello to {name}, in the style of: {style}
 
-```generate@greeting
-model: ollama:llama3.1
-```
+<GenerateText name="greeting" model="ollama:llama3.1" />

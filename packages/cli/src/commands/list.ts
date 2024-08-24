@@ -3,7 +3,7 @@ import { basename, join } from 'node:path'
 import { Command } from 'commander'
 import { bold } from 'picocolors'
 import { globSync } from 'fast-glob'
-import { compileWorkflow, Runtime } from '@ada/core'
+import { compileSync, Runtime } from '@ada/core2'
 
 import { resolveConfig } from '../config'
 
@@ -19,21 +19,22 @@ async function listWorkflows() {
   const cwd = process.cwd()
   const config = await resolveConfig(cwd)
   const runtime = new Runtime(config)
-  const flowsPath = join(cwd, config.paths.flows, '*.md')
-  
+  const flowsPath = join(cwd, config.paths.flows, '*.{md,mdx}')
+
   // Collect workflows into rows
   const rows: {id: string, title: string}[] = []
   for (const path of globSync(flowsPath)) {
     try {
-      const id = basename(path, '.md')
-      const file = readFileSync(path, { encoding: 'utf8' })
-      const workflow = compileWorkflow(file, runtime)
+      const id = basename(path).replace(/\.mdx?$/, '')
+      const data = readFileSync(path, { encoding: 'utf8' })
+      const file = compileSync(data, { runtime })
+      const workflow = file.result
       rows.push({ id, title: workflow.title })
     } catch(e) {
-      console.error(`Invalid workflow: ${basename(path, '.md')}`)
+      console.error(`Invalid workflow: ${basename(path).replace(/\.mdx?$/, '')}`)
     }
   }
-  
+
   // Get units for alignment
   const wMax = process.stdout.columns || 80
   const wId = Math.max(...rows.map(r => r.id.length))
@@ -50,4 +51,3 @@ async function listWorkflows() {
 }
 
 export default cmd
-

@@ -7,7 +7,7 @@
     "ada": "./bin/ada.ts"
   },
   "dependencies": {
-    "@ada/core": "workspace:*",
+    "@ada/core2": "workspace:*",
     "@inquirer/prompts": "^5.3.8",
     "@types/mime-types": "^2.1.4",
     "commander": "^12.1.0",

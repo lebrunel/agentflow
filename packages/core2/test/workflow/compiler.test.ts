@@ -193,11 +193,11 @@ describe('compileProcessor()', () => {
 
     Another paragraph here.
 
-    {context.foo}
+    {foo}
 
     <GenerateText model="openai:gpt-4o" name="res1" />
 
-    {context.bar}
+    {bar}
 
     <GenerateText model="openai:gpt-4o" name="res2" />
     `

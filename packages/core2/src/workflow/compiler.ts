@@ -7,15 +7,15 @@ import { toString } from 'mdast-util-to-string'
 import { VFile, type Compatible} from 'vfile'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
-import { simple } from 'acorn-walk'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
-import type { Program } from 'acorn'
+import type { Program } from 'estree-jsx'
 import type { Node, Root, RootContent } from 'mdast'
 
 import { WorkflowInputSchema } from './inputs'
 import { Workflow, type WorkflowPhase, type WorkflowAction } from './workflow'
+import { evalDependencies } from '../runtime/eval'
 import type { ContextTypeMap } from './context'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
 
@@ -116,6 +116,7 @@ const workflowVisitor: Plugin<[], Root, Root> = function() {
       }
 
       if (is(node, 'mdxFlowExpression')) {
+        // todo - validate expression statement
         parent!.children[i] = u('paragraph', [
           u('expression', {
             value: node.value,
@@ -127,6 +128,7 @@ const workflowVisitor: Plugin<[], Root, Root> = function() {
       }
 
       if (is(node, 'mdxTextExpression')) {
+        // todo - validate expression statement
         parent!.children[i] = u('expression', {
           value: node.value,
           position: node.position,
@@ -261,14 +263,10 @@ function workflowPhase(phaseNode: PhaseNode, contextTypes: ContextTypeMap, file:
 
     if (is(node, 'expression') && node.data?.estree) {
       const program = node.data!.estree! as Program
-      simple(program, {
-        MemberExpression: n => {
-          if (n.object.type === 'Identifier' && n.property.type === 'Identifier' && n.object.name === 'context') {
-            validateDependency(node, n.property.name)
-            dependencies.add(n.property.name)
-          }
-        }
-      })
+      for (const name of evalDependencies(program)) {
+        validateDependency(node, name)
+        dependencies.add(name)
+      }
     }
   })
 

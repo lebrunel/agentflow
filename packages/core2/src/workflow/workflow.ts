@@ -21,9 +21,9 @@ export interface WorkflowPhase {
   readonly trailingNodes: ReadonlyArray<RootContent>;
 }
 
-export interface WorkflowAction {
+export interface WorkflowAction<T = any> {
   readonly name: string;
   readonly contextName: string;
   readonly contentNodes: ReadonlyArray<RootContent>;
-  readonly props: Readonly<Record<string, any>>;
+  readonly props: Readonly<T>;
 }

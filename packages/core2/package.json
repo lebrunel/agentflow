@@ -15,7 +15,9 @@
   "dependencies": {
     "acorn-walk": "^8.3.3",
     "ai": "^3.3.4",
+    "eval-estree-expression": "^2.0.0",
     "it-pushable": "^3.2.3",
+    "jse-eval": "^1.5.2",
     "mdast-util-mdx-jsx": "^3.1.2",
     "mdast-util-to-string": "^4.0.0",
     "nanoevents": "^9.0.0",

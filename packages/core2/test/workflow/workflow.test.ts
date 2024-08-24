@@ -123,9 +123,9 @@ describe('Workflow.parse() validations', () => {
 
     ---
 
-    Paragraph {context.name}
+    Paragraph {name}
 
-    Paragraph {context.description}
+    Paragraph {description}
     `
     expect(() => compileSync(src)).not.toThrow()
   })
@@ -138,9 +138,9 @@ describe('Workflow.parse() validations', () => {
         type: text
     ---
 
-    Paragraph {context.name}
+    Paragraph {name}
 
-    Paragraph {context.description}
+    Paragraph {description}
 
     <GenerateText model="openai:gpt-4o" name="description" />
     `

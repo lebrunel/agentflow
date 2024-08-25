@@ -1,6 +1,5 @@
 import { z } from 'zod'
-import { Runtime } from '~/index'
-import { defineAction } from '~/index'
+import { defineAction, Runtime } from '~/index'
 
 export const mockAction = defineAction({
   name: 'Mock',

@@ -1,11 +1,8 @@
 import { describe, expect, test } from 'bun:test'
-import { u } from 'unist-builder'
 import { toString } from 'mdast-util-to-string'
+import { default as dd } from 'ts-dedent'
 import { VFile } from 'vfile'
-
-import { compileSync, util } from '~/index'
-
-const { dd } = util
+import { compileSync } from '~/index'
 
 describe('Workflow.parse()', () => {
   test('title from meta data', () => {

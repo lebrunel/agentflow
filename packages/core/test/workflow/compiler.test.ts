@@ -1,11 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import { selectAll } from 'unist-util-select'
+import { default as dd } from 'ts-dedent'
+import { createProcessor } from '~/index'
+
 import type { Root } from 'mdast'
+import type { ActionNode, ExpressionNode, PhaseNode } from '~/index'
 
-import { createProcessor, util } from '~/index'
-import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '~/workflow/compiler'
-
-const { dd } = util
 const proc = createProcessor()
 
 function parse(src: string) {

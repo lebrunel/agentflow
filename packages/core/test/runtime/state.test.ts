@@ -1,9 +1,8 @@
 import { beforeEach, describe, expect, test } from 'bun:test'
+import { default as dd } from 'ts-dedent'
 import { runtime } from 'test/support/runtime'
-
-import { compileSync, util, ExecutionState, type ContextValueMap } from '~/index'
-
-const { dd } = util
+import { compileSync, ExecutionState } from '~/index'
+import type { ContextValueMap } from '~/index'
 
 const src = dd`
 ---

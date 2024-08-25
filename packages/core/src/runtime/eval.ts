@@ -1,27 +1,36 @@
-import { evaluate, variables } from 'eval-estree-expression'
-import type { Program } from 'estree-jsx'
+import { evaluate as _eval, variables } from 'eval-estree-expression'
 import type { ExpressionStatement } from 'acorn'
 import type { Node } from 'estree'
+import type { Program } from 'estree-jsx'
 
-import { contextType } from '~/workflow/context'
-import type { ContextValue, ContextValueMap } from '~/workflow/context'
+import type { ContextValueMap } from '../workflow/context'
 
-export function evalExpression(tree: Program, contextMap: ContextValueMap): ContextValue {
-  const context: Record<string, any> = Object.entries(contextMap).reduce((ctx, [name, { value }]) => {
-    return Object.assign(ctx, { [name]: value })
-  }, {})
+export async function evalExpression<T = any>(tree: Program, context: ContextValueMap): Promise<T> {
+  const ctx = reduceContext(context)
 
-  // Evaluate all the statements, even though only the last one matters
   let result: any
+  // Evaluate all the statements, even though only the last one matters
   for (const statement of tree.body) {
-    const expression = (statement as ExpressionStatement).expression
-    result = evaluate.sync(expression as Node, context)
+    if (statement.type === 'ExpressionStatement') {
+      result = await _eval(statement.expression as Node, ctx)
+    }
   }
 
-  return {
-    type: contextType(result),
-    value: result
+  return result
+}
+
+export function evalExpressionSync<T = any>(tree: Program, context: ContextValueMap): T {
+  const ctx = reduceContext(context)
+
+  let result: any
+  // Evaluate all the statements, even though only the last one matters
+  for (const statement of tree.body) {
+    if (statement.type === 'ExpressionStatement') {
+      result = _eval.sync(statement.expression as Node, ctx)
+    }
   }
+
+  return result
 }
 
 export function evalDependencies(tree: Program): string[] {
@@ -29,4 +38,10 @@ export function evalDependencies(tree: Program): string[] {
     const expression = (statement as ExpressionStatement).expression
     return variables(expression as Node)
   })
+}
+
+function reduceContext(context: ContextValueMap): Record<string, any> {
+  return Object.entries(context).reduce((ctx, [name, { value }]) => {
+    return Object.assign(ctx, { [name]: value })
+  }, {})
 }

@@ -18,6 +18,7 @@ import { Workflow, type WorkflowPhase, type WorkflowAction } from './workflow'
 import { evalDependencies } from '../runtime/eval'
 import type { ContextTypeMap } from './context'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
+import remarkStringify from 'remark-stringify'
 
 /**
  * Compiles a workflow asynchronously. This function processes the workflow,
@@ -48,6 +49,17 @@ export function createProcessor(_options: CompileOptions = {}): Processor<Root, 
     .use(workflowVisitor)
     .use(workflowStructure)
     .use(workflowCompiler)
+}
+
+export function stringify(root: Root): string {
+  return unified()
+    .use(remarkStringify)
+    .stringify(root)
+    .trim()
+}
+
+export function stringifyContent(nodes: RootContent[]): string {
+  return stringify(u('root', nodes))
 }
 
 const workflowVisitor: Plugin<[], Root, Root> = function() {

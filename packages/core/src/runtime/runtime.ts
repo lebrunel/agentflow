@@ -1,11 +1,11 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import type { experimental_ProviderRegistry as ProviderRegistry, LanguageModel } from 'ai'
 import type { z } from 'zod'
+import { generateTextAction } from '../actions'
 
-import { generateTextAction } from '../actions/generate'
-import type { Action } from './action'
 import type { UserConfig } from './config'
-import type { Tool } from './tool'
+import type { Action } from '../action'
+import type { Tool } from '../tool'
 
 
 // Default actions

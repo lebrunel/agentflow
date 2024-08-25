@@ -1,8 +1,8 @@
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
+
 import type { Root, RootContent } from 'mdast'
 import type { Transformer } from 'unified'
-
 import type { WorkflowNode } from '../ast'
 
 /**

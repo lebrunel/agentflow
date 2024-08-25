@@ -1,7 +1,7 @@
 import type { RootContent } from 'mdast'
 
 import type { ContextTypeMap } from './context'
-import type { WorkflowInputSchema } from './inputs'
+import type { WorkflowInputSchema } from './runtime'
 
 export class Workflow {
   constructor(

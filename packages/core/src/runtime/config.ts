@@ -1,9 +1,9 @@
 import type { experimental_Provider as Provider } from 'ai'
 import type { z } from 'zod'
 
-import type { Action } from './action'
 import type { Plugin } from './runtime'
-import type { Tool } from './tool'
+import type { Action } from '../action'
+import type { Tool } from '../tool'
 
 /**
  * TODO

@@ -1,10 +1,10 @@
 import { z } from 'zod'
 import { generateText, streamText } from 'ai'
-import type { CompletionTokenUsage, CoreMessage, UserContent } from 'ai'
+import { default as dd } from 'ts-dedent'
+import type { CompletionTokenUsage, CoreMessage, CoreAssistantMessage, CoreUserMessage } from 'ai'
 
-import { defineAction } from '../runtime/action'
-import { dd } from '../util'
-import type { ContextValue } from '../workflow/context'
+import { defineAction } from '../action'
+import type { ContextValue } from '../context'
 
 const schema = z.object({
   model: z.string(),
@@ -18,13 +18,10 @@ export const generateTextAction = defineAction({
     const messages: CoreMessage[] = []
 
     for (const res of results) {
-      messages.push({ role: 'user', content: contextToContent(res.input) })
-      messages.push({ role: 'assistant', content: [{
-        type: 'text',
-        text: res.output.value,
-      }] })
+      messages.push(toCoreMessage('user', res.input))
+      messages.push(toCoreMessage('assistant', [res.output]))
     }
-    messages.push({ role: 'user', content: contextToContent(input) })
+    messages.push(toCoreMessage('user', input))
 
     const opts = {
       model: runtime.useLanguageModel(action.props.model),
@@ -52,8 +49,11 @@ export const generateTextAction = defineAction({
   }
 })
 
-function contextToContent(values: ContextValue[]): UserContent {
-  return values.map(ctx => {
+function toCoreMessage(
+  role: 'user' | 'assistant',
+  values: ContextValue[],
+): CoreUserMessage | CoreAssistantMessage {
+  const content = values.map(ctx => {
     if (ctx.type === 'image') {
       const data = Buffer.from(ctx.value.data).toString('base64')
       return { type: 'image', image: `data:${ctx.value.type};base64,${data}` }
@@ -62,7 +62,14 @@ function contextToContent(values: ContextValue[]): UserContent {
     }
   })
 
+  if (role === 'user') {
+    return { role, content } as CoreUserMessage
+  } else {
+    // For 'assistant', we assume only text content is allowed
+    return { role, content } as CoreAssistantMessage
+  }
 }
+
 
 const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.

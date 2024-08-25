@@ -1,19 +1,16 @@
 import type { CompletionTokenUsage } from 'ai'
-import {
-  models as defaultModels,
-  type ModelReference,
-  type ModelSpec,
-} from '../models'
+
+import { models as defaultModels, type ModelSpec } from './models'
 
 export class CostCalculator {
-  readonly models: Record<ModelReference, ModelSpec> = {}
+  readonly models: Record<string, ModelSpec> = {}
   readonly uncosted: UncostedRecord[] = []
   #inputCost: number = 0
   #inputTokens: number = 0
   #outputCost: number = 0
   #outputTokens: number = 0
 
-  constructor(models: Record<ModelReference, ModelSpec> = defaultModels) {
+  constructor(models: Record<string, ModelSpec> = defaultModels) {
     Object.assign(this.models, models)
   }
 
@@ -37,7 +34,7 @@ export class CostCalculator {
     return this.inputCost + this.outputCost
   }
 
-  addUsage(model: ModelReference, usage: CompletionTokenUsage): void {
+  addUsage(model: string, usage: CompletionTokenUsage): void {
     this.#inputTokens += usage.promptTokens
     this.#outputTokens += usage.completionTokens
 
@@ -57,6 +54,6 @@ export function formatMoney(amount: number, currencySymbol: string = '$') {
 }
 
 interface UncostedRecord {
-  model: ModelReference;
+  model: string;
   usage: CompletionTokenUsage;
 }

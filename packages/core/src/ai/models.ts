@@ -1,4 +1,4 @@
-export const models: Record<ModelReference, ModelSpec> = {
+export const models: Record<string, ModelSpec> = {
   // OpenAI
   'openai:gpt-4o': {
     inputCostPerToken: 0.0005,
@@ -79,8 +79,6 @@ export const models: Record<ModelReference, ModelSpec> = {
 }
 
 // Types
-
-export type ModelReference = string
 
 export type ModelSpec = {
   inputCostPerToken: number,    // penny per token

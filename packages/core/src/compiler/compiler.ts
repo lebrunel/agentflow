@@ -1,15 +1,14 @@
 import { unified } from 'unified'
-import { u } from 'unist-builder'
-import { VFile, type Compatible} from 'vfile'
+import { VFile } from 'vfile'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
-import remarkStringify from 'remark-stringify'
-import type { Root, RootContent } from 'mdast'
-import type { Processor } from 'unified'
-
-import { Workflow } from '../workflow/workflow'
 import { workflowVisitor, workflowStructure, workflowCompiler } from './plugins'
+import { Workflow } from '../workflow'
+
+import type { Root } from 'mdast'
+import type { Processor } from 'unified'
+import type { Compatible } from 'vfile'
 import type { WorkflowNode } from './ast'
 
 /**
@@ -51,19 +50,8 @@ export function createProcessor(
     .use(workflowCompiler)
 }
 
-export function stringify(root: Root): string {
-  return unified()
-    .use(remarkStringify)
-    .stringify(root)
-    .trim()
-}
-
-export function stringifyContent(nodes: RootContent[]): string {
-  return stringify(u('root', nodes))
-}
-
 export interface CompileOptions {
   runtime?: any; // todo
 }
 
-export type WorkflowFile = VFile & { result: Workflow }
+type WorkflowFile = VFile & { result: Workflow }

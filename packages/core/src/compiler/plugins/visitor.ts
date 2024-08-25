@@ -3,10 +3,10 @@ import { is } from 'unist-util-is'
 import { visit, CONTINUE, SKIP } from 'unist-util-visit'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
+import { WorkflowInputSchema } from '../../runtime'
+
 import type { Root } from 'mdast'
 import type { Transformer } from 'unified'
-
-import { WorkflowInputSchema } from '../../workflow/inputs'
 import type { ExpressionNode } from '../ast'
 
 /**

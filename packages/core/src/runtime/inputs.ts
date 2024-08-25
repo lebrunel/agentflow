@@ -61,9 +61,3 @@ export type WorkflowInput = z.infer<typeof WorkflowInput>
 // Workflow Inputs schema
 export const WorkflowInputSchema = z.record(z.string(), WorkflowInput)
 export type WorkflowInputSchema = z.infer<typeof WorkflowInputSchema>
-
-// Validations
-
-export function validateWorkflowInputs(inputs: any): asserts inputs is WorkflowInputSchema {
-  WorkflowInputSchema.parse(inputs)
-}

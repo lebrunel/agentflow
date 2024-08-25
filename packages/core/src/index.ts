@@ -1,25 +1,53 @@
-// Compiler
 export {
   compile,
   compileSync,
   createProcessor,
   type CompileOptions,
-} from './compiler/compiler'
+  type WorkflowNode,
+  type PhaseNode,
+  type ActionNode,
+  type ExpressionNode,
+} from './compiler'
 
-// Workflow exports
+export {
+  type ContextName,
+  type ContextType,
+  type ContextTypeMap,
+  type ContextValue,
+  type ContextValueMap,
+} from './context'
 
-export { Workflow } from './workflow/workflow'
-export type * from './workflow/context'
-export type * from './workflow/inputs'
+export {
+  defineConfig,
+  executeWorkflow,
+  evalExpression,
+  evalExpressionSync,
+  evalDependencies,
+  ExecutionController,
+  ExecutionState,
+  ExecutionStatus,
+  Runtime,
+  type UserConfig,
+  type ExecutionOptions,
+  type ExecutionEvents,
+  type ExecutionCursor,
+  type Plugin,
+} from './runtime'
 
-// Runtime exports
-export { defineAction } from './runtime/action'
-export { CostCalculator } from './runtime/calculator'
-export { defineConfig, type UserConfig } from './runtime/config'
-export { defineTool } from './runtime/tool'
-export { executeWorkflow, ExecutionController, type ExecutionOpts, type ExecutionEvents } from './runtime/controller'
-export { Runtime } from './runtime/runtime'
-export { ExecutionState, ExecutionStatus, type ExecutionCursor } from './runtime/state'
+export {
+  defineAction,
+  type Action,
+  type ActionOptions,
+} from './action'
 
-// Other
-export * as util from './util'
+export {
+  defineTool,
+  type Tool,
+  type ToolOptions,
+} from './tool'
+
+export {
+  Workflow,
+  type WorkflowPhase,
+  type WorkflowAction,
+} from './workflow'

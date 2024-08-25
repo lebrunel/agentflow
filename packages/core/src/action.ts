@@ -1,11 +1,10 @@
 import { z } from 'zod'
+
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-
-import type { Runtime } from './runtime'
-import type { ExecutionCursor } from './state'
-import type { WorkflowAction } from '../workflow/workflow'
-import type { ContextName, ContextValue, ContextTextValue } from '../workflow/context'
+import type { ContextName, ContextValue, ContextTextValue } from './context'
+import type { Runtime, ExecutionCursor } from './runtime'
+import type { WorkflowAction } from './workflow'
 
 export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): Action<z.infer<T>> {
   const { name, schema, execute } = options

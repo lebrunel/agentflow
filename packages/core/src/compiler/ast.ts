@@ -1,7 +1,6 @@
 import type { Node, Root, RootContent } from 'mdast'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
-
-import { Workflow } from '../workflow/workflow'
+import type { Workflow } from '../workflow'
 
 export interface WorkflowNode extends Node {
   type: 'workflow';
@@ -41,6 +40,6 @@ declare module 'mdast' {
 
 declare module 'unified' {
   interface CompileResultMap {
-    flow: Workflow;
+    workflow: Workflow;
   }
 }

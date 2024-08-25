@@ -1,14 +1,15 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
-
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
-import { contextToString, nodesToContext } from './context'
-import { CostCalculator } from './calculator'
-import type { ActionContext, ActionEvent, ActionResultLog } from './action'
-import type { ModelReference, ModelSpec } from '../models'
+import { CostCalculator } from '../ai'
+import { astToContext, contextStringify } from '../context'
+
+import type { RootContent } from 'mdast'
+import type { ActionContext, ActionEvent, ActionResultLog } from '../action'
 import type { Runtime } from './runtime'
-import type { ContextValueMap } from '../workflow/context'
-import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow/workflow'
+import type { ModelSpec } from '../ai'
+import type { ContextValueMap } from '../context'
+import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
 
 /**
  * Manages the execution of a workflow, controlling its state and progression.
@@ -98,7 +99,7 @@ export class ExecutionController {
 
     const action = this.currentAction
     const handler = this.runtime.useAction(action.name)
-    const input = nodesToContext(action.contentNodes, this.state.getContext())
+    const input = astToContext(action.contentNodes as RootContent[], this.state.getContext())
     const stream = pushable<string>({ objectMode: true })
 
     const context: ActionContext = {
@@ -123,7 +124,7 @@ export class ExecutionController {
     this.#events.emit('action', {
       action,
       stream,
-      input: contextToString(input),
+      input: contextStringify(input),
       result: actionResult
     }, this.cursor)
 
@@ -258,8 +259,8 @@ export class ExecutionController {
     }
 
     if (trailingNodes.length) {
-      const trailingText = contextToString(
-        nodesToContext(trailingNodes, this.state.getContext())
+      const trailingText = contextStringify(
+        astToContext(trailingNodes as RootContent[], this.state.getContext())
       )
       resultChunks.push(trailingText)
     }
@@ -283,7 +284,7 @@ export class ExecutionController {
   /**
    * TODO
    */
-  getCostEstimate(models?: Record<ModelReference, ModelSpec>): CostCalculator {
+  getCostEstimate(models?: Record<string, ModelSpec>): CostCalculator {
     const calculator = new CostCalculator(models)
     for (const res of this.state.resultLog) {
       if (typeof res.usage === 'undefined') continue
@@ -332,7 +333,7 @@ export function executeWorkflow(
   workflow: Workflow,
   input: ContextValueMap,
   runtime: Runtime,
-  { start = true, afterAction }: ExecutionOpts = {},
+  { start = true, afterAction }: ExecutionOptions = {},
 ) {
   const controller = new ExecutionController(workflow, input, runtime)
   if (start) { queueMicrotask(() => controller.runAll(afterAction) )}
@@ -365,7 +366,7 @@ export interface ExecutionEvents {
 /**
  * TODO
  */
-export interface ExecutionOpts {
+export interface ExecutionOptions {
   start?: boolean;
   afterAction?: AfterActionCallback;
 }

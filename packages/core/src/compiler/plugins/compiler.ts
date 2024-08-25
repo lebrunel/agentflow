@@ -3,17 +3,22 @@ import { visit, CONTINUE } from 'unist-util-visit'
 import { selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
+import { evalDependencies, WorkflowInputSchema } from '../../runtime'
+import { Workflow } from '../../workflow'
+
 import type { Program } from 'estree-jsx'
 import type { Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
-
-import { WorkflowInputSchema } from '../../workflow/inputs'
-import { Workflow } from '../../workflow/workflow'
-import { evalDependencies } from '../../runtime/eval'
-import type { ContextTypeMap } from '../../workflow/context'
-import type { WorkflowPhase, WorkflowAction } from '../../workflow/workflow'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
+import type { ContextTypeMap } from '../../context'
+import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 
+/**
+ * Compiles a workflow from a markdown AST node into a Workflow object.
+ * This function processes the markdown structure, extracts metadata,
+ * parses input schemas, and builds a series of workflow phases and actions.
+ * It handles title extraction, description parsing, and context type management.
+ */
 export const workflowCompiler: Plugin<[], WorkflowNode, Workflow> = function(this: Processor) {
   this.compiler = function(node, file) {
     const workflowNode = node as WorkflowNode
@@ -62,7 +67,12 @@ export const workflowCompiler: Plugin<[], WorkflowNode, Workflow> = function(thi
   }
 }
 
-function workflowPhase(phaseNode: PhaseNode, contextTypes: ContextTypeMap, file: VFile): WorkflowPhase {
+// Maps the PhaseNode into a WorkflowPhase interface
+function workflowPhase(
+  phaseNode: PhaseNode,
+  contextTypes: ContextTypeMap,
+  file: VFile,
+): WorkflowPhase {
   const actions: WorkflowAction[] = []
   const dependencies = new Set<string>()
   const inputTypes = { ...contextTypes }
@@ -128,7 +138,12 @@ function workflowPhase(phaseNode: PhaseNode, contextTypes: ContextTypeMap, file:
   }
 }
 
-function workflowAction(actionNode: ActionNode, contentNodes: RootContent[], _file: VFile): WorkflowAction {
+// Maps the ActionNode into a WorkflowAction interface
+function workflowAction(
+  actionNode: ActionNode,
+  contentNodes: RootContent[],
+  _file: VFile,
+): WorkflowAction {
   return {
     name: actionNode.name,
     contextName: actionNode.attributes.name,

@@ -12,6 +12,7 @@ import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
 import type { ContextTypeMap } from '../../context'
 import type { WorkflowPhase, WorkflowAction } from '../../workflow'
+import type { CompileOptions } from '../compiler'
 
 /**
  * Compiles a workflow from a markdown AST node into a Workflow object.
@@ -19,7 +20,10 @@ import type { WorkflowPhase, WorkflowAction } from '../../workflow'
  * parses input schemas, and builds a series of workflow phases and actions.
  * It handles title extraction, description parsing, and context type management.
  */
-export const workflowCompiler: Plugin<[], WorkflowNode, Workflow> = function(this: Processor) {
+export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> = function(
+  this: Processor,
+  options: CompileOptions,
+) {
   this.compiler = function(node, file) {
     const workflowNode = node as WorkflowNode
     const workflowRoot = workflowNode.children[0] as Root

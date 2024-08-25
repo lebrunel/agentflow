@@ -21,7 +21,7 @@ export class Runtime {
   private tools: ToolRegistry = defaultRegistry(tools)
   private providers: ProviderRegistry = createProviderRegistry({})
 
-  constructor(config: UserConfig) {
+  constructor(config: UserConfig = {}) {
     // Register user actions
     if (config.actions?.length) {
       for (const action of config.actions) {

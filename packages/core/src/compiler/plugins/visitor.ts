@@ -8,13 +8,15 @@ import { WorkflowInputSchema } from '../../runtime'
 import type { Root } from 'mdast'
 import type { Transformer } from 'unified'
 import type { ExpressionNode } from '../ast'
+import type { CompileOptions } from '../compiler'
+import type { Action } from '~/action'
 
 /**
  * A unified transformer that traverses MDX AST, and parses YAML frontmatter,
  * validates input schemas, and transforms MDX elements into custom node types
  * for further processing.
  */
-export function workflowVisitor(): Transformer<Root, Root> {
+export function workflowVisitor(options: CompileOptions): Transformer<Root, Root> {
   return (tree, file) => {
     visit(tree, (node, i, parent) => {
       if (typeof i === 'undefined') return
@@ -40,11 +42,18 @@ export function workflowVisitor(): Transformer<Root, Root> {
       }
 
       if (is(node, 'mdxJsxFlowElement')) {
-        // todo - validate action name
-        //if (!allowedActions.includes(node.name)) {
-        //  file.fail('', node, 'workflow-parse:error')
-        //  return SKIP
-        //}
+        let action: Action | undefined
+        if (options.runtime && options.runtime.hasAction(node.name || '')) {
+          action = options.runtime.useAction(node.name!)
+        }
+
+        if (typeof node.name === 'undefined' || (options.runtime && !action)) {
+          file.fail(
+            `Unknown action '${node.name || 'unnamed'}'. Actions must be registered.`,
+            node,
+            'workflow-parse:unknown-action'
+          )
+        }
 
         const { name, children, position } = node
         const attributes: Record<string, any> = {}
@@ -68,7 +77,22 @@ export function workflowVisitor(): Transformer<Root, Root> {
           }
         }
 
-        // todo - validate attributes against action schema
+        if (action) {
+          try {
+            action.validate(attributes)
+          } catch(e) {
+            if (e instanceof z.ZodError) {
+              for (const issue of e.issues) {
+                file.fail(
+                  `Invalid action attributes \`${issue.path.join('.')}\`. ${issue.message}`,
+                  node,
+                  'workflow-parse:invalid-action-attributes'
+                )
+              }
+            }
+          }
+
+        }
 
         parent!.children[i] = u('action', { name: name!, children, attributes, position })
         return CONTINUE
@@ -79,8 +103,20 @@ export function workflowVisitor(): Transformer<Root, Root> {
         return SKIP
       }
 
+      // todo - validate expression statement
+      // check for function calls
+      if (
+        (is(node, 'mdxFlowExpression') || is(node, 'mdxTextExpression')) &&
+        node.data?.estree?.body.some(s => s.type !== 'ExpressionStatement')
+      ) {
+        //file.fail(
+        //  'Invalid expression. Only simple expression statements are supported.',
+        //  node,
+        //  'workflow-parse:invalid-expression'
+        //)
+      }
+
       if (is(node, 'mdxFlowExpression')) {
-        // todo - validate expression statement
         parent!.children[i] = u('paragraph', [
           u('expression', {
             value: node.value,
@@ -92,7 +128,6 @@ export function workflowVisitor(): Transformer<Root, Root> {
       }
 
       if (is(node, 'mdxTextExpression')) {
-        // todo - validate expression statement
         parent!.children[i] = u('expression', {
           value: node.value,
           position: node.position,

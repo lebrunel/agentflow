@@ -10,6 +10,7 @@ import type { Root } from 'mdast'
 import type { Processor } from 'unified'
 import type { Compatible } from 'vfile'
 import type { WorkflowNode } from './ast'
+import type { Runtime } from '../runtime'
 
 /**
  * Compiles a workflow asynchronously. This function processes the workflow,
@@ -39,19 +40,19 @@ export function compileSync(
  * the specific syntax and structure of workflows.
  */
 export function createProcessor(
-  _options: CompileOptions = {}
+  options: CompileOptions = {}
 ): Processor<Root, Root, WorkflowNode, WorkflowNode, Workflow> {
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
     .use(remarkMdx)
-    .use(workflowVisitor)
-    .use(workflowStructure)
-    .use(workflowCompiler)
+    .use(workflowVisitor, options)
+    .use(workflowStructure, options)
+    .use(workflowCompiler, options)
 }
 
 export interface CompileOptions {
-  runtime?: any; // todo
+  runtime?: Runtime;
 }
 
 type WorkflowFile = VFile & { result: Workflow }

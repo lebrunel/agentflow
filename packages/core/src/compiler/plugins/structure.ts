@@ -4,13 +4,14 @@ import { is } from 'unist-util-is'
 import type { Root, RootContent } from 'mdast'
 import type { Transformer } from 'unified'
 import type { WorkflowNode } from '../ast'
+import type { CompileOptions } from '../compiler'
 
 /**
  * A unified transformer that restructures a markdown AST into a workflow
  * structure. It organizes the content into phases separated by thematic breaks,
  * with special handling for the first section and YAML frontmatter.
  */
-export function workflowStructure(): Transformer<Root, WorkflowNode> {
+export function workflowStructure(options: CompileOptions): Transformer<Root, WorkflowNode> {
   return (tree, _file) => {
     const workflowRoot: Root = u('root', [])
     const workflowNode: WorkflowNode = u('workflow', [workflowRoot])

@@ -1,5 +1,13 @@
+// Compiler
+export {
+  compile,
+  compileSync,
+  createProcessor,
+  type CompileOptions,
+} from './compiler/compiler'
+
 // Workflow exports
-export { compile, compileSync, createProcessor } from './workflow/compiler'
+
 export { Workflow } from './workflow/workflow'
 export type * from './workflow/context'
 export type * from './workflow/inputs'

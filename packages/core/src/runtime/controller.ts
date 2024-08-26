@@ -247,22 +247,16 @@ export class ExecutionController {
 
     let resultChunks: string[] = []
     for (const result of phaseResults) {
-      // todo - better stringifying of ContextValue types
-      for (const res of result.input) {
-        if (res.type === 'text') {
-          resultChunks.push(res.value)
-        }
-      }
-      if (result.output.type === 'text') {
-        resultChunks.push(result.output.value)
-      }
+      resultChunks.push(contextStringify(result.input))
+      resultChunks.push(contextStringify(result.output))
     }
 
     if (trailingNodes.length) {
-      const trailingText = contextStringify(
-        astToContext(trailingNodes as RootContent[], this.state.getContext())
+      resultChunks.push(
+        contextStringify(
+          astToContext(trailingNodes as RootContent[], this.state.getContext())
+        )
       )
-      resultChunks.push(trailingText)
     }
 
     return resultChunks.join('\n\n')

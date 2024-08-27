@@ -15,6 +15,7 @@
     "fast-glob": "^3.3.2",
     "mime-types": "^2.1.35",
     "picocolors": "^1.0.1",
+    "ts-dedent": "^2.2.0",
     "zod": "^3.23.8"
   }
 }

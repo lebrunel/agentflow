@@ -144,12 +144,12 @@ async function loadRemoteImage(value: string): Promise<ContextImageValue['value'
   const name = url.pathname.split('/').pop() || 'Unknown'
   const data = await fetch(url).then(r => r.arrayBuffer())
   const type = lookup(name) || 'application/octet-stream' // todo - fallback based on byte prefix
-  return { name, type, data: new Uint8Array(data) }
+  return { name, type, data }
 }
 
 function loadLocalImage(path: string): ContextImageValue['value'] {
   const name = basename(path)
   const data = readFileSync(path)
   const type = lookup(path) || 'application/octet-stream' // todo - fallback based on byte prefix
-  return { name, type, data: new Uint8Array(data) }
+  return { name, type, data: data.buffer as ArrayBuffer }
 }

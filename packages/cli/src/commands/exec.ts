@@ -2,7 +2,8 @@ import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, italic } from 'picocolors'
-import { compileSync, executeWorkflow, util, Runtime } from '@ada/core'
+import { default as dd } from 'ts-dedent'
+import { compileSync, executeWorkflow, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
@@ -112,7 +113,7 @@ function displayUsageCost(calculator: CostCalculator) {
 }
 
 function appendFrontmatter(title: string, created: Date, body: string) {
-  return util.dd`
+  return dd`
   ---
   title: ${title}
   created: ${created.toISOString()}

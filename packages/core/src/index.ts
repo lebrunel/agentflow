@@ -1,3 +1,7 @@
+// Polyfill TextDecoderStream for Bun
+import TextDecoderStream from 'polyfill-text-decoder-stream'
+global.TextDecoderStream = TextDecoderStream
+
 export {
   compile,
   compileSync,
@@ -15,6 +19,8 @@ export {
   type ContextTypeMap,
   type ContextValue,
   type ContextValueMap,
+  type ContextTextValue,
+  type ContextImageValue,
 } from './context'
 
 export {
@@ -26,12 +32,20 @@ export {
   ExecutionController,
   ExecutionState,
   ExecutionStatus,
+  BaseInput,
+  TextInput,
+  SelectInput,
+  FileInput,
+  ArrayInput,
+  WorkflowInput,
+  WorkflowInputSchema,
   Runtime,
   type UserConfig,
   type ExecutionOptions,
   type ExecutionEvents,
   type ExecutionCursor,
   type Plugin,
+  type Co
 } from './runtime'
 
 export {
@@ -51,3 +65,9 @@ export {
   type WorkflowPhase,
   type WorkflowAction,
 } from './workflow'
+
+export {
+  models,
+  type CostCalculator,
+  type ModelSpec,
+} from './ai'

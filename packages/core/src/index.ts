@@ -45,7 +45,6 @@ export {
   type ExecutionEvents,
   type ExecutionCursor,
   type Plugin,
-  type Co
 } from './runtime'
 
 export {

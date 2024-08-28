@@ -294,7 +294,7 @@ describe('Compiler', () => {
       expect(() => compileSync(src, { runtime })).toThrow(/unknown action/i)
     })
 
-    test('actions must be valie', () => {
+    test('actions must be valid', () => {
       const src = dd`
       Paragraph
 

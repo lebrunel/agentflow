@@ -10,12 +10,15 @@ import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
 import type { ContextValueMap } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
+import { evalExpression, evalExpressionSync } from './eval'
+import type { ExpressionNode } from '~/compiler'
 
 /**
  * Manages the execution of a workflow, controlling its state and progression.
  */
 export class ExecutionController {
   #events = createNanoEvents<ExecutionEvents>()
+  // todo - should store errors on the controller so can access them without event handler
   private state: ExecutionState;
   private isRunAll = false
   private prevPhase?: WorkflowPhase
@@ -97,12 +100,15 @@ export class ExecutionController {
       this.#events.emit('phase', phase, this.prevPhase, this.cursor)
     }
 
-    const action = this.currentAction
+    const action = this.getCurrentAction()
+    const context = this.state.getContext()
     const handler = this.runtime.useAction(action.name)
-    const input = astToContext(action.contentNodes as RootContent[], this.state.getContext())
+    const input = astToContext(action.contentNodes as RootContent[], context)
     const stream = pushable<string>({ objectMode: true })
 
-    const context: ActionContext = {
+    handler.validate(action.props, true)
+
+    const actionCtx: ActionContext = {
       action,
       input,
       results: this.state.getPhaseResults(),
@@ -110,7 +116,7 @@ export class ExecutionController {
     }
 
     const actionResult = new Promise<ActionResultLog>(async resolve => {
-      const { output, usage } = await handler.execute(context, this.runtime)
+      const { output, usage } = await handler.execute(actionCtx, this.runtime)
       resolve({
         cursor,
         type: action.name,
@@ -201,6 +207,23 @@ export class ExecutionController {
    */
   reset(): void {
     this.rewindTo([0, 0])
+  }
+
+  /**
+   * TODO
+   */
+  getCurrentAction(): WorkflowAction {
+    const { name, contextName, contentNodes, props: originalProps } = this.currentAction
+    const context = this.getCurrentContext()
+    const props: any = {}
+
+    for (const [key, val] of Object.entries(originalProps)) {
+      props[key] = isExpression(val)
+        ? evalExpressionSync(val.data!.estree!, context)
+        : val
+    }
+
+    return { name, contextName, contentNodes, props }
   }
 
   /**
@@ -332,6 +355,10 @@ export function executeWorkflow(
   const controller = new ExecutionController(workflow, input, runtime)
   if (start) { queueMicrotask(() => controller.runAll(afterAction) )}
   return controller
+}
+
+function isExpression(val: any): val is ExpressionNode {
+  return typeof val === 'object' && val.type === 'expression' && !!val.data
 }
 
 /**

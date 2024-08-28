@@ -6,11 +6,31 @@ import type { ContextName, ContextValue, ContextTextValue } from './context'
 import type { Runtime, ExecutionCursor } from './runtime'
 import type { WorkflowAction } from './workflow'
 
-export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): Action<z.infer<T>> {
-  const { name, schema, execute } = options
+export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<T>): Action<z.infer<T>> {
+  const { name, execute } = options
 
-  // Use validate option or default validator
-  const validate = options.validate || function(props: z.infer<T>) {
+  // Validation is called twice:
+  // - at compilation we only validate the shape
+  // - at runtime (after expressions converted to values) we validate fully
+  function validate(props: any, fullValidation: boolean = false): void {
+    // todo - improve action prop validation - all actions require a "name" prop cor context name
+    // - do need a better way of defining the name rather than mixing with props ??
+    const schema = fullValidation
+      ? options.schema
+      : z.object(
+          Object.fromEntries(
+            Object.keys(options.schema.shape).map(key => {
+              return [
+                key,
+                z.any().refine(
+                  val => typeof val !== 'undefined',
+                  { message: `Property '${key}' is required` },
+                )
+              ]
+            })
+          )
+        )
+
     schema.parse(props)
   }
 
@@ -24,14 +44,13 @@ export function defineAction<T extends z.ZodType>(options: ActionOptions<T>): Ac
 export interface Action<T = any> {
   name: ActionName;
   execute: ActionFn<T>
-  validate: (props: T) => void;
+  validate: (props: any, fullValidation?: boolean) => void;
 }
 
-export interface ActionOptions<T extends z.ZodType> {
+export interface ActionOptions<T extends z.ZodObject<any>> {
   name: ActionName;
   schema: T;
   execute: ActionFn<z.infer<T>>;
-  validate?: (props: z.infer<T>) => void;
 }
 
 export interface ActionContext<T = any> {

@@ -17,7 +17,11 @@ export async function evalExpression<T = any>(tree: Program, context: ContextVal
   // Evaluate all the statements, even though only the last one matters
   for (const statement of tree.body) {
     if (statement.type === 'ExpressionStatement') {
-      result = await evaluate(statement.expression as Node, ctx)
+      result = await evaluate(
+        statement.expression as Node,
+        ctx,
+        { functions: true },
+      )
     }
   }
 
@@ -36,7 +40,11 @@ export function evalExpressionSync<T = any>(tree: Program, context: ContextValue
   // Evaluate all the statements, even though only the last one matters
   for (const statement of tree.body) {
     if (statement.type === 'ExpressionStatement') {
-      result = evaluate.sync(statement.expression as Node, ctx)
+      result = evaluate.sync(
+        statement.expression as Node,
+        ctx,
+        { functions: true },
+      )
     }
   }
 

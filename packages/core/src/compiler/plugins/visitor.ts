@@ -63,8 +63,9 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
             const value = is(attr.value, 'mdxJsxAttributeValueExpression')
               ? {
                   type: 'expression',
+                  data: attr.value.data,
                   value: attr.value.value,
-                  position: attr.value.position
+                  position: node.position
                 } as ExpressionNode
               : attr.value
             attributes[attr.name] = value
@@ -84,7 +85,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
             if (e instanceof z.ZodError) {
               for (const issue of e.issues) {
                 file.fail(
-                  `Invalid action attributes \`${issue.path.join('.')}\`. ${issue.message}`,
+                  `Invalid action attributes at /${issue.path.join('.')}. ${issue.message}`,
                   node,
                   'workflow-parse:invalid-action-attributes'
                 )

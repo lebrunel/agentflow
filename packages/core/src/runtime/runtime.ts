@@ -1,7 +1,7 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import type { experimental_ProviderRegistry as ProviderRegistry, LanguageModel } from 'ai'
 import type { z } from 'zod'
-import { generateTextAction } from '../actions'
+import { generateText } from '../actions'
 
 import type { UserConfig } from './config'
 import type { Action } from '../action'
@@ -10,7 +10,7 @@ import type { Tool } from '../tool'
 
 // Default actions
 const actions: Action[] = [
-  generateTextAction
+  generateText
 ]
 
 // Default tools

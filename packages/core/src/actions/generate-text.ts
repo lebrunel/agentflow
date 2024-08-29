@@ -11,7 +11,7 @@ const schema = z.object({
   stream: z.optional(z.boolean())
 })
 
-export const generateTextAction = defineAction({
+export default defineAction({
   name: 'GenerateText',
   schema,
   execute: async ({ action, input, results, stream }, runtime) => {

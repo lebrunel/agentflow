@@ -15,7 +15,7 @@ const schema = z.object({
 })
 
 export default defineAction({
-  name: 'GenerateObject',
+  name: 'generate-object',
   schema,
   execute: async ({ action, input, results, stream }, runtime) => {
     const messages: CoreMessage[] = []

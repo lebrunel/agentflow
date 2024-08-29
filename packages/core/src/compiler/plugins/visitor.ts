@@ -1,7 +1,7 @@
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
 import { visit, CONTINUE, SKIP } from 'unist-util-visit'
-import { camelCase } from 'change-case'
+import { camelCase, kebabCase } from 'change-case'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 import { WorkflowInputSchema } from '../../runtime'
@@ -43,25 +43,27 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
       }
 
       if (is(node, 'mdxJsxFlowElement')) {
+        const { children, position } = node
+
+        const name = kebabCase(node.name || '')
+        const attributes: Record<string, any> = {}
         let action: Action | undefined
-        if (options.runtime && options.runtime.hasAction(node.name || '')) {
-          action = options.runtime.useAction(node.name!)
+
+        if (options.runtime && options.runtime.hasAction(name)) {
+          action = options.runtime.useAction(name)
         }
 
-        if (typeof node.name === 'undefined' || (options.runtime && !action)) {
+        if (!name || (options.runtime && !action)) {
           file.fail(
-            `Unknown action '${node.name || 'unnamed'}'. Actions must be registered.`,
+            `Unknown action '${name || 'unnamed'}'. Actions must be registered.`,
             node,
             'workflow-parse:unknown-action'
           )
         }
 
-        const { name, children, position } = node
-        const attributes: Record<string, any> = {}
-
         for (const attr of node.attributes) {
           if (attr.type === 'mdxJsxAttribute') {
-            const name = camelCase(attr.name)
+            const propName = camelCase(attr.name)
             const value = is(attr.value, 'mdxJsxAttributeValueExpression')
               ? {
                   type: 'expression',
@@ -70,7 +72,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
                   position: node.position
                 } as ExpressionNode
               : attr.value
-            attributes[name] = value
+            attributes[propName] = value
           } else {
             file.message(
               'Unsupported attribute syntax in Action. Use key-value pairs only.',
@@ -97,7 +99,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
 
         }
 
-        parent!.children[i] = u('action', { name: name!, children, attributes, position })
+        parent!.children[i] = u('action', { name, children, attributes, position })
         return CONTINUE
       }
 

@@ -6,6 +6,7 @@ import { generateText, generateObject } from '../actions'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
 import type { Tool } from '../tool'
+import { kebabCase } from 'change-case'
 
 
 // Default actions
@@ -26,7 +27,7 @@ export class Runtime {
     // Register user actions
     if (config.actions?.length) {
       for (const action of config.actions) {
-        this.registerAction(action.name, action)
+        this.registerAction(kebabCase(action.name), action)
       }
     }
 

@@ -2,7 +2,7 @@ import { z } from 'zod'
 import { defineAction, Runtime } from '~/index'
 
 export const mockAction = defineAction({
-  name: 'Mock',
+  name: 'mock',
   schema: z.object({
     type: z.literal('text'),
     value: z.string(),

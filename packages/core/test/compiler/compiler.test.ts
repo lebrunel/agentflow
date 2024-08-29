@@ -408,7 +408,7 @@ describe('Compiler', () => {
       const phase = workflow.phases[0]
       const actions = phase.actions
       expect(actions.length).toBe(3)
-      expect(actions.every(a => a.name === 'GenerateText')).toBeTrue()
+      expect(actions.every(a => a.name === 'generate-text')).toBeTrue()
       expect(actions[0].contextKey).toBe('foo')
       expect(actions[1].contextKey).toBe('bar')
       expect(actions[2].contextKey).toBe('qux')

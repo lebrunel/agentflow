@@ -82,20 +82,20 @@ function workflowPhase(
   const inputTypes = { ...contextTypes }
   const outputTypes: ContextTypeMap = {}
 
-  function validateDependency(node: ExpressionNode, contextName: string) {
-    if (!inputTypes[contextName] && !outputTypes[contextName]) {
+  function validateDependency(node: ExpressionNode, contextKey: string) {
+    if (!inputTypes[contextKey] && !outputTypes[contextKey]) {
       file.fail(
-        `Unknown context "${contextName}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
+        `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,
         'workflow-parse:undefined-context'
       )
     }
   }
 
-  function validateUniqueness(node: ActionNode, contextName: string) {
-    if (contextName in inputTypes) {
+  function validateUniqueness(node: ActionNode, contextKey: string) {
+    if (contextKey in inputTypes) {
       file.fail(
-        `Duplicate context name "${contextName}". Each Action must have a unique name within the workflow.`,
+        `Duplicate context name "${contextKey}". Each Action must have a unique name within the workflow.`,
         node,
         'workflow-parse:duplicate-context'
       )
@@ -104,9 +104,9 @@ function workflowPhase(
 
   visit(phaseNode, node => {
     if (is(node, 'action')) {
-      const contextName = node.attributes.name
-      validateUniqueness(node, contextName)
-      outputTypes[contextName] = 'text' // todo - this should come from the runtime action
+      const contextKey = node.attributes.as
+      validateUniqueness(node, contextKey)
+      outputTypes[contextKey] = 'text' // todo - this should come from the runtime action
       return CONTINUE
     }
 
@@ -144,14 +144,22 @@ function workflowPhase(
 
 // Maps the ActionNode into a WorkflowAction interface
 function workflowAction(
-  actionNode: ActionNode,
+  { name, attributes }: ActionNode,
   contentNodes: RootContent[],
   _file: VFile,
 ): WorkflowAction {
+  const contextKey = attributes.as
+  const props = Object.entries(attributes).reduce((obj, [key, val]) => {
+    if (key !== 'as') obj[key] = val
+    return obj
+  }, {} as any)
+
+  delete props.as
+
   return {
-    name: actionNode.name,
-    contextName: actionNode.attributes.name,
+    name,
+    contextKey,
     contentNodes,
-    props: actionNode.attributes
+    props,
   }
 }

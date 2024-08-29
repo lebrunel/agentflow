@@ -15,6 +15,7 @@
   "dependencies": {
     "acorn-walk": "^8.3.3",
     "ai": "^3.3.4",
+    "change-case": "^5.4.4",
     "eval-estree-expression": "^2.0.0",
     "it-pushable": "^3.2.3",
     "jse-eval": "^1.5.2",

@@ -1,6 +1,7 @@
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
 import { visit, CONTINUE, SKIP } from 'unist-util-visit'
+import { camelCase } from 'change-case'
 import { parse as parseYaml } from 'yaml'
 import { z } from 'zod'
 import { WorkflowInputSchema } from '../../runtime'
@@ -60,6 +61,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
 
         for (const attr of node.attributes) {
           if (attr.type === 'mdxJsxAttribute') {
+            const name = camelCase(attr.name)
             const value = is(attr.value, 'mdxJsxAttributeValueExpression')
               ? {
                   type: 'expression',
@@ -68,7 +70,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
                   position: node.position
                 } as ExpressionNode
               : attr.value
-            attributes[attr.name] = value
+            attributes[name] = value
           } else {
             file.message(
               'Unsupported attribute syntax in Action. Use key-value pairs only.',
@@ -80,7 +82,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
 
         if (action) {
           try {
-            action.validate(attributes)
+            action.validate(attributes, true)
           } catch(e) {
             if (e instanceof z.ZodError) {
               for (const issue of e.issues) {

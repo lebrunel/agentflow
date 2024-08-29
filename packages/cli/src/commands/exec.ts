@@ -3,7 +3,7 @@ import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, italic } from 'picocolors'
 import { default as dd } from 'ts-dedent'
-import { compileSync, executeWorkflow, Runtime } from '@ada/core'
+import { compileSync, executeWorkflow, stringifyContext, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
@@ -63,7 +63,7 @@ async function execWorkflow(name: string) {
       if (isStreaming) {
         process.stdout.write('\n')
       } else {
-        console.log(result.output.value)
+        console.log(stringifyContext(result.output))
       }
       // either way, end the stream
       stream.end()

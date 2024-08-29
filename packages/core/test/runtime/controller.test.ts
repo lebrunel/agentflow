@@ -20,21 +20,21 @@ This is an introduction
 
 Do a thing
 
-<Mock name="a1" type="text" value="Result of A1" />
+<Mock as="a1" type="text" value="Result of A1" />
 
 Do another thing
 
-<Mock name="a2" type="text" value="Result of A2" />
+<Mock as="a2" type="text" value="Result of A2" />
 
 ---
 
 This is another phase
 
-<Mock name="b1" type="text" value="Result of B1" />
+<Mock as="b1" type="text" value="Result of B1" />
 
 A final thing
 
-<Mock name="b2" type="text" value="Result of B2" />
+<Mock as="b2" type="text" value="Result of B2" />
 
 Testing the suffix: {a1}
 `
@@ -139,8 +139,8 @@ describe('ExecutionController', () => {
 
     const results1 = controller.getPhaseResults(workflow.phases[0])
     const results2 = controller.getPhaseResults(workflow.phases[1])
-    expect(results1.map(r => r.name)).toEqual(['a1', 'a2'])
-    expect(results2.map(r => r.name)).toEqual(['b1', 'b2'])
+    expect(results1.map(r => r.contextKey)).toEqual(['a1', 'a2'])
+    expect(results2.map(r => r.contextKey)).toEqual(['b1', 'b2'])
   })
 
   test('getPhaseOutput() generates correct output for a phase', async () => {

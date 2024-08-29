@@ -1,4 +1,5 @@
 import { evaluate, variables } from 'eval-estree-expression'
+import { z } from 'zod'
 
 import type { ExpressionStatement } from 'acorn'
 import type { Node } from 'estree'
@@ -19,7 +20,7 @@ export async function evalExpression<T = any>(tree: Program, context: ContextVal
     if (statement.type === 'ExpressionStatement') {
       result = await evaluate(
         statement.expression as Node,
-        ctx,
+        { ...ctx, z },
         { functions: true },
       )
     }
@@ -42,7 +43,7 @@ export function evalExpressionSync<T = any>(tree: Program, context: ContextValue
     if (statement.type === 'ExpressionStatement') {
       result = evaluate.sync(
         statement.expression as Node,
-        ctx,
+        { ...ctx, z },
         { functions: true },
       )
     }

@@ -1,14 +1,15 @@
-export type ContextName = string
+export type ContextKey = string
 
-export type ContextTypeMap = Record<ContextName, ContextType>
+export type ContextTypeMap = Record<ContextKey, ContextType>
 
-export type ContextValueMap = Record<ContextName, ContextValue>
+export type ContextValueMap = Record<ContextKey, ContextValue>
 
 export type ContextType = 'text' | 'image'
 
 export type ContextValue =
   | ContextTextValue
   | ContextImageValue
+  | ContextJSONValue
 
 export type ContextTextValue = {
   type: 'text',
@@ -22,4 +23,9 @@ export type ContextImageValue = {
     type: string,
     data: ArrayBuffer,
   }
+}
+
+export type ContextJSONValue = {
+  type: 'json',
+  value: any,
 }

@@ -47,7 +47,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const ast = parse(src)
 
@@ -71,7 +71,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const ast = parse(src)
 
@@ -95,7 +95,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
 
     ---
 
@@ -103,7 +103,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const ast = parse(src)
 
@@ -132,7 +132,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
 
     ---
 
@@ -140,7 +140,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="bar" />
+    <GenerateText as="bar" model="openai:gpt-4o" />
     `
     const ast = parse(src)
 
@@ -165,7 +165,7 @@ describe('Parser', () => {
 
     Another paragraph here.
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const ast = parse(src)
 
@@ -196,11 +196,11 @@ describe('Parser', () => {
 
     {foo}
 
-    <GenerateText model="openai:gpt-4o" name="res1" />
+    <GenerateText as="r1" model="openai:gpt-4o" />
 
     {bar}
 
-    <GenerateText model="openai:gpt-4o" name="res2" />
+    <GenerateText as="r2" model="openai:gpt-4o" />
     `
     const ast = parse(src)
     const contexts = selectAll('expression', ast) as ExpressionNode[]
@@ -247,7 +247,7 @@ describe('Compiler', () => {
 
     Paragraph
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const workflow = compile(src)
     expect(workflow.title).toBe('Bar')
@@ -276,7 +276,7 @@ describe('Compiler', () => {
 
     More
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
     `
     const workflow = compile(src)
     expect(toString(workflow.descriptionNodes)).toBe('Paragraph')
@@ -289,7 +289,7 @@ describe('Compiler', () => {
       const src = dd`
       Paragraph
 
-      <NotAnAction model="openai:gpt-4o" name="name" />
+      <NotAnAction as="foo" model="openai:gpt-4o" />
       `
       expect(() => compileSync(src, { runtime })).toThrow(/unknown action/i)
     })
@@ -307,13 +307,13 @@ describe('Compiler', () => {
       const src = dd`
       ---
       inputs:
-        name:
+        foo:
           type: text
       ---
 
       Paragraph
 
-      <GenerateText model="openai:gpt-4o" name="name" />
+      <GenerateText as="foo" model="openai:gpt-4o" />
       `
       expect(() => compileSync(src)).toThrow(/duplicate context/i)
     })
@@ -322,13 +322,13 @@ describe('Compiler', () => {
       const src = dd`
       Paragraph
 
-      <GenerateText model="openai:gpt-4o" name="foo" />
+      <GenerateText as="foo" model="openai:gpt-4o" />
 
       ---
 
       Paragraph
 
-      <GenerateText model="openai:gpt-4o" name="foo" />
+      <GenerateText as="foo" model="openai:gpt-4o" />
       `
       expect(() => compileSync(src)).toThrow(/duplicate context/i)
     })
@@ -343,7 +343,7 @@ describe('Compiler', () => {
 
       Paragraph
 
-      <GenerateText model="openai:gpt-4o" name="description" />
+      <GenerateText as="description" model="openai:gpt-4o" />
 
       ---
 
@@ -366,7 +366,7 @@ describe('Compiler', () => {
 
       Paragraph {description}
 
-      <GenerateText model="openai:gpt-4o" name="description" />
+      <GenerateText as="description" model="openai:gpt-4o" />
       `
       expect(() => compileSync(src)).toThrow(/unknown context/i)
     })
@@ -375,7 +375,7 @@ describe('Compiler', () => {
       const src = dd`
       Paragraph
 
-      <GenerateText model="openai:gpt-4o" name="description" />
+      <GenerateText as="description" model="openai:gpt-4o" />
 
       {() => 'break'}
       `
@@ -389,15 +389,15 @@ describe('Compiler', () => {
 
     This is an instruction
 
-    <GenerateText model="openai:gpt-4o" name="foo" />
+    <GenerateText as="foo" model="openai:gpt-4o" />
 
     This is a second instruction
 
-    <GenerateText model="openai:gpt-4o" name="bar" />
+    <GenerateText as="bar" model="openai:gpt-4o" />
 
     This is a third instruction
 
-    <GenerateText model="openai:gpt-4o" name="qux" />
+    <GenerateText as="qux" model="openai:gpt-4o" />
 
     Some final text.
     `
@@ -409,9 +409,9 @@ describe('Compiler', () => {
       const actions = phase.actions
       expect(actions.length).toBe(3)
       expect(actions.every(a => a.name === 'GenerateText')).toBeTrue()
-      expect(actions[0].props.name).toBe('foo')
-      expect(actions[1].props.name).toBe('bar')
-      expect(actions[2].props.name).toBe('qux')
+      expect(actions[0].contextKey).toBe('foo')
+      expect(actions[1].contextKey).toBe('bar')
+      expect(actions[2].contextKey).toBe('qux')
       expect(phase.trailingNodes.length).toBe(1)
     })
   })

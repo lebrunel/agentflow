@@ -1,0 +1,24 @@
+# Joke review!
+
+This is a simple workflow that generates a joke and then reviews it.
+
+---
+
+Generate a hillarious one-liner joke for a family-friendly audience:
+
+<GenerateText
+  as="joke"
+  model="ollama:llama3.1"
+  />
+
+Now be a comedy critic. Review the joke above and give it an honest score out of 5:
+
+<GenerateObject
+  as="review"
+  model="ollama:llama3.1"
+  schema={
+    z.object({
+      review: z.string().describe('A one sentence review'),
+      score: z.number().describe('A score between one and five, where 1 is not funny and 5 is side-splittingly hillarious.'),
+    })
+  } />

@@ -89,7 +89,7 @@ export class ExecutionState {
     for (const [phaseIdx, results] of this.resultMap) {
       if (phaseIdx <= this.cursor[0]) {
         for (const res of results) {
-          Object.assign(context, { [res.name]: res.output })
+          Object.assign(context, { [res.contextKey]: res.output })
         }
       }
     }

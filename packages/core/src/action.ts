@@ -2,34 +2,33 @@ import { z } from 'zod'
 
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-import type { ContextName, ContextValue, ContextTextValue } from './context'
+import type { ContextKey, ContextValue } from './context'
 import type { Runtime, ExecutionCursor } from './runtime'
 import type { WorkflowAction } from './workflow'
 
 export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<T>): Action<z.infer<T>> {
-  const { name, execute } = options
+  const { name, schema, execute } = options
 
-  // Validation is called twice:
-  // - at compilation we only validate the shape
-  // - at runtime (after expressions converted to values) we validate fully
-  function validate(props: any, fullValidation: boolean = false): void {
-    // todo - improve action prop validation - all actions require a "name" prop cor context name
-    // - do need a better way of defining the name rather than mixing with props ??
-    const schema = fullValidation
-      ? options.schema
-      : z.object(
-          Object.fromEntries(
-            Object.keys(options.schema.shape).map(key => {
-              return [
-                key,
-                z.any().refine(
-                  val => typeof val !== 'undefined',
-                  { message: `Property '${key}' is required` },
-                )
-              ]
-            })
-          )
+  const baseSchema = z.object({ as: z.string() }).merge(options.schema).strict() as z.ZodObject<any>
+
+  const isDefined = (val: any) => typeof val !== 'undefined'
+
+  function parse(props: any): z.infer<T> {
+    return options.schema.parse(props)
+  }
+
+  function validate(props: any, shapeOnly: boolean = false): void {
+    const schema = !shapeOnly ? baseSchema : z.object(
+        Object.fromEntries(
+          Object.keys(baseSchema.shape).map(key => {
+            const prop = baseSchema.shape[key]
+            const type = prop instanceof z.ZodOptional || prop instanceof z.ZodDefault
+              ? z.any()
+              : z.any().refine(isDefined, { message: `Property '${key}' is required` })
+            return [ key, type ]
+          })
         )
+      )
 
     schema.parse(props)
   }
@@ -37,6 +36,7 @@ export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<
   return {
     name,
     execute,
+    parse,
     validate,
   }
 }
@@ -44,7 +44,8 @@ export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<
 export interface Action<T = any> {
   name: ActionName;
   execute: ActionFn<T>
-  validate: (props: any, fullValidation?: boolean) => void;
+  parse: (props: any) => T;
+  validate: (props: any, shapeOnly?: boolean) => void;
 }
 
 export interface ActionOptions<T extends z.ZodObject<any>> {
@@ -68,16 +69,16 @@ export interface ActionEvent<T = any> {
 }
 
 export interface ActionResult {
-  output: ContextTextValue;
+  output: ContextValue;
   usage?: CompletionTokenUsage;
 }
 
 export interface ActionResultLog {
   cursor: ExecutionCursor;
-  type: ActionName;
-  name: ContextName;
+  name: ActionName;
+  contextKey: ContextKey;
   input: ContextValue[];
-  output: ContextTextValue;
+  output: ContextValue;
   usage?: CompletionTokenUsage;
 }
 

@@ -2,10 +2,11 @@ import { unified } from 'unified'
 import { u } from 'unist-builder'
 import { visit, SKIP } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
+import { default as dd } from 'ts-dedent'
 import { evalExpressionSync } from '../runtime/eval'
 
 import type { Root, RootContent } from 'mdast'
-import type { ContextValue, ContextValueMap, ContextImageValue } from './types'
+import type { ContextValue, ContextValueMap } from './types'
 
 /**
 * Converts JavaScript native types to ContextValue objects.
@@ -14,8 +15,16 @@ export function toContext(value: ContextValue['value']): ContextValue {
   switch(typeof value) {
     case 'string':
       return { type: 'text', value }
+
     case 'object':
-      return { type: 'image', value }
+      // Is image
+      if (['name', 'type', 'data'].every(k => k in value)) {
+        return { type: 'image', value }
+      // Or json
+      } else {
+        return { type: 'json', value }
+      }
+
     default:
       return { type: 'text', value: String(value) }
   }
@@ -25,7 +34,7 @@ export function astToContext(
   nodes: RootContent[],
   context: ContextValueMap = {},
 ): ContextValue[] {
-  const blocks: Array<Root | ContextImageValue> = [
+  const blocks: Array<Root | ContextValue> = [
     u('root', [])
   ]
 
@@ -63,16 +72,16 @@ export function astToContext(
 
   return blocks.map(block => {
     if ('children' in block) {
-      return { type: 'text', value: astStringify(block) }
+      return { type: 'text', value: stringifyAST(block) }
     } else {
       return block
     }
   })
 }
 
-export function astStringify(nodes: Root | RootContent[]): string {
+export function stringifyAST(nodes: Root | RootContent[]): string {
   if (Array.isArray(nodes)) {
-    return astStringify(u('root', nodes))
+    return stringifyAST(u('root', nodes))
   }
 
   return unified()
@@ -81,16 +90,22 @@ export function astStringify(nodes: Root | RootContent[]): string {
     .trim()
 }
 
-export function contextStringify(ctx: ContextValue | ContextValue[]): string {
+export function stringifyContext(ctx: ContextValue | ContextValue[]): string {
   if (Array.isArray(ctx)) {
-    return ctx.map(contextStringify).join('\n\n')
+    return ctx.map(stringifyContext).join('\n\n')
   }
 
   switch(ctx.type) {
     case 'text':
       return ctx.value
     case 'image':
-      return `![IMAGE](${ctx.value.name})`
+      return `![${ctx.value.type}](${ctx.value.name})`
+    case 'json':
+      return dd`
+      \`\`\`json
+      ${JSON.stringify(ctx.value, null, 2)}
+      \`\`\`
+      `
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
   }

@@ -2,7 +2,8 @@ import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
 import { ExecutionState, ExecutionStatus, type ExecutionCursor } from './state'
 import { CostCalculator } from '../ai'
-import { astToContext, contextStringify } from '../context'
+import { astToContext, stringifyContext } from '../context'
+import { evalExpressionSync } from './eval'
 
 import type { RootContent } from 'mdast'
 import type { ActionContext, ActionEvent, ActionResultLog } from '../action'
@@ -10,7 +11,6 @@ import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
 import type { ContextValueMap } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
-import { evalExpression, evalExpressionSync } from './eval'
 import type { ExpressionNode } from '~/compiler'
 
 /**
@@ -48,7 +48,7 @@ export class ExecutionController {
 
   /** A string representation of the current position in the workflow. */
   get position(): string {
-    return `${this.state.cursor[0]}.${this.currentAction.contextName}`
+    return `${this.state.cursor[0]}.${this.currentAction.contextKey}`
   }
 
   /** The current status of the workflow execution. */
@@ -101,12 +101,10 @@ export class ExecutionController {
     }
 
     const action = this.getCurrentAction()
-    const context = this.state.getContext()
     const handler = this.runtime.useAction(action.name)
+    const context = this.state.getContext()
     const input = astToContext(action.contentNodes as RootContent[], context)
     const stream = pushable<string>({ objectMode: true })
-
-    handler.validate(action.props, true)
 
     const actionCtx: ActionContext = {
       action,
@@ -119,8 +117,8 @@ export class ExecutionController {
       const { output, usage } = await handler.execute(actionCtx, this.runtime)
       resolve({
         cursor,
-        type: action.name,
-        name: action.contextName,
+        name: action.name,
+        contextKey: action.contextKey,
         input,
         output,
         usage,
@@ -130,7 +128,7 @@ export class ExecutionController {
     this.#events.emit('action', {
       action,
       stream,
-      input: contextStringify(input),
+      input: stringifyContext(input),
       result: actionResult
     }, this.cursor)
 
@@ -213,17 +211,18 @@ export class ExecutionController {
    * TODO
    */
   getCurrentAction(): WorkflowAction {
-    const { name, contextName, contentNodes, props: originalProps } = this.currentAction
+    const { name, contextKey, contentNodes } = this.currentAction
+    const handler = this.runtime.useAction(name)
     const context = this.getCurrentContext()
     const props: any = {}
 
-    for (const [key, val] of Object.entries(originalProps)) {
+    for (const [key, val] of Object.entries(this.currentAction.props)) {
       props[key] = isExpression(val)
         ? evalExpressionSync(val.data!.estree!, context)
         : val
     }
 
-    return { name, contextName, contentNodes, props }
+    return { name, contextKey, contentNodes, props: handler.parse(props) }
   }
 
   /**
@@ -270,13 +269,13 @@ export class ExecutionController {
 
     let resultChunks: string[] = []
     for (const result of phaseResults) {
-      resultChunks.push(contextStringify(result.input))
-      resultChunks.push(contextStringify(result.output))
+      resultChunks.push(stringifyContext(result.input))
+      resultChunks.push(stringifyContext(result.output))
     }
 
     if (trailingNodes.length) {
       resultChunks.push(
-        contextStringify(
+        stringifyContext(
           astToContext(trailingNodes as RootContent[], this.state.getContext())
         )
       )

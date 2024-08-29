@@ -19,21 +19,21 @@ This is an introduction
 
 Do a thing
 
-<Mock name="a1" type="text" value="Result of A1" />
+<Mock as="a1" type="text" value="Result of A1" />
 
 Do another thing
 
-<Mock name="a2" type="text" value="Result of A2" />
+<Mock as="a2" type="text" value="Result of A2" />
 
 ---
 
 This is another phase
 
-<Mock name="b1" type="text" value="Result of B1" />
+<Mock as="b1" type="text" value="Result of B1" />
 
 A final thing
 
-<Mock name="b2" type="text" value="Result of B2" />
+<Mock as="b2" type="text" value="Result of B2" />
 `
 const file = compileSync(src, { runtime })
 const workflow = file.result
@@ -47,12 +47,13 @@ describe('ExecutionState', () => {
     state = new ExecutionState(workflow, context)
   })
 
-  function pushResult(name: string) {
+  function pushResult(contextKey: string) {
     state.pushResult({
-      type: 'mock',
-      name,
-      input: { type: 'text', value: 'input' },
-      output: { type: 'text', value: name },
+      cursor: [0, 0],
+      name: 'mock',
+      contextKey,
+      input: [{ type: 'text', value: 'input' }],
+      output: { type: 'text', value: contextKey },
     })
   }
 
@@ -88,13 +89,13 @@ describe('ExecutionState', () => {
 
     expect(state.cursor).toEqual([1, 0])
     expect(state.resultMap.get(0)?.length).toBe(2)
-    expect(state.resultMap.get(0)?.map(r => r.name)).toContain('a2')
+    expect(state.resultMap.get(0)?.map(r => r.contextKey)).toContain('a2')
     expect(state.resultLog.length).toBe(2)
 
     state.rewindCursor([0, 1])
     expect(state.cursor).toEqual([0, 1])
     expect(state.resultMap.get(0)?.length).toBe(1)
-    expect(state.resultMap.get(0)?.map(r => r.name)).not.toContain('a2')
+    expect(state.resultMap.get(0)?.map(r => r.contextKey)).not.toContain('a2')
 
     state.rewindCursor([0, 0])
     expect(state.cursor).toEqual([0, 0])

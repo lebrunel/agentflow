@@ -14,7 +14,8 @@ export {
 } from './compiler'
 
 export {
-  type ContextName,
+  stringifyContext,
+  type ContextKey,
   type ContextType,
   type ContextTypeMap,
   type ContextValue,

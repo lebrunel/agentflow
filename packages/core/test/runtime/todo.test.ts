@@ -12,7 +12,7 @@ test('expressions in actions are evaluated', async (done) => {
   const src = dd`
   Testing
 
-  <Mock name="foo" type="text" value={['abc', 'xyz'].join(':')} />
+  <Mock as="foo" type="text" value={['abc', 'xyz'].join(':')} />
 
   Huzzar: {foo}
   `
@@ -36,7 +36,7 @@ test('expressions in actions are validated at runtime', async (done) => {
   const src = dd`
   Testing
 
-  <Mock name="foo" type="text" value={123} />
+  <Mock as="foo" type="text" value={123} />
   `
   const file = compileSync(src, { runtime })
   const workflow = file.result

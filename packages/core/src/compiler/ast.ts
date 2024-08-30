@@ -15,7 +15,7 @@ export interface PhaseNode extends Node {
 export interface ActionNode extends Node {
   type: 'action';
   name: string;
-  children: Array<RootContent>;
+  children: RootContent[] | PhaseNode[];
   attributes: Record<string, any>;
 }
 

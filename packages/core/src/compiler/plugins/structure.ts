@@ -1,9 +1,10 @@
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
+import { visit, CONTINUE, SKIP } from 'unist-util-visit'
 
 import type { Root, RootContent } from 'mdast'
 import type { Transformer } from 'unified'
-import type { WorkflowNode } from '../ast'
+import type { ActionNode, PhaseNode, WorkflowNode } from '../ast'
 import type { CompileOptions } from '../compiler'
 
 /**
@@ -43,9 +44,41 @@ export function workflowStructure(options: CompileOptions): Transformer<Root, Wo
       }
     }
 
-    // process last section
+    // process last block
     if (cursor < nodes.length) processNodes(nodes.slice(cursor))
+
+    // Group action children into sub-phases
+    visit(workflowNode, 'action', actionVisitor)
 
     return workflowNode
   }
+}
+
+/**
+ * Visitor function that groups action children by thematic breaks
+ */
+function actionVisitor(actionNode: ActionNode): true {
+  const phases: PhaseNode[] = []
+  const nodes = actionNode.children
+  let cursor = 0
+
+  function createPhase(block: RootContent[]) {
+    phases.push(u('phase', block))
+  }
+
+  for (let i = 0; i < actionNode.children.length; i++) {
+    const node = actionNode.children[i]
+
+    if (is(node, 'thematicBreak')) {
+      if (i > cursor) createPhase(nodes.slice(cursor, i) as RootContent[])
+      cursor = i + 1
+    }
+  }
+
+  // process last block
+  if (cursor < nodes.length) createPhase(nodes.slice(cursor) as RootContent[])
+
+  actionNode.children = phases
+
+  return CONTINUE
 }

@@ -26,4 +26,5 @@ export interface WorkflowAction<T = any> {
   readonly contextKey: string;
   readonly contentNodes: ReadonlyArray<RootContent>;
   readonly props: Readonly<T>;
+  readonly phases: ReadonlyArray<WorkflowPhase>;
 }

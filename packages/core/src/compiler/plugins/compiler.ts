@@ -55,7 +55,7 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
 
     // Collect phases
     const phases: WorkflowPhase[] = []
-    for (const node of selectAll('phase', workflowNode)) {
+    for (const node of workflowNode.children.filter(n => n.type === 'phase')) {
       const phase = workflowPhase(node as PhaseNode, contextTypes, file)
       phases.push(phase)
       Object.assign(contextTypes, phase.outputTypes)
@@ -102,8 +102,10 @@ function workflowPhase(
     }
   }
 
-  visit(phaseNode, node => {
-    if (is(node, 'action')) {
+  // The visitor scans the tree in order, so it's important that actions are
+  // added to the outputTypes BEFORE expression dependencies are validated
+  visit(phaseNode, (node, _i, parent) => {
+    if (is(node, 'action') && parent === phaseNode) {
       const contextKey = node.attributes.as
       validateUniqueness(node, contextKey)
       outputTypes[contextKey] = 'text' // todo - this should come from the runtime action
@@ -144,22 +146,29 @@ function workflowPhase(
 
 // Maps the ActionNode into a WorkflowAction interface
 function workflowAction(
-  { name, attributes }: ActionNode,
+  actionNode: ActionNode,
   contentNodes: RootContent[],
-  _file: VFile,
+  file: VFile,
 ): WorkflowAction {
-  const contextKey = attributes.as
-  const props = Object.entries(attributes).reduce((obj, [key, val]) => {
+  const contextKey = actionNode.attributes.as
+  const props = Object.entries(actionNode.attributes).reduce((obj, [key, val]) => {
     if (key !== 'as') obj[key] = val
     return obj
   }, {} as any)
 
-  delete props.as
+  const contextTypes: ContextTypeMap = {}
+  const phases: WorkflowPhase[] = []
+  for (const node of actionNode.children) {
+    const phase = workflowPhase(node as PhaseNode, contextTypes, file)
+    phases.push(phase)
+    Object.assign(contextTypes, phase.outputTypes)
+  }
 
   return {
-    name,
+    name: actionNode.name,
     contextKey,
     contentNodes,
     props,
+    phases,
   }
 }

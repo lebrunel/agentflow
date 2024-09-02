@@ -50,7 +50,7 @@ describe('ExecutionController', () => {
   })
 
   test('Initializes with correct initial state', () => {
-    expect(controller.cursor).toEqual([0, 0])
+    expect(controller.cursor).toEqual([[0, 0, 0]])
     expect(controller.status).toEqual(ExecutionStatus.Ready)
     expect(controller.currentPhase).toEqual(workflow.phases[0])
     expect(controller.currentAction).toEqual(workflow.phases[0].actions[0])
@@ -60,7 +60,7 @@ describe('ExecutionController', () => {
     const statusChanges: ExecutionStatus[] = []
     controller.on('status', status => statusChanges.push(status))
     await controller.runNext()
-    expect(controller.cursor).toEqual([0, 1])
+    expect(controller.cursor).toEqual([[0, 0, 1]])
     expect(controller.status).toEqual(ExecutionStatus.Paused)
     expect(statusChanges).toEqual([ExecutionStatus.Running, ExecutionStatus.Paused])
     expect(controller.getPhaseResults(workflow.phases[0]).length).toBe(1)
@@ -72,7 +72,7 @@ describe('ExecutionController', () => {
     controller.on('status', status => statusChanges.push(status))
     controller.on('error', console.log)
     await controller.runAll()
-    expect(controller.cursor).toEqual([1, 1])
+    expect(controller.cursor).toEqual([[0, 1, 1]])
     expect(controller.status).toEqual(ExecutionStatus.Completed)
     expect(statusChanges).toEqual([ExecutionStatus.Running, ExecutionStatus.Completed])
     expect(controller.getPhaseResults(workflow.phases[0]).length).toBe(2)
@@ -84,12 +84,13 @@ describe('ExecutionController', () => {
     controller.on('status', status => statusChanges.push(status))
 
     await controller.runAll((_result, cursor) => {
-      if (cursor[0] === 0 && cursor[1] === 1) {
+      const tail = cursor[cursor.length - 1]
+      if (tail[1] === 0 && tail[2] === 1) {
         controller.pause()
       }
     })
 
-    expect(controller.cursor).toEqual([1, 0])
+    expect(controller.cursor).toEqual([[0, 1, 0]])
     expect(controller.status).toEqual(ExecutionStatus.Paused)
     expect(statusChanges).toEqual([ExecutionStatus.Running, ExecutionStatus.Paused])
     expect(controller.getPhaseResults(workflow.phases[0]).length).toBe(2)
@@ -100,9 +101,9 @@ describe('ExecutionController', () => {
     const statusChanges: ExecutionStatus[] = []
     controller.on('status', status => statusChanges.push(status))
     await controller.runAll()
-    controller.rewindTo([0, 1])
+    controller.rewindTo([[0, 0, 1]])
 
-    expect(controller.cursor).toEqual([0, 1])
+    expect(controller.cursor).toEqual([[0, 0, 1]])
     expect(controller.status).toEqual(ExecutionStatus.Paused)
     expect(statusChanges).toEqual([ExecutionStatus.Running, ExecutionStatus.Completed, ExecutionStatus.Paused])
     expect(controller.getPhaseResults(workflow.phases[0]).length).toBe(1)
@@ -115,7 +116,7 @@ describe('ExecutionController', () => {
     await controller.runAll()
     controller.reset()
 
-    expect(controller.cursor).toEqual([0, 0])
+    expect(controller.cursor).toEqual([[0, 0, 0]])
     expect(controller.status).toEqual(ExecutionStatus.Ready)
     expect(statusChanges).toEqual([ExecutionStatus.Running, ExecutionStatus.Completed, ExecutionStatus.Ready])
     expect(controller.getPhaseResults(workflow.phases[0]).length).toBe(0)

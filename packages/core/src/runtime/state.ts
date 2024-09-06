@@ -1,7 +1,7 @@
 import { ExecutionCursor, parseLocation } from './cursor'
 
-import type { ActionMeta } from '../action'
-import type { ContextValue, ContextValueMap } from '../context'
+import type { ActionLog } from '../action'
+import type { ContextValueMap } from '../context'
 
 export class ExecutionState {
   readonly stateMap: Map<string, ExecutionScope> = new Map()
@@ -123,18 +123,4 @@ function dropFromKey<K, V>(key: string, map: Map<K, V>, dropKey: boolean = false
 interface ExecutionScope {
   context: ContextValueMap;
   results: Map<string, ActionLog>
-}
-
-interface GroupedExecutionScope {
-  context: ContextValueMap;
-  results: ActionLog[][]
-}
-
-export interface ActionLog {
-  cursor: string;
-  actionName: string;
-  contextKey: string;
-  input: ContextValue[];
-  output: ContextValue;
-  meta: ActionMeta;
 }

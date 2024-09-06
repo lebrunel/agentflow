@@ -1,16 +1,17 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
-import { ExecutionCursor, parseLocation } from './cursor'
+import { ExecutionCursor } from './cursor'
 import { evalExpressionSync } from './eval'
 import { ExecutionNavigator } from './navigator'
 import { ExecutionState } from './state'
+import { CostCalculator } from '../ai'
 import { astToContext, stringifyContext } from '../context'
 
 import type { RootContent } from 'mdast'
 import type { Pushable } from 'it-pushable'
 import type { Runtime } from './runtime'
-import type { ActionLog } from './state'
-import type { ActionResult } from '../action'
+import type { ModelSpec } from '../ai'
+import type { ActionResult, ActionLog } from '../action'
 import type { ExpressionNode } from '../compiler'
 import type { ContextValueMap } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
@@ -138,13 +139,13 @@ export class ExecutionController {
           while (true) {
             const $self: Array<Record<string, any>> = [{}]
             let i = 0
-            for (const activityLog of this.state.getScopeResults(this.cursor)) {
-              const c = ExecutionCursor.parse(activityLog.cursor)
+            for (const actionLog of this.state.getScopeResults(this.cursor)) {
+              const c = ExecutionCursor.parse(actionLog.cursor)
               if (c.iteration > i) {
                 i = c.iteration
                 $self.push({})
               }
-              $self[i][activityLog.contextKey] = activityLog.output.value
+              $self[i][actionLog.contextKey] = actionLog.output.value
             }
             const isDone = evalExpressionSync(action.props.until.data!.estree!, { ...context }, { $self, $index })
 
@@ -154,8 +155,8 @@ export class ExecutionController {
           }
 
           const { results } = this.state.getExecutionScope(this.#cursor)
-          const value = [...results.values()].map(activityLog => {
-            return activityLog.output.value
+          const value = [...results.values()].map(actionLog => {
+            return actionLog.output.value
           })
           this.#cursor = ExecutionCursor.pop(this.cursor)
           return { result: { type: 'json', value } }
@@ -172,7 +173,8 @@ export class ExecutionController {
             return props
           }, {} as any)
           const props = handler.parse(evalProps)
-          return handler.execute(props, input, stream)
+          const prevResults = this.state.getPhaseResults(cursor)
+          return handler.execute({ props, input, results: prevResults, runtime: this.runtime, stream })
       }
     })()
 
@@ -272,31 +274,28 @@ export class ExecutionController {
     return this.#events.on(event, handler)
   }
 
-  ///**
-  // * Generates the output for a specific phase of the workflow.
-  // */
-  //getPhaseOutput(cursor: string | ExecutionCursor): string {
-  //  if (typeof cursor === 'string') {
-  //    cursor = ExecutionCursor.parse(cursor)
-  //  }
-  //  if (this.cursor.lt(cursor)) {
-  //    throw new Error('Cannot create output for workflow phase. Not all actions complete.')
-  //  }
+  /**
+   * TODO
+   */
+  getCostEstimate(models?: Record<string, ModelSpec>): CostCalculator {
+    const calculator = new CostCalculator(models)
 
-  //  const phase = this.#workflow.fetchPhase(cursor)
-  //  const chunks = this.state.getPhaseResults(cursor).reduce((chunks, actionLog) => {
-  //    chunks.push(stringifyContext(actionLog.input))
-  //    chunks.push(stringifyContext(actionLog.output))
-  //    return chunks
-  //  }, [] as string[])
+    for (const scope of this.state.stateMap.values()) {
+      for (const actionLog of scope.results.values()) {
+        if (typeof actionLog.meta.usage === 'undefined') continue
 
-  //  if (phase.trailingNodes.length) {
-  //    const context = astToContext(phase.trailingNodes as RootContent[], this.state.getContext(cursor))
-  //    chunks.push(stringifyContext(context))
-  //  }
+        const cursor = ExecutionCursor.parse(actionLog.cursor)
+        const action = this.#workflow.findAction(cursor)
+        const model = action?.props?.model
 
-  //  return chunks.join('\n\n')
-  //}
+        if (typeof model === 'string') {
+          calculator.addUsage(model, actionLog.meta.usage)
+        }
+      }
+    }
+
+    return calculator
+  }
 
   /**
    * Generates the final output for the entire workflow.

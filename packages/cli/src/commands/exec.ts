@@ -3,7 +3,7 @@ import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, italic } from 'picocolors'
 import { default as dd } from 'ts-dedent'
-import { compileSync, executeWorkflow, stringifyContext, Runtime } from '@ada/core'
+import { compileSync, executeWorkflow, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
@@ -51,19 +51,19 @@ async function execWorkflow(name: string) {
   console.log()
   const ctrl = executeWorkflow(workflow, context, runtime)
 
-  ctrl.on('action', async ({ action, stream, input, result }) => {
-    console.log(dim('[['), `${blue(action.name)}@${blue(action.props.name)}`, dim(']]'))
+  ctrl.on('action', async ({ action, stream, input, output }) => {
+    console.log(dim('[['), `${blue(action.name)}@${blue(action.contextKey)}`, dim(']]'))
     console.log()
     console.log(dim(input))
     console.log()
 
     let isStreaming = false
 
-    result.then((result) => {
+    output.then((result) => {
       if (isStreaming) {
         process.stdout.write('\n')
       } else {
-        console.log(stringifyContext(result.output))
+        console.log(result)
       }
       // either way, end the stream
       stream.end()

@@ -4,7 +4,6 @@ import { defineAction } from '../action'
 import { aiGenerationOptions, toCoreMessage, SYSTEM_PROMPT } from'./support/ai'
 
 import type { CompletionTokenUsage, CoreMessage } from 'ai'
-import type { ExecutionController } from '../runtime'
 
 const schema = z.object({
   model: z.string(),
@@ -16,8 +15,7 @@ const schema = z.object({
 export default defineAction({
   name: 'generate-text',
   schema,
-  execute: async function(this: ExecutionController, props, input, stream) {
-    const results = this.state.getPhaseResults(this.cursor)
+  execute: async function({ props, input, results, runtime, stream }) {
     const messages: CoreMessage[] = []
 
     for (const res of results) {
@@ -27,7 +25,7 @@ export default defineAction({
     messages.push(toCoreMessage('user', input))
 
     const opts = {
-      model: this.runtime.useLanguageModel(props.model),
+      model: runtime.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
       ...props.options

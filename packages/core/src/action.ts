@@ -3,6 +3,7 @@ import { z } from 'zod'
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 import type { ContextValue } from './context'
+import type { Runtime } from './runtime'
 
 export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<T>): Action<z.infer<T>> {
   const { name, execute } = options
@@ -56,11 +57,15 @@ export interface ActionOptions<T extends z.ZodObject<any>> {
 
 export type ActionName = string
 
-export type ActionFn<T> = (
+export type ActionParams<T> = {
   props: T,
   input: ContextValue[],
+  results: ActionLog[],
+  runtime: Runtime,
   stream: Pushable<string>,
-) => ActionResult | PromiseLike<ActionResult>
+}
+
+export type ActionFn<T> = (params: ActionParams<T>) => ActionResult | PromiseLike<ActionResult>
 
 export interface ActionResult {
   result: ContextValue;
@@ -69,4 +74,13 @@ export interface ActionResult {
 
 export interface ActionMeta {
   usage?: CompletionTokenUsage;
+}
+
+export interface ActionLog {
+  cursor: string;
+  actionName: string;
+  contextKey: string;
+  input: ContextValue[];
+  output: ContextValue;
+  meta: ActionMeta;
 }

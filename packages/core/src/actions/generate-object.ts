@@ -4,7 +4,6 @@ import { defineAction } from '../action'
 import { aiGenerationOptions, toCoreMessage, SYSTEM_PROMPT } from'./support/ai'
 
 import type { CoreMessage } from 'ai'
-import type { ExecutionController } from '../runtime'
 
 const schema = z.object({
   model: z.string(),
@@ -18,8 +17,7 @@ const schema = z.object({
 export default defineAction({
   name: 'generate-object',
   schema,
-  execute: async function(this: ExecutionController, props, input) {
-    const results = this.state.getPhaseResults(this.cursor)
+  execute: async function({ props, input, results, runtime }) {
     const messages: CoreMessage[] = []
 
     for (const res of results) {
@@ -29,7 +27,7 @@ export default defineAction({
     messages.push(toCoreMessage('user', input))
 
     const opts = {
-      model: this.runtime.useLanguageModel(props.model),
+      model: runtime.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
       schema: props.schema,

@@ -1,2 +1,3 @@
-export { default as generateText } from './generate-text'
-export { default as generateObject } from './generate-object'
+export * from './builtins'
+export { default as genTextAction } from './generate-text'
+export { default as genObjectAction } from './generate-object'

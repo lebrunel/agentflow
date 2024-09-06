@@ -1,67 +1,66 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
-import { CostCalculator } from '../ai'
-import { astToContext, stringifyContext } from '../context'
-import { parseCursor, stringifyCursor } from './cursor'
+import { ExecutionCursor, parseLocation } from './cursor'
 import { evalExpressionSync } from './eval'
-import { ExecutionState, ExecutionStatus } from './state'
+import { ExecutionNavigator } from './navigator'
+import { ExecutionState } from './state'
+import { astToContext, stringifyContext } from '../context'
 
 import type { RootContent } from 'mdast'
-import type { ExecutionCursor, Position } from './cursor'
+import type { Pushable } from 'it-pushable'
 import type { Runtime } from './runtime'
-import type { ActionContext, ActionEvent, ActionResultLog } from '../action'
-import type { ModelSpec } from '../ai'
+import type { ActionLog } from './state'
+import type { ActionResult } from '../action'
+import type { ExpressionNode } from '../compiler'
 import type { ContextValueMap } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
-import type { ExpressionNode } from '../compiler'
 
-/**
- * Manages the execution of a workflow, controlling its state and progression.
- */
 export class ExecutionController {
   #events = createNanoEvents<ExecutionEvents>()
-  // todo - should store errors on the controller so can access them without event handler
-  //private state: ExecutionState;
-  private state: ExecutionState
-  private isRunAll = false
-  private prevPhase?: WorkflowPhase
+  #cursor = new ExecutionCursor()
+  #cursorSet = new Set<ExecutionCursor>()
+  #cursorStack: ExecutionCursor[] = []
+  #status: ExecutionStatus = ExecutionStatus.Ready
+  #workflow: ExecutionNavigator
 
-  constructor(
-    readonly workflow: Workflow,
-    input: ContextValueMap,
-    private runtime: Runtime,
-  ) {
-    this.state = new ExecutionState(workflow, input)
+  readonly runtime: Runtime
+  readonly state = new ExecutionState()
+
+  constructor(workflow: Workflow, input: ContextValueMap, runtime: Runtime) {
+    this.#workflow = new ExecutionNavigator(workflow)
+    this.runtime = runtime
+    this.state.pushContext(this.cursor, input)
   }
 
-  /** The current position in the workflow, represented as [phaseIndex, actionIndex]. */
   get cursor(): ExecutionCursor {
-    return this.state.cursor
+    return this.#cursor
   }
 
-  /** The current phase of the workflow being executed. */
-  get currentPhase(): WorkflowPhase {
-    return this.findPhase(this.cursor)
-  }
-
-  get currentPhaseIndex(): number {
-    return this.state.cursorTail[1]
-  }
-
-  /** The current action of the workflow being executed. */
-  get currentAction(): WorkflowAction {
-    const actionIndex = this.state.cursorTail[2]
-    return this.currentPhase.actions[actionIndex]
-  }
-
-  /** A string representation of the current position in the workflow. */
-  get position(): string {
-    return stringifyCursor(this.cursor)
-  }
-
-  /** The current status of the workflow execution. */
   get status(): ExecutionStatus {
-    return this.state.status
+    return this.#status
+  }
+
+  get workflow(): Workflow {
+    return this.#workflow.workflow
+  }
+
+  get currentPhase(): WorkflowPhase {
+    return this.#workflow.fetchPhase(this.cursor)
+  }
+
+  get currentAction(): WorkflowAction {
+    return this.#workflow.fetchAction(this.cursor)
+  }
+
+  get currentContext(): ContextValueMap {
+    return this.state.getContext(new ExecutionCursor())
+  }
+
+  private set status(status: ExecutionStatus) {
+    if (this.status !== status) {
+      this.#status = status
+      this.#events.emit('status', status, this.cursor)
+    }
   }
 
   /**
@@ -70,20 +69,17 @@ export class ExecutionController {
    * inspection of results and pausing of the workflow if necessary.
    */
   async runAll(afterEachAction?: AfterActionCallback): Promise<void> {
-    this.isRunAll = true
     this.status = ExecutionStatus.Running
 
-    while (this.state.status === ExecutionStatus.Running) {
+    while (this.status === ExecutionStatus.Running) {
       try {
-        await this.runNext(afterEachAction)
-      } catch(error) {
+        await this.runNext({ afterAction: afterEachAction, runAll: true })
+      } catch (error) {
         this.status = ExecutionStatus.Error
         this.#events.emit('error', error as Error, this.cursor)
         break
       }
     }
-
-    this.isRunAll = false
   }
 
   /**
@@ -91,7 +87,13 @@ export class ExecutionController {
    * synchronously after the action completes, allowing inspection of the result
    * and pausing of the workflow if necessary.
    */
-  async runNext(afterAction?: AfterActionCallback): Promise<ExecutionCursor> {
+  async runNext({
+    afterAction,
+    runAll = false
+  }: {
+    afterAction?: AfterActionCallback,
+    runAll?: boolean,
+  } = {}): Promise<ExecutionCursor> {
     if (
       this.status === ExecutionStatus.Completed ||
       this.status === ExecutionStatus.Error
@@ -102,62 +104,120 @@ export class ExecutionController {
     this.status = ExecutionStatus.Running
 
     const cursor = this.cursor
-    const phase = this.currentPhase
-    const phaseIdx = this.currentPhaseIndex
+    this.#cursorStack.push(cursor)
 
-    if (phase !== this.prevPhase) {
-      this.#events.emit('phase', phase, this.prevPhase, cursor)
+    if (cursor.actionIndex === 0 && !this.#cursorSet.has(cursor)) {
+      const phase = this.#workflow.fetchPhase(cursor)
+      this.#events.emit('phase', phase, cursor)
+      this.#cursorSet.add(cursor)
     }
 
-    const action = this.getCurrentAction()
-    const handler = this.runtime.useAction(action.name)
-    const context = this.state.currentScope.getContext()
+    const phases = this.#workflow.fetchScope(cursor)
+    const action = this.#workflow.fetchAction(cursor)
+    const context = this.state.getContext(cursor)
     const input = astToContext(action.contentNodes as RootContent[], context)
     const stream = pushable<string>({ objectMode: true })
 
-    const actionCtx: ActionContext = {
-      action,
-      input,
-      results: this.state.currentScope.getPhaseResults(phaseIdx),
-      stream,
-    }
+    const actionResult: Promise<ActionResult> = (async () => {
+      const context = this.state.getContext(cursor)
+      switch (action.name) {
+        //case 'if':
+        //  // todo handle If
+        //  break
+        case 'loop':
+          // todo handle loop
+          const newContext = action.props.inject
+            ? evalExpressionSync(action.props.inject.data!.estree!, context)
+            : {}
 
-    const actionResult = new Promise<ActionResultLog>(async resolve => {
-      const { output, usage } = await handler.execute(actionCtx, this.runtime)
-      resolve({
-        cursor,
-        name: action.name,
-        contextKey: action.contextKey,
-        input,
-        output,
-        usage,
-      })
-    })
+          this.#cursor = ExecutionCursor.push(cursor)
+          this.state.pushContext(this.#cursor, newContext)
+
+
+          let $index: number = this.cursor.iteration
+          while (true) {
+            const $self: Array<Record<string, any>> = [{}]
+            let i = 0
+            for (const activityLog of this.state.getScopeResults(this.cursor)) {
+              const c = ExecutionCursor.parse(activityLog.cursor)
+              if (c.iteration > i) {
+                i = c.iteration
+                $self.push({})
+              }
+              $self[i][activityLog.contextKey] = activityLog.output.value
+            }
+            const isDone = evalExpressionSync(action.props.until.data!.estree!, { ...context }, { $self, $index })
+
+            if (isDone) { break }
+            await this.runNext({ afterAction, runAll })
+            $index = this.cursor.iteration
+          }
+
+          const { results } = this.state.getExecutionScope(this.#cursor)
+          const value = [...results.values()].map(activityLog => {
+            return activityLog.output.value
+          })
+          this.#cursor = ExecutionCursor.pop(this.cursor)
+          return { result: { type: 'json', value } }
+
+        default:
+          // handle arbitrary action
+          // 1. evaluate and validate props
+          // 2. resolve with execute
+          const handler = this.runtime.useAction(action.name)
+          const evalProps = Object.entries(action.props).reduce((props, [key, val]) => {
+            props[key] = isExpression(val)
+              ? evalExpressionSync(val.data!.estree!, context)
+              : val
+            return props
+          }, {} as any)
+          const props = handler.parse(evalProps)
+          return handler.execute(props, input, stream)
+      }
+    })()
 
     this.#events.emit('action', {
       action,
-      stream,
       input: stringifyContext(input),
-      result: actionResult
+      output: actionResult.then(l => stringifyContext(l.result)),
+      stream,
     }, cursor)
 
-    const result = await actionResult
-    stream.end()
-    this.state.currentScope.pushPhaseResults(phaseIdx, result)
+    const { result, meta } = await actionResult.then(res => {
+      this.#cursorStack.pop()
+      stream.end()
+      return res
+    })
 
-    if (this.state.isScopeEnd) {
+    const actionLog: ActionLog = {
+      cursor: cursor.toString(),
+      actionName: action.name,
+      contextKey: action.contextKey,
+      input,
+      output: result,
+      meta: meta || {}
+    }
+
+    this.state.pushResult(cursor, actionLog)
+
+    // Is it the final phase/action
+    if (
+      cursor.path === '/' &&
+      cursor.phaseIndex === phases.length - 1 &&
+      cursor.actionIndex === phases[phases.length - 1].actions.length - 1
+    ) {
       this.status = ExecutionStatus.Completed
-      this.#events.emit('complete', this.getCompleteOutput(), cursor)
+      this.#events.emit('complete', this.getFinalOutput(), cursor)
     } else {
-      this.prevPhase = phase
-      this.state.advanceCursor()
-      if (!this.isRunAll) {
+      //this.prevPhase = phase // todo - mechanism for notifying new phase
+      this.advanceCursor()
+      if (!runAll) {
         this.status = ExecutionStatus.Paused
       }
     }
 
     if (typeof afterAction === 'function') {
-      await afterAction(result, cursor)
+      await afterAction(actionLog, cursor)
     }
 
     return cursor
@@ -174,21 +234,19 @@ export class ExecutionController {
 
   /**
    * Moves the execution cursor to a specified position in the workflow.
-   * */
-  rewindTo(cursor: ExecutionCursor): void
-  rewindTo(position: Position): void
-  rewindTo(cursor: ExecutionCursor | string): void {
-    if (this.state.status === ExecutionStatus.Running) {
-      throw new Error("Cannot reset while running. Pause first.");
-    }
-
+   * todo - needs to accept easier formats
+   */
+  rewindTo(cursor: string | ExecutionCursor): void {
     if (typeof cursor === 'string') {
-      cursor = parseCursor(cursor)
+      cursor = ExecutionCursor.parse(cursor)
+    }
+    if (this.status === ExecutionStatus.Running) {
+      throw new Error('Cannot reset while running. Pause first.')
     }
 
-    this.state.rewindCursor(cursor)
+    this.rewindCursor(cursor)
 
-    if (cursor.length === 1 && this.state.isScopeStart) {
+    if (this.cursor.path === '/' && this.cursor.location === '0.0.0') {
       this.status = ExecutionStatus.Ready
     } else {
       this.status = ExecutionStatus.Paused
@@ -201,151 +259,7 @@ export class ExecutionController {
    * Resets the workflow to its initial state.
    */
   reset(): void {
-    this.rewindTo([[0, 0, 0]])
-  }
-
-  /**
-   * TODO
-   */
-  findPhase(cursor: ExecutionCursor): WorkflowPhase {
-    let phases = this.workflow.phases
-    let phase: WorkflowPhase | undefined
-
-    for (let i = 0; i < cursor.length; i++) {
-      const [_i, phaseIdx, actionIdx] = cursor[i]
-
-      phase = phases[phaseIdx]
-
-      if (i === cursor.length - 1) {
-        return phase
-      } else {
-        const action = phase.actions[actionIdx]
-        phases = action.phases
-        continue
-      }
-    }
-
-    throw new Error(`Cursor does not point to a phase: ${cursor}`)
-  }
-
-  /**
-   * TODO
-   */
-  getCurrentAction(): WorkflowAction {
-    const { name, contextKey, contentNodes, phases } = this.currentAction
-    const handler = this.runtime.useAction(name)
-    const context = this.getCurrentContext()
-    const props: any = {}
-
-    for (const [key, val] of Object.entries(this.currentAction.props)) {
-      props[key] = isExpression(val)
-        ? evalExpressionSync(val.data!.estree!, context)
-        : val
-    }
-
-    return {
-      name,
-      contextKey,
-      contentNodes,
-      props: handler.parse(props),
-      phases,
-    }
-  }
-
-  /**
-   * Returns the current context of the workflow execution.
-   */
-  getCurrentContext(): Readonly<ContextValueMap> {
-    const context = this.state.currentScope.getContext()
-    // todo - clone results for better saftey
-    return Object.freeze({...context})
-  }
-
-  /**
-   * Returns a map of all action results grouped by phase.
-   */
-  getCurrentResults(): ReadonlyMap<WorkflowPhase, ActionResultLog[]> {
-    const resultMap = new Map<WorkflowPhase, ActionResultLog[]>()
-    for (const [phaseIdx, results] of this.state.currentScope.resultMap) {
-      // todo - clone results for better saftey
-      resultMap.set(this.workflow.phases[phaseIdx], [...results])
-    }
-    return resultMap
-  }
-
-  /**
-   * Returns the action results for a specific phase.
-   */
-  getPhaseResults(phase: WorkflowPhase): ActionResultLog[] {
-    const phaseIdx = this.getPhaseIndex(phase)
-    const results = this.state.currentScope.getPhaseResults(phaseIdx)
-    // todo - clone results for better saftey
-    return [...results]
-  }
-
-  /**
-   * Generates the output for a specific phase of the workflow.
-   */
-  getPhaseOutput(phase: WorkflowPhase): string {
-    const phaseIdx = this.getPhaseIndex(phase)
-    const phaseResults = this.state.currentScope.getPhaseResults(phaseIdx)
-    const trailingNodes = phase.trailingNodes
-
-    if (phaseResults.length < this.state.currentScope.getPhaseSize(phaseIdx)) {
-      throw new Error('Cannot create output for workflow phase. Not all actions complete.')
-    }
-
-    let resultChunks: string[] = []
-    for (const result of phaseResults) {
-      resultChunks.push(stringifyContext(result.input))
-      resultChunks.push(stringifyContext(result.output))
-    }
-
-    if (trailingNodes.length) {
-      resultChunks.push(
-        stringifyContext(
-          astToContext(trailingNodes as RootContent[], this.state.currentScope.getContext())
-        )
-      )
-    }
-
-    return resultChunks.join('\n\n')
-  }
-
-  /**
-   * Generates the complete output for the entire workflow.
-   */
-  getCompleteOutput(): string {
-    if (this.state.status !== ExecutionStatus.Completed) {
-      throw new Error(`Cannot get results whilst status is ${ExecutionStatus[this.status]}.`)
-    }
-
-    return this.workflow.phases
-      .map(phase => this.getPhaseOutput(phase))
-      .join('\n\n---\n\n')
-  }
-
-  /**
-   * TODO
-   */
-  getCostEstimate(models?: Record<string, ModelSpec>): CostCalculator {
-    const calculator = new CostCalculator(models)
-
-    for (const [_key, scope] of this.state.scopes) {
-      for (const res of scope.resultLog) {
-        if (typeof res.usage === 'undefined') continue
-
-        const phase = this.findPhase(res.cursor)
-        const action = phase.actions[res.cursor[res.cursor.length - 1][2]]
-        const model = action.props?.model
-
-        if (typeof model === 'string') {
-          calculator.addUsage(model, res.usage)
-        }
-      }
-    }
-
-    return calculator
+    this.rewindTo(new ExecutionCursor())
   }
 
   /**
@@ -358,20 +272,142 @@ export class ExecutionController {
     return this.#events.on(event, handler)
   }
 
-  private set status(val: ExecutionStatus) {
-    if (this.state.status !== val) {
-      this.state.status = val
-      this.#events.emit('status', val, this.cursor)
+  ///**
+  // * Generates the output for a specific phase of the workflow.
+  // */
+  //getPhaseOutput(cursor: string | ExecutionCursor): string {
+  //  if (typeof cursor === 'string') {
+  //    cursor = ExecutionCursor.parse(cursor)
+  //  }
+  //  if (this.cursor.lt(cursor)) {
+  //    throw new Error('Cannot create output for workflow phase. Not all actions complete.')
+  //  }
+
+  //  const phase = this.#workflow.fetchPhase(cursor)
+  //  const chunks = this.state.getPhaseResults(cursor).reduce((chunks, actionLog) => {
+  //    chunks.push(stringifyContext(actionLog.input))
+  //    chunks.push(stringifyContext(actionLog.output))
+  //    return chunks
+  //  }, [] as string[])
+
+  //  if (phase.trailingNodes.length) {
+  //    const context = astToContext(phase.trailingNodes as RootContent[], this.state.getContext(cursor))
+  //    chunks.push(stringifyContext(context))
+  //  }
+
+  //  return chunks.join('\n\n')
+  //}
+
+  /**
+   * Generates the final output for the entire workflow.
+   */
+  getFinalOutput(): string {
+    if (this.status !== ExecutionStatus.Completed) {
+      throw new Error(`Cannot get results whilst status is ${ExecutionStatus[this.status]}.`)
+    }
+
+    const stringifyScope = (cursor: ExecutionCursor): string => {
+      const results = this.state.getGroupedScopeResults(cursor)
+
+      return results
+        .map(group => {
+          const cursorForPhase = ExecutionCursor.parse(group[0].cursor)
+          const phase = this.#workflow.fetchPhase(cursorForPhase)
+          const context = this.state.getContext(cursorForPhase)
+          const chunks: string[] = []
+
+          for (const actionLog of group) {
+            const cursorForAction = ExecutionCursor.parse(actionLog.cursor)
+            const inputStr = stringifyContext(actionLog.input)
+            if (inputStr.length) {
+              chunks.push(inputStr)
+            }
+            if (this.state.stateMap.has(cursorForAction.toString())) {
+              chunks.push(stringifyScope(ExecutionCursor.push(cursorForAction)))
+            } else {
+              chunks.push(stringifyContext(actionLog.output))
+            }
+          }
+
+          if (phase.trailingNodes.length) {
+            const trailingValue = astToContext(phase.trailingNodes as RootContent[], context)
+            chunks.push(stringifyContext(trailingValue))
+          }
+
+          return chunks.join('\n\n')
+        })
+        .join('\n\n---\n\n')
+    }
+
+    return stringifyScope(new ExecutionCursor())
+
+  }
+
+  // Moves the cursor to the next action or phase within the current scope.
+  private advanceCursor(): void {
+    const cursor = this.cursor
+    const phases = this.#workflow.fetchScope(cursor)
+    const stackLen = this.#cursorStack.length
+    const stackedAction = stackLen &&
+      this.#workflow.fetchAction(this.#cursorStack[stackLen - 1])
+
+    if (cursor.actionIndex < phases[cursor.phaseIndex].actions.length - 1) {
+      this.#cursor = ExecutionCursor.move(cursor, [
+        cursor.iteration,
+        cursor.phaseIndex,
+        cursor.actionIndex + 1,
+      ])
+    } else if (cursor.phaseIndex < phases.length - 1) {
+      this.#cursor = ExecutionCursor.move(cursor, [
+        cursor.iteration,
+        cursor.phaseIndex + 1,
+        0,
+      ])
+    } else if (stackedAction && stackedAction.name === 'loop') {
+      this.#cursor = ExecutionCursor.move(cursor, [
+        cursor.iteration + 1,
+        0,
+        0,
+      ])
     }
   }
 
-  private getPhaseIndex(phase: WorkflowPhase): number {
-    const phaseIdx = this.workflow.phases.indexOf(phase)
-    if (phaseIdx === -1) {
-      throw new Error('Provided phase is not part of the current workflow.');
+  // Moves the cursor to a previous position and clears subsequent results.
+  private rewindCursor(cursor: ExecutionCursor): void {
+    if (!cursor.lt(this.cursor)) {
+      throw new Error(`Invalid cursor for rewind: ${cursor.toString()}`)
     }
-    return phaseIdx
+
+    this.#cursor = cursor
+    this.state.dropResultsFrom(cursor)
   }
+}
+
+
+
+
+
+
+
+
+/**
+ * Represents the current state of workflow execution.
+ */
+export enum ExecutionStatus {
+  /** Initial state, cursor at [0,0] */
+  Ready,
+
+  /** Workflow is in progress */
+  Running,
+
+  /** Execution paused, waiting for next action */
+  Paused,
+
+  /** All actions executed successfully */
+  Completed,
+
+  /** An error occurred during execution */
+  Error,
 }
 
 /**
@@ -388,9 +424,14 @@ export function executeWorkflow(
   return controller
 }
 
+
+
 function isExpression(val: any): val is ExpressionNode {
   return typeof val === 'object' && val.type === 'expression' && !!val.data
 }
+
+
+
 
 /**
  * Events emitted during workflow execution.
@@ -403,7 +444,7 @@ export interface ExecutionEvents {
   'action': (event: ActionEvent, cursor: ExecutionCursor) => void;
 
   /** A new phase is starting */
-  'phase': (phase: WorkflowPhase, prev: WorkflowPhase | undefined, cursor: ExecutionCursor) => void;
+  'phase': (phase: WorkflowPhase, cursor: ExecutionCursor) => void;
 
   /** The runner has completed  */
   'complete': (output: string, cursor: ExecutionCursor) => void;
@@ -424,7 +465,17 @@ export interface ExecutionOptions {
 }
 
 /**
+ * TODO
+ */
+export interface ActionEvent<T = any> {
+  action: WorkflowAction<T>;
+  input: string;
+  output: PromiseLike<string>;
+  stream: Pushable<string>;
+}
+
+/**
  * Callback function executed after each action in the workflow.
  */
 export type AfterActionCallback =
-  (result: ActionResultLog, cursor: ExecutionCursor) => void | Promise<void>
+  (result: ActionLog, cursor: ExecutionCursor) => void | Promise<void>

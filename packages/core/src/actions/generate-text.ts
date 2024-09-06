@@ -4,6 +4,7 @@ import { defineAction } from '../action'
 import { aiGenerationOptions, toCoreMessage, SYSTEM_PROMPT } from'./support/ai'
 
 import type { CompletionTokenUsage, CoreMessage } from 'ai'
+import type { ExecutionController } from '../runtime'
 
 const schema = z.object({
   model: z.string(),
@@ -15,7 +16,8 @@ const schema = z.object({
 export default defineAction({
   name: 'generate-text',
   schema,
-  execute: async ({ action, input, results, stream }, runtime) => {
+  execute: async function(this: ExecutionController, props, input, stream) {
+    const results = this.state.getPhaseResults(this.cursor)
     const messages: CoreMessage[] = []
 
     for (const res of results) {
@@ -25,13 +27,13 @@ export default defineAction({
     messages.push(toCoreMessage('user', input))
 
     const opts = {
-      model: runtime.useLanguageModel(action.props.model),
+      model: this.runtime.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
-      ...action.props.options
+      ...props.options
     }
 
-    const { text, usage } = action.props.stream === false
+    const { text, usage } = props.stream === false
       ? await generateText(opts)
       : await new Promise<{ text: string, usage: CompletionTokenUsage }>(async resolve => {
         const { textStream } = await streamText({
@@ -41,13 +43,14 @@ export default defineAction({
         })
 
         for await (const chunk of textStream) {
+          // todo - need a cleaner way to stream - maybe just send events to the controller?
           stream.push(chunk)
         }
       })
 
     return {
-      output: { type: 'text', value: text },
-      usage,
+      result: { type: 'text', value: text },
+      meta: { usage },
     }
   }
 })

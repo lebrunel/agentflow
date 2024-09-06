@@ -31,8 +31,8 @@ export {
   evalExpressionSync,
   evalDependencies,
   ExecutionController,
-  ExecutionState,
   ExecutionStatus,
+  ExecutionCursor,
   BaseInput,
   TextInput,
   SelectInput,
@@ -40,11 +40,15 @@ export {
   ArrayInput,
   WorkflowInput,
   WorkflowInputSchema,
+  ExecutionNavigator,
   Runtime,
+  ExecutionState,
   type UserConfig,
+  type ActionEvent,
+  type AfterActionCallback,
   type ExecutionOptions,
   type ExecutionEvents,
-  type ExecutionCursor,
+  type Cursor,
   type Plugin,
 } from './runtime'
 
@@ -53,6 +57,8 @@ export {
   type Action,
   type ActionOptions,
 } from './action'
+
+export * as actions from './actions'
 
 export {
   defineTool,

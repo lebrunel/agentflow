@@ -1,165 +1,140 @@
-import { compareCursors, stringifyCursor } from './cursor'
-import { ExecutionScope } from './scope'
+import { ExecutionCursor, parseLocation } from './cursor'
 
-import type { ExecutionCursor, Cursor } from './cursor'
-import type { ContextValueMap } from '../context'
-import type { Workflow, WorkflowPhase } from '../workflow'
+import type { ActionMeta } from '../action'
+import type { ContextValue, ContextValueMap } from '../context'
 
 export class ExecutionState {
-  #cursor: ExecutionCursor
-  status: ExecutionStatus
-  scopes: ScopeMap
+  readonly stateMap: Map<string, ExecutionScope> = new Map()
+  readonly actionLog: ActionLog[] = []
 
-  constructor(workflow: Workflow, context: ContextValueMap) {
-    this.status = ExecutionStatus.Ready
-    this.#cursor = [[0,0,0]]
-    this.scopes = new ScopeMap(
-      new ExecutionScope(workflow.phases, context)
-    )
+  getExecutionScope(cursor: ExecutionCursor): ExecutionScope {
+    return this.scoped(cursor, scope => scope)
   }
 
-  get cursor(): ExecutionCursor {
-    return this.#cursor.map(c => [...c])
-  }
-
-  get cursorHead(): Cursor {
-    return this.cursor[0]
-  }
-
-  get cursorTail(): Cursor {
-    return this.cursor[this.cursor.length - 1]
-  }
-
-  get currentScope(): ExecutionScope {
-    return this.scopes.get(this.cursor)
-  }
-
-  get isScopeStart(): boolean {
-    const tail = this.cursorTail
-    return tail[1] === 0 &&
-           tail[2] === 0
-  }
-
-  get isScopeEnd(): boolean {
-    const tail = this.cursorTail
-    const maxPhaseIndex = this.currentScope.phaseCount - 1
-    return tail[1] === maxPhaseIndex &&
-           tail[2] === this.currentScope.getPhaseSize(maxPhaseIndex) - 1
-  }
-
-  /**
-   * Moves the cursor to the next action or phase.
-   */
-  advanceCursor(): void {
-    const tail = this.cursorTail
-    if (tail[2] < this.currentScope.getPhaseSize(tail[1]) - 1) {
-      tail[2]++
-    } else if (tail[1] < this.currentScope.phaseSizeMap.size - 1) {
-      tail[1]++
-      tail[2] = 0
-    }
-
-    this.#cursor.splice(-1, 1, tail)
-  }
-
-  /**
-   * Moves the cursor to a previous position and clears subsequent results.
-   */
-  rewindCursor(cursor: ExecutionCursor) {
-    if (cursor.some(c => c.some(n => n < 0))) {
-      throw new Error(`Cursor cannot have negative index: ${JSON.stringify(cursor)}`)
-    } else if (
-      compareCursors(cursor, this.cursor) > -1
-    ) {
-      throw new Error(`Invalid cursor for rewind: ${JSON.stringify(cursor)}`)
-    }
-
-    this.#cursor = cursor
-
-    // Clear scopes in avance of the new cursor
-    this.scopes.clearFrom(cursor)
-
-    // Clear results from the current scope, in advance of the cursor
-    const tail = this.cursorTail
-    for (const [phaseIdx, results] of this.currentScope.resultMap) {
-      if (phaseIdx > tail[1]) {
-        results.splice(0)
-      } else if (phaseIdx === tail[1]) {
-        results.splice(tail[2])
+  getContext(cursor: ExecutionCursor): ContextValueMap {
+    return this.scoped(cursor, scope => {
+      const context = { ...scope.context }
+      for (const result of scope.results.values()) {
+        context[result.contextKey] = { ...result.output }
       }
+      return context
+    })
+  }
+
+  getScopeResults(cursor: ExecutionCursor): ActionLog[] {
+    return this.scoped(cursor, scope => {
+      return [...scope.results.values()]
+    })
+  }
+
+  getGroupedScopeResults(cursor: ExecutionCursor): ActionLog[][] {
+    return this.scoped(cursor, scope => {
+      const groupMap: Map<string, ActionLog[]> = new Map()
+
+      for (const [location, actionLog] of scope.results) {
+        const key = location.replace(/\.\d+$/, '')
+
+        let group = groupMap.get(key)
+
+        if (!group) {
+          group = []
+          groupMap.set(key, group)
+        }
+
+        group.push(actionLog)
+      }
+
+      return Array.from(groupMap.values())
+    })
+  }
+
+  getPhaseResults(cursor: ExecutionCursor): ActionLog[] {
+    return this.scoped(cursor, scope => {
+      const results: ActionLog[] = []
+      for (const [location, result] of scope.results) {
+        const loc = parseLocation(location)
+        if (
+          loc.iteration === cursor.iteration &&
+          loc.phaseIndex === cursor.phaseIndex
+        ) {
+          results.push(result)
+        }
+      }
+      return results
+    })
+  }
+
+  getActionResult(cursor: ExecutionCursor): ActionLog | undefined {
+    return this.scoped(cursor, scope => {
+      return scope.results.get(cursor.location)
+    })
+  }
+
+  /**
+   * Pushes a new scope with the given context onto the state map
+   */
+  pushContext(cursor: ExecutionCursor, context: ContextValueMap): void {
+    this.stateMap.set(cursor.path, {
+      context,
+      results: new Map<string, ActionLog>(),
+    })
+  }
+
+  pushResult(cursor: ExecutionCursor, result: ActionLog): void {
+    this.scoped(cursor, scope => {
+      scope.results.set(cursor.location, result)
+    })
+  }
+
+  dropResultsFrom(cursor: ExecutionCursor): void {
+    // drop future scopes
+    dropFromKey(cursor.path, this.stateMap)
+    const scope = this.stateMap.get(cursor.path)
+    if (scope) {
+      // drop results from current location
+      dropFromKey(cursor.location, scope.results, true)
     }
   }
 
-  private set cursor(cursor: ExecutionCursor) {
-    this.#cursor = cursor.map(c => [...c])
+  private scoped<T>(cursor: ExecutionCursor, callback: (scope: ExecutionScope) => T): T {
+    const scope = this.stateMap.get(cursor.path)
+    if (!scope) throw new Error(`Scope not found: ${cursor.toString()}`)
+    return callback(scope)
   }
+}
 
+function dropFromKey<K, V>(key: string, map: Map<K, V>, dropKey: boolean = false): boolean {
+  let keyFound = false
+  for (const k of map.keys()) {
+    if (keyFound) {
+      map.delete(k)
+    } else if (k === key) {
+      keyFound = true
+      if (dropKey) map.delete(k)
+    }
+  }
+  return keyFound
 }
 
 
 
+/// types
 
-
-
-
-class ScopeMap {
-  #map: Map<string, ExecutionScope> = new Map()
-
-  constructor(rootScope: ExecutionScope) {
-    this.#map.set('/', rootScope)
-  }
-
-  [Symbol.iterator](): IterableIterator<[string, ExecutionScope]> {
-    return this.#map[Symbol.iterator]()
-  }
-
-  clearFrom(cursor: ExecutionCursor): void {
-    const fromKey = this.toKey(cursor)
-    for (const key of this.#map.keys()) {
-      if (fromKey < key) {
-        this.#map.delete(key)
-      }
-    }
-  }
-
-  get(cursor: ExecutionCursor): ExecutionScope {
-    return this.#map.get(this.toKey(cursor))!
-  }
-
-  has(cursor: ExecutionCursor): boolean {
-    return this.#map.has(this.toKey(cursor))
-  }
-
-  //keys(): Iterable<string> {
-  //  return this.#map.keys()
-  //}
-
-  set(cursor: ExecutionCursor, scope: ExecutionScope): void {
-    this.#map.set(this.toKey(cursor), scope)
-  }
-
-  private toKey(cursor: ExecutionCursor): string {
-    return stringifyCursor(cursor, true)
-  }
+interface ExecutionScope {
+  context: ContextValueMap;
+  results: Map<string, ActionLog>
 }
 
+interface GroupedExecutionScope {
+  context: ContextValueMap;
+  results: ActionLog[][]
+}
 
-/**
- * Represents the current state of workflow execution.
- */
-export enum ExecutionStatus {
-  /** Initial state, cursor at [0,0] */
-  Ready,
-
-  /** Workflow is in progress */
-  Running,
-
-  /** Execution paused, waiting for next action */
-  Paused,
-
-  /** All actions executed successfully */
-  Completed,
-
-  /** An error occurred during execution */
-  Error,
+export interface ActionLog {
+  cursor: string;
+  actionName: string;
+  contextKey: string;
+  input: ContextValue[];
+  output: ContextValue;
+  meta: ActionMeta;
 }

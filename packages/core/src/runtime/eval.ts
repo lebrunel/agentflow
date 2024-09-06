@@ -4,15 +4,21 @@ import { z } from 'zod'
 import type { ExpressionStatement } from 'acorn'
 import type { Node } from 'estree'
 import type { Program } from 'estree-jsx'
-import type { ContextValueMap } from '../context'
+import type { ContextValue, ContextValueMap } from '../context'
 
 /**
  * Evaluates an expression tree asynchronously using the provided context.
  * This function iterates through the body of the program, evaluating each
  * expression statement and returning the result of the last one.
  */
-export async function evalExpression<T = any>(tree: Program, context: ContextValueMap): Promise<T> {
-  const ctx = reduceContext(context)
+export async function evalExpression<T = any>(
+  tree: Program,
+  contextMap: ContextValueMap,
+  context: Record<string, any> = {},
+): Promise<T> {
+  const ctx = Object.entries(contextMap).reduce((ctx, [name, { value }]) => {
+    return Object.assign(ctx, { [name]: value })
+  }, context)
 
   let result: any
   // Evaluate all the statements, even though only the last one matters
@@ -34,8 +40,14 @@ export async function evalExpression<T = any>(tree: Program, context: ContextVal
  * This function iterates through the body of the program, evaluating each
  * expression statement and returning the result of the last one.
  */
-export function evalExpressionSync<T = any>(tree: Program, context: ContextValueMap): T {
-  const ctx = reduceContext(context)
+export function evalExpressionSync<T = any>(
+  tree: Program,
+  contextMap: ContextValueMap,
+  context: Record<string, any> = {},
+): T {
+  const ctx = Object.entries(contextMap).reduce((ctx, [name, { value }]) => {
+    return Object.assign(ctx, { [name]: value })
+  }, context)
 
   let result: any
   // Evaluate all the statements, even though only the last one matters
@@ -62,10 +74,4 @@ export function evalDependencies(tree: Program): string[] {
     const expression = (statement as ExpressionStatement).expression
     return variables(expression as Node)
   })
-}
-
-function reduceContext(context: ContextValueMap): Record<string, any> {
-  return Object.entries(context).reduce((ctx, [name, { value }]) => {
-    return Object.assign(ctx, { [name]: value })
-  }, {})
 }

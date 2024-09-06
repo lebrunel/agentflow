@@ -1,18 +1,20 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import type { experimental_ProviderRegistry as ProviderRegistry, LanguageModel } from 'ai'
 import type { z } from 'zod'
-import { generateText, generateObject } from '../actions'
-
+import { ifAction, loopAction, genTextAction, genObjectAction } from '../actions'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
 import type { Tool } from '../tool'
 import { kebabCase } from 'change-case'
 
+const builtInActions: Action[] = [
+  ifAction,
+  loopAction,
+]
 
-// Default actions
 const actions: Action[] = [
-  generateText,
-  generateObject,
+  genTextAction,
+  genObjectAction,
 ]
 
 // Default tools
@@ -24,6 +26,10 @@ export class Runtime {
   private providers: ProviderRegistry = createProviderRegistry({})
 
   constructor(config: UserConfig = {}) {
+    for (const action of builtInActions) {
+      this.registerAction(kebabCase(action.name), action)
+    }
+
     // Register user actions
     if (config.actions?.length) {
       for (const action of config.actions) {

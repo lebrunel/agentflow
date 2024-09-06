@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { defineAction, Runtime } from '~/index'
+import { actions, defineAction, Runtime } from '~/index'
 
 export const mockAction = defineAction({
   name: 'mock',
@@ -7,11 +7,14 @@ export const mockAction = defineAction({
     type: z.literal('text'),
     value: z.string(),
   }),
-  execute(ctx, _runtime) {
-    return { output: ctx.action.props }
+  execute(props) {
+    return { result: props }
   }
 })
 
 export const runtime = new Runtime({
-  actions: [ mockAction ]
+  actions: [
+    //actions.loop,
+    mockAction
+  ]
 })

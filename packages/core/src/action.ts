@@ -2,14 +2,14 @@ import { z } from 'zod'
 
 import type { CompletionTokenUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
-import type { ContextKey, ContextValue } from './context'
-import type { Runtime, ExecutionCursor } from './runtime'
-import type { WorkflowAction } from './workflow'
+import type { ContextValue } from './context'
 
 export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<T>): Action<z.infer<T>> {
-  const { name, schema, execute } = options
+  const { name, execute } = options
 
-  const baseSchema = z.object({ as: z.string() }).merge(options.schema).strict() as z.ZodObject<any>
+  const baseSchema = z.object({
+    as: z.string(),
+  }).merge(options.schema).strict() as z.ZodObject<any>
 
   const isDefined = (val: any) => typeof val !== 'undefined'
 
@@ -54,37 +54,19 @@ export interface ActionOptions<T extends z.ZodObject<any>> {
   execute: ActionFn<z.infer<T>>;
 }
 
-export interface ActionContext<T = any> {
-  action: WorkflowAction<T>;
-  input: ContextValue[];
-  results: ActionResultLog[];
-  stream: Pushable<string>;
-}
-
-export interface ActionEvent<T = any> {
-  action: WorkflowAction<T>;
-  stream: Pushable<string>;
-  input: string;
-  result: PromiseLike<ActionResultLog>;
-}
-
-export interface ActionResult {
-  output: ContextValue;
-  usage?: CompletionTokenUsage;
-}
-
-export interface ActionResultLog {
-  cursor: ExecutionCursor;
-  name: ActionName;
-  contextKey: ContextKey;
-  input: ContextValue[];
-  output: ContextValue;
-  usage?: CompletionTokenUsage;
-}
-
 export type ActionName = string
 
 export type ActionFn<T> = (
-  ctx: ActionContext<T>,
-  runtime: Runtime,
+  props: T,
+  input: ContextValue[],
+  stream: Pushable<string>,
 ) => ActionResult | PromiseLike<ActionResult>
+
+export interface ActionResult {
+  result: ContextValue;
+  meta?: ActionMeta;
+}
+
+export interface ActionMeta {
+  usage?: CompletionTokenUsage;
+}

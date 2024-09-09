@@ -7,7 +7,7 @@ export const mockAction = defineAction({
     type: z.literal('text'),
     value: z.string(),
   }),
-  execute(props) {
+  execute({ props }) {
     return { result: props }
   }
 })

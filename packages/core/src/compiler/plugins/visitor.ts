@@ -20,8 +20,10 @@ import type { Action } from '~/action'
 export function workflowVisitor(options: CompileOptions): Transformer<Root, Root> {
   return (tree, file) => {
     visit(tree, (node, i, parent) => {
-      if (typeof i === 'undefined') return
+      // root node, just continue
+      if (typeof i === 'undefined') return CONTINUE
 
+      // yaml node, parse and validate frontmatter
       if (is(node, 'yaml')) {
         try {
           node.data = parseYaml(node.value)
@@ -40,6 +42,12 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
           }
         }
         return SKIP
+      }
+
+      // blockquotes, treat as comments, remove and and ignore
+      if (is(node, 'blockquote')) {
+        parent!.children.splice(i, 1)
+        return [SKIP, i]
       }
 
       if (is(node, 'mdxJsxFlowElement')) {

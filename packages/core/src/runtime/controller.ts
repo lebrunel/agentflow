@@ -5,7 +5,7 @@ import { evalExpressionSync } from './eval'
 import { ExecutionNavigator } from './navigator'
 import { ExecutionState } from './state'
 import { CostCalculator } from '../ai'
-import { astToContext, stringifyContext } from '../context'
+import { astToContext, stringifyContext, unwrapContext, wrapContext } from '../context'
 
 import type { RootContent } from 'mdast'
 import type { Pushable } from 'it-pushable'
@@ -13,7 +13,7 @@ import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
 import type { ActionResult, ActionLog } from '../action'
 import type { ExpressionNode } from '../compiler'
-import type { ContextValueMap } from '../context'
+import type { ContextValueMap, JsonContextValue } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
 
 export class ExecutionController {
@@ -128,12 +128,11 @@ export class ExecutionController {
         case 'loop':
           // todo handle loop
           const newContext = action.props.inject
-            ? evalExpressionSync(action.props.inject.data!.estree!, context)
+            ? evalExpressionSync(action.props.inject.data!.estree!, unwrapContext(context))
             : {}
 
           this.#cursor = ExecutionCursor.push(cursor)
-          this.state.pushContext(this.#cursor, newContext)
-
+          this.state.pushContext(this.#cursor, wrapContext(newContext))
 
           let $index: number = this.cursor.iteration
           while (true) {
@@ -147,7 +146,11 @@ export class ExecutionController {
               }
               $self[i][actionLog.contextKey] = actionLog.output.value
             }
-            const isDone = evalExpressionSync(action.props.until.data!.estree!, { ...context }, { $self, $index })
+            const isDone = evalExpressionSync(action.props.until.data!.estree!, {
+              ...unwrapContext(context),
+              $index,
+              $self,
+            })
 
             if (isDone) { break }
             await this.runNext({ afterAction, runAll })
@@ -156,6 +159,12 @@ export class ExecutionController {
 
           const { results } = this.state.getExecutionScope(this.#cursor)
           const value = [...results.values()].map(actionLog => {
+            // special case for files, we want this to be jsonish
+            // todo - unure if this is right tbh... but will do for now
+            if (actionLog.output.type === 'file') {
+              const file = actionLog.output.value
+              return { type: 'file', name: file.name, contentType: file.type}
+            }
             return actionLog.output.value
           })
           this.#cursor = ExecutionCursor.pop(this.cursor)

@@ -19,10 +19,10 @@ export default defineAction({
     const messages: CoreMessage[] = []
 
     for (const res of results) {
-      messages.push(toCoreMessage('user', res.input))
-      messages.push(toCoreMessage('assistant', [res.output]))
+      messages.push(await toCoreMessage('user', res.input))
+      messages.push(await toCoreMessage('assistant', [res.output]))
     }
-    messages.push(toCoreMessage('user', input))
+    messages.push(await toCoreMessage('user', input))
 
     const opts = {
       model: runtime.useLanguageModel(props.model),
@@ -47,7 +47,7 @@ export default defineAction({
       })
 
     return {
-      result: { type: 'text', value: text },
+      result: { type: 'native', value: text },
       meta: { usage },
     }
   }

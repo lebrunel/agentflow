@@ -20,21 +20,21 @@ This is an introduction
 
 Do a thing
 
-<Mock as="a1" type="text" value="Result of A1" />
+<Mock as="a1" value="Result of A1" />
 
 Do another thing
 
-<Mock as="a2" type="text" value="Result of A2" />
+<Mock as="a2" value="Result of A2" />
 
 ---
 
 This is another phase
 
-<Mock as="b1" type="text" value="Result of B1" />
+<Mock as="b1" value="Result of B1" />
 
 A final thing
 
-<Mock as="b2" type="text" value="Result of B2" />
+<Mock as="b2" value="Result of B2" />
 
 Testing the suffix: {a1}
 `
@@ -45,7 +45,7 @@ describe('ExecutionController', () => {
   let controller: ExecutionController
 
   beforeEach(() => {
-    const context: ContextValueMap = { foo: { type: 'text', value: 'bar' } }
+    const context: ContextValueMap = { foo: { type: 'primitive', value: 'bar' } }
     controller = executeWorkflow(workflow, context, runtime, { start: false })
   })
 

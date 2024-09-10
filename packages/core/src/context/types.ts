@@ -1,31 +1,28 @@
 export type ContextKey = string
 
-export type ContextTypeMap = Record<ContextKey, ContextType>
-
 export type ContextValueMap = Record<ContextKey, ContextValue>
 
-export type ContextType = 'text' | 'image'
-
 export type ContextValue =
-  | ContextTextValue
-  | ContextImageValue
-  | ContextJSONValue
+  | PrimitiveContextValue
+  | FileContextValue
+  | JsonContextValue
 
-export type ContextTextValue = {
-  type: 'text',
-  value: string,
+export type PrimitiveContextValue = {
+  type: 'primitive',
+  value: string | number | boolean,
 }
 
-export type ContextImageValue = {
-  type: 'image',
-  value: {
-    name: string,
-    type: string,
-    data: ArrayBuffer,
-  }
+export type FileContextValue ={
+  type: 'file',
+  value: File,
 }
 
-export type ContextJSONValue = {
+export type JsonContextValue = {
   type: 'json',
-  value: any,
+  value: JsonValue,
 }
+
+type JsonPrimitive = string | number | boolean | null
+type JsonArray = Array<JsonValue>
+type JsonObject = { [key: string]: JsonValue }
+type JsonValue = JsonPrimitive | JsonArray | JsonObject

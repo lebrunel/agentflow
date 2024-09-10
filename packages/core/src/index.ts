@@ -14,14 +14,14 @@ export {
 } from './compiler'
 
 export {
+  fromContextValue,
+  toContextValue,
+  wrapContext,
+  unwrapContext,
   stringifyContext,
   type ContextKey,
-  type ContextType,
-  type ContextTypeMap,
   type ContextValue,
   type ContextValueMap,
-  type ContextTextValue,
-  type ContextImageValue,
 } from './context'
 
 export {

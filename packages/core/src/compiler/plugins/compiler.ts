@@ -1,6 +1,5 @@
 import { is } from 'unist-util-is'
 import { visit, CONTINUE } from 'unist-util-visit'
-import { selectAll } from 'unist-util-select'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import { evalDependencies, WorkflowInputSchema } from '../../runtime'
@@ -10,9 +9,9 @@ import type { Program } from 'estree-jsx'
 import type { Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
-import type { ContextTypeMap } from '../../context'
 import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 import type { CompileOptions } from '../compiler'
+import type { ContextKey } from '~/context'
 
 /**
  * Compiles a workflow from a markdown AST node into a Workflow object.
@@ -48,17 +47,14 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
     const inputSchema: WorkflowInputSchema = meta?.inputs || {}
 
     // Create mutatable ContextTypeMap
-    const contextTypes: ContextTypeMap =
-      Object.entries(inputSchema).reduce((map, [name, { type }]) => {
-        return Object.assign(map, { [name]: type })
-      }, {})
+    const contextKeys: ContextKey[] = Object.keys(inputSchema)
 
     // Collect phases
     const phases: WorkflowPhase[] = []
     for (const node of workflowNode.children.filter(n => n.type === 'phase')) {
-      const phase = workflowPhase(node as PhaseNode, contextTypes, file)
+      const phase = workflowPhase(node as PhaseNode, [...contextKeys], file)
       phases.push(phase)
-      Object.assign(contextTypes, phase.outputTypes)
+      contextKeys.push(...phase.contextKeys)
     }
 
     return new Workflow(
@@ -74,16 +70,14 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
 // Maps the PhaseNode into a WorkflowPhase interface
 function workflowPhase(
   phaseNode: PhaseNode,
-  contextTypes: ContextTypeMap,
+  contextKeys: ContextKey[],
   file: VFile,
 ): WorkflowPhase {
   const actions: WorkflowAction[] = []
   const dependencies = new Set<string>()
-  const inputTypes = { ...contextTypes }
-  const outputTypes: ContextTypeMap = {}
 
   function validateDependency(node: ExpressionNode, contextKey: string) {
-    if (!inputTypes[contextKey] && !outputTypes[contextKey]) {
+    if (!contextKeys.includes(contextKey)) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,
@@ -93,7 +87,7 @@ function workflowPhase(
   }
 
   function validateUniqueness(node: ActionNode, contextKey: string) {
-    if (contextKey in inputTypes) {
+    if (contextKeys.includes(contextKey)) {
       file.fail(
         `Duplicate context name "${contextKey}". Each Action must have a unique name within the workflow.`,
         node,
@@ -108,7 +102,7 @@ function workflowPhase(
     if (is(node, 'action') && parent === phaseNode) {
       const contextKey = node.attributes.as
       validateUniqueness(node, contextKey)
-      outputTypes[contextKey] = 'text' // todo - this should come from the runtime action
+      contextKeys.push(contextKey)
       return CONTINUE
     }
 
@@ -138,8 +132,7 @@ function workflowPhase(
   return {
     actions,
     dependencies,
-    inputTypes,
-    outputTypes,
+    contextKeys,
     trailingNodes,
   }
 }
@@ -156,12 +149,12 @@ function workflowAction(
     return obj
   }, {} as any)
 
-  const contextTypes: ContextTypeMap = {}
+  const contextKeys: ContextKey[] = Object.keys({})
   const phases: WorkflowPhase[] = []
   for (const node of actionNode.children) {
-    const phase = workflowPhase(node as PhaseNode, contextTypes, file)
+    const phase = workflowPhase(node as PhaseNode, [...contextKeys], file)
     phases.push(phase)
-    Object.assign(contextTypes, phase.outputTypes)
+    contextKeys.push(...phase.contextKeys)
   }
 
   return {

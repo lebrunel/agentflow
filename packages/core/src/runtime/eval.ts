@@ -14,20 +14,15 @@ import type { ContextValueMap } from '../context'
  */
 export async function evalExpression<T = any>(
   tree: Program,
-  contextMap: ContextValueMap,
   context: Record<string, any> = {},
 ): Promise<T> {
-  const ctx = Object.entries(contextMap).reduce((ctx, [name, { value }]) => {
-    return Object.assign(ctx, { [name]: value })
-  }, context)
-
   let result: any
   // Evaluate all the statements, even though only the last one matters
   for (const statement of tree.body) {
     if (statement.type === 'ExpressionStatement') {
       result = await evaluate(
         statement.expression as Node,
-        { ...ctx, z },
+        { ...context, z },
         { functions: true, generate: escodegen.generate },
       )
     }
@@ -43,20 +38,15 @@ export async function evalExpression<T = any>(
  */
 export function evalExpressionSync<T = any>(
   tree: Program,
-  contextMap: ContextValueMap,
   context: Record<string, any> = {},
 ): T {
-  const ctx = Object.entries(contextMap).reduce((ctx, [name, { value }]) => {
-    return Object.assign(ctx, { [name]: value })
-  }, context)
-
   let result: any
   // Evaluate all the statements, even though only the last one matters
   for (const statement of tree.body) {
     if (statement.type === 'ExpressionStatement') {
       result = evaluate.sync(
         statement.expression as Node,
-        { ...ctx, z },
+        { ...context, z },
         { functions: true, generate: escodegen.generate },
       )
     }

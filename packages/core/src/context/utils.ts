@@ -1,6 +1,6 @@
 import { unified } from 'unified'
 import { u } from 'unist-builder'
-import { visit, SKIP } from 'unist-util-visit'
+import { visit, SKIP, CONTINUE } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
 import { default as dd } from 'ts-dedent'
 import { evalExpressionSync } from '../runtime/eval'
@@ -8,28 +8,52 @@ import { evalExpressionSync } from '../runtime/eval'
 import type { Root, RootContent } from 'mdast'
 import type { ContextValue, ContextValueMap } from './types'
 
+
 /**
-* Converts JavaScript native types to ContextValue objects.
+ * TODO
  */
-export function toContext(value: ContextValue['value']): ContextValue {
-  switch(typeof value) {
-    case 'string':
-      return { type: 'text', value }
-
-    case 'object':
-      // Is image
-      if (['name', 'type', 'data'].every(k => k in value)) {
-        return { type: 'image', value }
-      // Or json
-      } else {
-        return { type: 'json', value }
-      }
-
-    default:
-      return { type: 'text', value: String(value) }
-  }
+export function fromContextValue(ctx: ContextValue): ContextValue['value'] {
+  return ctx.value
 }
 
+/**
+ * TODO
+ */
+export function toContextValue(value: any): ContextValue {
+  if (['string', 'number', 'boolean'].includes(typeof value)) {
+    return { type: 'primitive', value: value as string | number | boolean }
+  }
+
+  if (value instanceof File) {
+    return { type: 'file', value }
+  }
+
+  return { type: 'json', value }
+}
+
+/**
+ * TODO
+ */
+export function unwrapContext(ctx: ContextValueMap): Record<string, ContextValue['value']> {
+  return Object.entries(ctx).reduce((obj, [key, value]) => {
+    obj[key] = fromContextValue(value)
+    return obj
+  }, {} as Record<string, ContextValue['value']>)
+}
+
+/**
+ * TODO
+ */
+export function wrapContext(obj: Record<string, any>): ContextValueMap {
+  return Object.entries(obj).reduce((ctx, [key, value]) => {
+    ctx[key] = toContextValue(value)
+    return ctx
+  }, {} as ContextValueMap)
+}
+
+/**
+ * TODO
+ */
 export function astToContext(
   nodes: RootContent[],
   context: ContextValueMap = {},
@@ -53,14 +77,19 @@ export function astToContext(
 
   for (const node of nodes) {
     visit(node, 'expression', (node, i, parent) => {
-      const contextValue = toContext(
-        evalExpressionSync(node.data!.estree!, context)
+      if (typeof i === 'undefined') return CONTINUE
+
+      const contextValue = toContextValue(
+        evalExpressionSync(node.data!.estree!, unwrapContext(context))
       )
-      if (contextValue.type === 'text') {
-        parent!.children[i as number] = u('text', { value: contextValue.value })
+
+      // Native gets stringified inline as a text node
+      if (contextValue.type === 'primitive') {
+        parent!.children[i] = u('text', { value: String(contextValue.value) })
         return SKIP
+      // file and json values get pushed into blocks
       } else {
-        parent!.children.splice(i as number, 1)
+        parent!.children.splice(i, 1)
         blocks.push({ ...contextValue })
         return [SKIP, i as number]
       }
@@ -72,7 +101,7 @@ export function astToContext(
 
   return blocks.map(block => {
     if ('children' in block) {
-      return { type: 'text', value: stringifyAST(block) }
+      return { type: 'primitive', value: stringifyAST(block) }
     } else {
       return block
     }
@@ -96,9 +125,10 @@ export function stringifyContext(ctx: ContextValue | ContextValue[]): string {
   }
 
   switch(ctx.type) {
-    case 'text':
-      return ctx.value
-    case 'image':
+    case 'primitive':
+      return String(ctx.value)
+    case 'file':
+
       return `![${ctx.value.type}](${ctx.value.name})`
     case 'json':
       return dd`

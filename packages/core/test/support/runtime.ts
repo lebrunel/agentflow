@@ -1,14 +1,13 @@
 import { z } from 'zod'
-import { actions, defineAction, Runtime } from '~/index'
+import { actions, defineAction, Runtime, type ContextValue } from '~/index'
 
 export const mockAction = defineAction({
   name: 'mock',
   schema: z.object({
-    type: z.literal('text'),
     value: z.string(),
   }),
   execute({ props }) {
-    return { result: props }
+    return { result: { type: 'primitive', value: props.value } }
   }
 })
 

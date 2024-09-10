@@ -33,5 +33,5 @@ try {
   await cli.parseAsync()
 } catch(e: any) {
   console.log(bgRed('Error'), e.message)
+  console.log(e)
 }
-

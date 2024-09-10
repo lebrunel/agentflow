@@ -16,6 +16,7 @@
     "acorn-walk": "^8.3.3",
     "ai": "^3.3.4",
     "change-case": "^5.4.4",
+    "escodegen": "^2.1.0",
     "eval-estree-expression": "^2.0.0",
     "it-pushable": "^3.2.3",
     "jse-eval": "^1.5.2",
@@ -36,5 +37,8 @@
     "vfile": "^6.0.2",
     "yaml": "^2.5.0",
     "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/escodegen": "^0.0.10"
   }
 }

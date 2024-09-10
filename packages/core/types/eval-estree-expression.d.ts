@@ -1,10 +1,11 @@
 declare module 'eval-estree-expression' {
   import { Node } from 'estree';
+  import { GenerateOptions } from 'escodegen';
 
   interface EvalEstreeOptions {
     booleanLogicalOperators?: boolean;
     functions?: boolean;
-    generate?: boolean;
+    generate?: (ast: any, options?: GenerateOptions) => string;
     regexOperator?: boolean;
     strict?: boolean;
     withMembers?: boolean;

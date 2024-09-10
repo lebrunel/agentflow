@@ -1,10 +1,11 @@
 import { evaluate, variables } from 'eval-estree-expression'
 import { z } from 'zod'
+import escodegen from 'escodegen'
 
 import type { ExpressionStatement } from 'acorn'
 import type { Node } from 'estree'
 import type { Program } from 'estree-jsx'
-import type { ContextValue, ContextValueMap } from '../context'
+import type { ContextValueMap } from '../context'
 
 /**
  * Evaluates an expression tree asynchronously using the provided context.
@@ -27,7 +28,7 @@ export async function evalExpression<T = any>(
       result = await evaluate(
         statement.expression as Node,
         { ...ctx, z },
-        { functions: true },
+        { functions: true, generate: escodegen.generate },
       )
     }
   }
@@ -56,7 +57,7 @@ export function evalExpressionSync<T = any>(
       result = evaluate.sync(
         statement.expression as Node,
         { ...ctx, z },
-        { functions: true },
+        { functions: true, generate: escodegen.generate },
       )
     }
   }
@@ -72,6 +73,9 @@ export function evalExpressionSync<T = any>(
 export function evalDependencies(tree: Program): string[] {
   return tree.body.flatMap(statement => {
     const expression = (statement as ExpressionStatement).expression
-    return variables(expression as Node)
+    return variables(
+      expression as Node,
+      { functions: true, generate: escodegen.generate },
+    )
   })
 }

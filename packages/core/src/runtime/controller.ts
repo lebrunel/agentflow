@@ -144,14 +144,12 @@ export class ExecutionController {
           }
 
           this.#cursor = ExecutionCursor.push(cursor)
-          console.log('inject')
-          const newContext = action.props.inject
+          const newContext = action.props.provide
             ? evalExpression(
-              action.props.inject.value,
+              action.props.provide.value,
               unwrapContext(context),
               computed
             ) : {}
-          console.log('>', { newContext })
 
           this.state.pushContext(
             this.#cursor,

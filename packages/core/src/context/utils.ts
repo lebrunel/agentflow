@@ -2,7 +2,6 @@ import { unified } from 'unified'
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
 import { map } from 'unist-util-map'
-import { visit, SKIP, CONTINUE } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
 import { default as dd } from 'ts-dedent'
 import { evalExpression } from '../runtime/eval'
@@ -23,7 +22,11 @@ export function fromContextValue(ctx: ContextValue): ContextValue['value'] {
  */
 export function toContextValue(value: any): ContextValue {
   if (typeof value === 'symbol' && value.description === 'fail') {
-    return { type: 'primitive', value: '!ERR' }
+    return { type: 'primitive', value: '!err' }
+  }
+
+  if (typeof value === 'undefined') {
+    return { type: 'primitive', value: null }
   }
 
   if (['string', 'number', 'boolean', 'null'].includes(typeof value)) {

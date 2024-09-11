@@ -74,3 +74,27 @@ test('testing loops', async () => {
   expect(ctrl.state.getActionResult(ExecutionCursor.parse('/0.0.1'))?.output.value).toHaveLength(5)
   expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
 })
+
+test.skip('testing magic variables in loops', async () => {
+  const src = dd`
+  Testing {foo}
+
+  <Loop as="foo" until={$self?.length === 3} inject={({ foo })}>
+    | {$index} | {$self.length} | {$last.bar} | {foo}
+    <Mock as="bar" value="x" />
+  </Loop>
+
+  Exiting
+  `
+  const file = compileSync(src, { runtime })
+  const workflow = file.result
+
+  const ctrl = new ExecutionController(workflow, { foo: { type: 'primitive', value: 'bar' } }, runtime)
+  await ctrl.runAll()
+
+  console.log(ctrl.getFinalOutput())
+  //console.dir(ctrl.state.getActionResult(ExecutionCursor.parse('/0.0.0')), { depth: 4 })
+
+  //expect(ctrl.state.getActionResult(ExecutionCursor.parse('/0.0.1'))?.output.value).toHaveLength(5)
+  //expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
+})

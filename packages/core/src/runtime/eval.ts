@@ -1,58 +1,37 @@
-import { evaluate, variables } from 'eval-estree-expression'
+import vm from 'node:vm'
+import { variables } from 'eval-estree-expression'
 import { z } from 'zod'
-import escodegen from 'escodegen'
 
 import type { ExpressionStatement } from 'acorn'
 import type { Node } from 'estree'
 import type { Program } from 'estree-jsx'
-import type { ContextValueMap } from '../context'
+import type { ComputedContext } from '~/context'
 
-/**
- * Evaluates an expression tree asynchronously using the provided context.
- * This function iterates through the body of the program, evaluating each
- * expression statement and returning the result of the last one.
- */
-export async function evalExpression<T = any>(
-  tree: Program,
-  context: Record<string, any> = {},
-): Promise<T> {
-  let result: any
-  // Evaluate all the statements, even though only the last one matters
-  for (const statement of tree.body) {
-    if (statement.type === 'ExpressionStatement') {
-      result = await evaluate(
-        statement.expression as Node,
-        { ...context, z },
-        { functions: true, generate: escodegen.generate },
-      )
-    }
-  }
-
-  return result
+// Always passed into the eval context
+const globals = {
+  z
 }
 
 /**
- * Evaluates an expression tree synchronously using the provided context.
- * This function iterates through the body of the program, evaluating each
- * expression statement and returning the result of the last one.
+ * Evaluates an expression synchronously using the provided context, returning
+ * the result of the expression.
  */
-export function evalExpressionSync<T = any>(
-  tree: Program,
-  context: Record<string, any> = {},
+export function evalExpression<T = any>(
+  expression: string,
+  context: Record<string, any>,
+  computed: ComputedContext = {},
 ): T {
-  let result: any
-  // Evaluate all the statements, even though only the last one matters
-  for (const statement of tree.body) {
-    if (statement.type === 'ExpressionStatement') {
-      result = evaluate.sync(
-        statement.expression as Node,
-        { ...context, z },
-        { functions: true, generate: escodegen.generate },
-      )
-    }
+  try {
+    return vm.runInNewContext(expression, buildContext(context, computed), {
+      timeout: 100,
+      breakOnSigint: true,
+      contextCodeGeneration: { strings: false, wasm: false },
+      microtaskMode: 'afterEvaluate',
+    })
+  } catch(e) {
+    // todo catch timeouts
+    return Symbol.for('fail') as any
   }
-
-  return result
 }
 
 /**
@@ -65,7 +44,20 @@ export function evalDependencies(tree: Program): string[] {
     const expression = (statement as ExpressionStatement).expression
     return variables(
       expression as Node,
-      { functions: true, generate: escodegen.generate },
     )
   })
+}
+
+function buildContext(
+  context: Record<string, any>,
+  computed: ComputedContext,
+): Record<string, any> {
+  return Object.entries(computed).reduce((ctx, [name, fn]) => {
+    Object.defineProperty(ctx, name, {
+      get: () => fn(),
+      enumerable: true,
+      configurable: true,
+    })
+    return ctx
+  }, { ...context, ...globals })
 }

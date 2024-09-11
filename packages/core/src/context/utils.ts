@@ -1,12 +1,14 @@
 import { unified } from 'unified'
 import { u } from 'unist-builder'
+import { is } from 'unist-util-is'
+import { map } from 'unist-util-map'
 import { visit, SKIP, CONTINUE } from 'unist-util-visit'
 import remarkStringify from 'remark-stringify'
 import { default as dd } from 'ts-dedent'
-import { evalExpressionSync } from '../runtime/eval'
+import { evalExpression } from '../runtime/eval'
 
 import type { Root, RootContent } from 'mdast'
-import type { ContextValue, ContextValueMap } from './types'
+import type { ComputedContext, ContextValue, ContextValueMap } from './types'
 
 
 /**
@@ -20,8 +22,12 @@ export function fromContextValue(ctx: ContextValue): ContextValue['value'] {
  * TODO
  */
 export function toContextValue(value: any): ContextValue {
-  if (['string', 'number', 'boolean'].includes(typeof value)) {
-    return { type: 'primitive', value: value as string | number | boolean }
+  if (typeof value === 'symbol' && value.description === 'fail') {
+    return { type: 'primitive', value: '!ERR' }
+  }
+
+  if (['string', 'number', 'boolean', 'null'].includes(typeof value)) {
+    return { type: 'primitive', value: value as string | number | boolean | null }
   }
 
   if (value instanceof File) {
@@ -56,7 +62,8 @@ export function wrapContext(obj: Record<string, any>): ContextValueMap {
  */
 export function astToContext(
   nodes: RootContent[],
-  context: ContextValueMap = {},
+  context: ContextValueMap,
+  computed: ComputedContext = {},
 ): ContextValue[] {
   const blocks: Array<Root | ContextValue> = [
     u('root', [])
@@ -76,27 +83,46 @@ export function astToContext(
   }
 
   for (const node of nodes) {
-    visit(node, 'expression', (node, i, parent) => {
-      if (typeof i === 'undefined') return CONTINUE
+    const newNode = map(node, (node) => {
+      if (is(node, 'expression')) {
+        const contextValue = toContextValue(
+          evalExpression(node.value, unwrapContext(context), computed)
+        )
 
-      const contextValue = toContextValue(
-        evalExpressionSync(node.data!.estree!, unwrapContext(context))
-      )
-
-      // Native gets stringified inline as a text node
-      if (contextValue.type === 'primitive') {
-        parent!.children[i] = u('text', { value: String(contextValue.value) })
-        return SKIP
-      // file and json values get pushed into blocks
-      } else {
-        parent!.children.splice(i, 1)
-        blocks.push({ ...contextValue })
-        return [SKIP, i as number]
+        // Primitive gets stringified inline as a text node
+        if (contextValue.type === 'primitive') {
+          return u('text', { value: String(contextValue.value) })
+        // file and json values get pushed into blocks
+        } else {
+          blocks.push({ ...contextValue })
+          return u('text', { value: '' })
+        }
       }
-    })
+
+      return node
+    }) as RootContent
+
+    //visit(node, 'expression', (node, i, parent) => {
+    //  if (typeof i === 'undefined') return CONTINUE
+
+    //  const contextValue = toContextValue(
+    //    evalExpression(node.data!.estree!, unwrapContext(context), computed)
+    //  )
+
+    //  // Native gets stringified inline as a text node
+    //  if (contextValue.type === 'primitive') {
+    //    parent!.children[i] = u('text', { value: String(contextValue.value) })
+    //    return SKIP
+    //  // file and json values get pushed into blocks
+    //  } else {
+    //    parent!.children.splice(i, 1)
+    //    blocks.push({ ...contextValue })
+    //    return [SKIP, i]
+    //  }
+    //})
 
     const root = getLastRoot()
-    root.children.push(node)
+    root.children.push(newNode)
   }
 
   return blocks.map(block => {
@@ -127,15 +153,17 @@ export function stringifyContext(ctx: ContextValue | ContextValue[]): string {
   switch(ctx.type) {
     case 'primitive':
       return String(ctx.value)
-    case 'file':
 
+    case 'file':
       return `![${ctx.value.type}](${ctx.value.name})`
+
     case 'json':
       return dd`
       \`\`\`json
       ${JSON.stringify(ctx.value, null, 2)}
       \`\`\`
       `
+
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
   }

@@ -22,6 +22,7 @@ export interface ActionNode extends Node {
 export interface ExpressionNode extends Node {
   type: 'expression';
   data?: MdxJsxExpressionAttributeData;
+  value: string;
 }
 
 declare module 'mdast' {

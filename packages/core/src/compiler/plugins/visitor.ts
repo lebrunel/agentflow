@@ -73,12 +73,11 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
           if (attr.type === 'mdxJsxAttribute') {
             const propName = camelCase(attr.name)
             const value = is(attr.value, 'mdxJsxAttributeValueExpression')
-              ? {
-                  type: 'expression',
+              ? u('expression', {
                   data: attr.value.data,
                   value: attr.value.value,
-                  position: node.position
-                } as ExpressionNode
+                  position: node.position,
+                })
               : attr.value
             attributes[propName] = value
           } else {
@@ -132,9 +131,9 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
       if (is(node, 'mdxFlowExpression')) {
         parent!.children[i] = u('paragraph', [
           u('expression', {
+            data: node.data,
             value: node.value,
             position: node.position,
-            data: node.data,
           })
         ])
         return SKIP
@@ -142,9 +141,9 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
 
       if (is(node, 'mdxTextExpression')) {
         parent!.children[i] = u('expression', {
+          data: node.data,
           value: node.value,
           position: node.position,
-          data: node.data,
         })
         return SKIP
       }

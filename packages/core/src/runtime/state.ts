@@ -1,7 +1,7 @@
 import { ExecutionCursor, parseLocation } from './cursor'
 
 import type { ActionLog } from '../action'
-import type { ContextValueMap } from '../context'
+import type { ComputedContext, ContextValueMap, JsonContextValue } from '../context'
 
 export class ExecutionState {
   readonly stateMap: Map<string, ExecutionScope> = new Map()
@@ -18,6 +18,12 @@ export class ExecutionState {
         context[result.contextKey] = { ...result.output }
       }
       return context
+    })
+  }
+
+  getComputed(cursor: ExecutionCursor): ComputedContext {
+    return this.scoped(cursor, scope => {
+      return scope.computed
     })
   }
 
@@ -73,9 +79,10 @@ export class ExecutionState {
   /**
    * Pushes a new scope with the given context onto the state map
    */
-  pushContext(cursor: ExecutionCursor, context: ContextValueMap): void {
+  pushContext(cursor: ExecutionCursor, context: ContextValueMap, computed: ComputedContext = {}): void {
     this.stateMap.set(cursor.path, {
       context,
+      computed,
       results: new Map<string, ActionLog>(),
     })
   }
@@ -122,5 +129,6 @@ function dropFromKey<K, V>(key: string, map: Map<K, V>, dropKey: boolean = false
 
 interface ExecutionScope {
   context: ContextValueMap;
+  computed: ComputedContext;
   results: Map<string, ActionLog>
 }

@@ -106,12 +106,16 @@ function workflowPhase(
       return CONTINUE
     }
 
+    // todo - explore if I can reimplement the variables() function from eval-estree
+    // needs to handle many node types not currently handled, including chain expressions,
+    // arrow functions etc
+    // todo - also, does the WorkflowPhase need dependencies stored - I think not?
     if (is(node, 'expression') && node.data?.estree) {
       const program = node.data!.estree! as Program
-      for (const name of evalDependencies(program)) {
-        validateDependency(node, name)
-        dependencies.add(name)
-      }
+      //for (const name of evalDependencies(program)) {
+      //  validateDependency(node, name)
+      //  dependencies.add(name)
+      //}
     }
   })
 

@@ -28,7 +28,6 @@ export {
   defineConfig,
   executeWorkflow,
   evalExpression,
-  evalExpressionSync,
   evalDependencies,
   ExecutionController,
   ExecutionStatus,

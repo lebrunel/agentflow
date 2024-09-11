@@ -1,7 +1,7 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
 import { ExecutionCursor } from './cursor'
-import { evalExpressionSync } from './eval'
+import { evalExpression } from './eval'
 import { ExecutionNavigator } from './navigator'
 import { ExecutionState } from './state'
 import { CostCalculator } from '../ai'
@@ -116,59 +116,77 @@ export class ExecutionController {
     const phases = this.#workflow.fetchScope(cursor)
     const action = this.#workflow.fetchAction(cursor)
     const context = this.state.getContext(cursor)
-    const input = astToContext(action.contentNodes as RootContent[], context)
+    const computed = this.state.getComputed(cursor)
+    const input = astToContext(action.contentNodes as RootContent[], context, computed)
     const stream = pushable<string>({ objectMode: true })
 
     const actionResult: Promise<ActionResult> = (async () => {
-      const context = this.state.getContext(cursor)
       switch (action.name) {
         //case 'if':
         //  // todo handle If
         //  break
         case 'loop':
-          // todo handle loop
-          const newContext = action.props.inject
-            ? evalExpressionSync(action.props.inject.data!.estree!, unwrapContext(context))
-            : {}
+          let loopIndex: number = this.cursor.iteration
+
+          // Computed props
+          const $index = () => loopIndex
+          const $self = () => {
+            return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
+              const c = ExecutionCursor.parse(actionLog.cursor)
+              const i = c.iteration
+                ; (acc[i] ||= {})[actionLog.contextKey] = actionLog.output.value
+              return acc
+            }, [] as Array<Record<string, any>>)
+          }
+          const $last = () => {
+            const self = $self()
+            return self[self.length - 1]
+          }
 
           this.#cursor = ExecutionCursor.push(cursor)
-          this.state.pushContext(this.#cursor, wrapContext(newContext))
+          console.log('inject')
+          const newContext = action.props.inject
+            ? evalExpression(
+              action.props.inject.value,
+              unwrapContext(context),
+              computed
+            ) : {}
+          console.log('>', { newContext })
 
-          let $index: number = this.cursor.iteration
+          this.state.pushContext(
+            this.#cursor,
+            wrapContext(newContext),
+            { $self, $index, $last },
+          )
+
           while (true) {
-            const $self: Array<Record<string, any>> = [{}]
-            let i = 0
-            for (const actionLog of this.state.getScopeResults(this.cursor)) {
-              const c = ExecutionCursor.parse(actionLog.cursor)
-              if (c.iteration > i) {
-                i = c.iteration
-                $self.push({})
-              }
-              $self[i][actionLog.contextKey] = actionLog.output.value
-            }
-            const isDone = evalExpressionSync(action.props.until.data!.estree!, {
-              ...unwrapContext(context),
-              $index,
-              $self,
-            })
+            const isDone = evalExpression(
+              action.props.until.value,
+              unwrapContext(context),
+              { $index, $self, $last },
+            )
 
             if (isDone) { break }
             await this.runNext({ afterAction, runAll })
-            $index = this.cursor.iteration
+            loopIndex = this.cursor.iteration
           }
 
           const { results } = this.state.getExecutionScope(this.#cursor)
           const value = [...results.values()].map(actionLog => {
+            const output = actionLog.output
             // special case for files, we want this to be jsonish
             // todo - unure if this is right tbh... but will do for now
-            if (actionLog.output.type === 'file') {
-              const file = actionLog.output.value
-              return { type: 'file', name: file.name, contentType: file.type}
+            if (output.type === 'file') {
+              const file = output.value
+              return { [actionLog.contextKey]: { type: 'file', name: file.name, contentType: file.type} }
             }
-            return actionLog.output.value
+            //if (output.type === 'primitive' && typeof output.value === 'symbol') {
+            //  return { [actionLog.contextKey]: { type: 'symbol', description: output.value.description } }
+            //}
+            return { [actionLog.contextKey]: actionLog.output.value }
           })
           this.#cursor = ExecutionCursor.pop(this.cursor)
-          return { result: { type: 'json', value } }
+          return { result: { type: 'json', value } as JsonContextValue }
 
         default:
           // handle arbitrary action
@@ -177,7 +195,7 @@ export class ExecutionController {
           const handler = this.runtime.useAction(action.name)
           const evalProps = Object.entries(action.props).reduce((props, [key, val]) => {
             props[key] = isExpression(val)
-              ? evalExpressionSync(val.data!.estree!, context)
+              ? evalExpression(val.value, context, computed)
               : val
             return props
           }, {} as any)
@@ -322,6 +340,7 @@ export class ExecutionController {
           const cursorForPhase = ExecutionCursor.parse(group[0].cursor)
           const phase = this.#workflow.fetchPhase(cursorForPhase)
           const context = this.state.getContext(cursorForPhase)
+          const computed = this.state.getComputed(cursorForPhase)
           const chunks: string[] = []
 
           for (const actionLog of group) {
@@ -338,7 +357,7 @@ export class ExecutionController {
           }
 
           if (phase.trailingNodes.length) {
-            const trailingValue = astToContext(phase.trailingNodes as RootContent[], context)
+            const trailingValue = astToContext(phase.trailingNodes as RootContent[], context, computed)
             chunks.push(stringifyContext(trailingValue))
           }
 

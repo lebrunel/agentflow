@@ -23,14 +23,14 @@ Intro
   Objective: {objective}
 
   Previous sub-task results:
-  - {//$self.length ? $self.map(l => l.taskResult).join('\n- ') : 'None'}
+  - {$self.length ? $self.map(l => l.taskResult).join('\n- ') : 'None'}
 
   <GenerateText as="taskPrompt" model="ollama::llama3.1" />
 
   ---
 
   Previous tasks:
-  {//$self.length ? $self.map(l => `Task: ${l.taskPrompt}\nResult: ${l.taskResult}`).join('\n') : 'None'}
+  {$self.length ? $self.map(l => `Task: ${l.taskPrompt}\nResult: ${l.taskResult}`).join('\n') : 'None'}
 
   {taskPrompt}
 

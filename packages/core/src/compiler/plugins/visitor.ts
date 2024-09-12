@@ -60,18 +60,6 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
         const attributes: Record<string, any> = {}
         let action: Action | undefined
 
-        if (options.runtime && options.runtime.hasAction(name)) {
-          action = options.runtime.useAction(name)
-        }
-
-        if (!name || (options.runtime && !action)) {
-          file.fail(
-            `Unknown action '${name || 'unnamed'}'. Actions must be registered.`,
-            node,
-            'workflow-parse:unknown-action'
-          )
-        }
-
         for (const attr of node.attributes) {
           if (attr.type === 'mdxJsxAttribute') {
             const propName = camelCase(attr.name)
@@ -87,15 +75,6 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
             } else {
               attributes[propName] = attr.value
             }
-
-            const value = is(attr.value, 'mdxJsxAttributeValueExpression')
-              ? u('expression', {
-                  data: attr.value.data,
-                  value: attr.value.value,
-                  position: node.position,
-                })
-              : attr.value
-            attributes[propName] = value
           } else {
             file.message(
               'Unsupported attribute syntax in Action. Use key-value pairs only.',
@@ -103,6 +82,18 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
               'workflow-parse:unsupported-attribute-syntax'
             )
           }
+        }
+
+        if (options.runtime && options.runtime.hasAction(name)) {
+          action = options.runtime.useAction(name)
+        }
+
+        if (!name || (options.runtime && !action)) {
+          file.fail(
+            `Unknown action '${name || 'unnamed'}'. Actions must be registered.`,
+            node,
+            'workflow-parse:unknown-action'
+          )
         }
 
         if (action) {
@@ -119,7 +110,6 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
               }
             }
           }
-
         }
 
         parent!.children[i] = u('action', { name, children, attributes, position })
@@ -207,7 +197,7 @@ const IDENTIFIER_BLACKLIST: string[] = [
   'prototype',
 ]
 
-function validateEstree(program: Program, file: VFile) {
+export function validateEstree(program: Program, file: VFile) {
   for (const stmt of program.body) {
     if (stmt.type !== 'ExpressionStatement') {
       file.fail(
@@ -233,6 +223,17 @@ function validateEstree(program: Program, file: VFile) {
           `Restricted identifier '${node.name}' used in workflow expression.`,
           node,
           'workflow-parse:restricted-identifier'
+        )
+      }
+
+      if (
+        (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression')
+        && node.async
+      ) {
+        file.fail(
+          'Async functions are not supported in workflow expressions.',
+          node,
+          'workflow-parse:async-function-not-allowed'
         )
       }
     }

@@ -1,11 +1,9 @@
 import vm from 'node:vm'
-import { variables } from 'eval-estree-expression'
+import { walk } from 'estree-walker'
 import { z } from 'zod'
 
-import type { ExpressionStatement } from 'acorn'
-import type { Node } from 'estree'
-import type { Program } from 'estree-jsx'
-import type { ComputedContext } from '~/context'
+import type { Identifier, Node, Program, Pattern, ObjectPattern, ArrayPattern } from 'estree-jsx'
+import type { ComputedContext } from '../context'
 
 // Always passed into the eval context
 const globals = {
@@ -41,13 +39,88 @@ export function evalExpression<T = any>(
  * identify the variables that the expression relies on for evaluation.
  */
 export function evalDependencies(tree: Program): string[] {
-  return tree.body.flatMap(statement => {
-    const expression = (statement as ExpressionStatement).expression
-    return variables(
-      expression as Node,
-    )
+  const globals = new Set<string>()
+  const scopeChain: Array<Set<string>> = [new Set()]
+
+  function addToScope(name: string) {
+    scopeChain[0].add(name)
+  }
+
+  function isInScope(name: string): boolean {
+    return scopeChain.some(scope => scope.has(name));
+  }
+
+  function isRightPartOfAssignment(node: Identifier, parent: Node | null): boolean {
+    return parent?.type === 'AssignmentPattern' && parent.right === node
+  }
+
+  function extractIdentifiers(pattern: Pattern): string[] {
+    const identifers: string[] = []
+    walk(pattern, {
+      enter(node, parent) {
+        if (node.type === 'Identifier' && !isRightPartOfAssignment(node, parent)) {
+          identifers.push(node.name)
+        }
+      }
+    })
+    return identifers
+  }
+
+  function handleDestructuring(pattern: ObjectPattern | ArrayPattern) {
+    walk(pattern, {
+      enter(node, parent) {
+        if (node.type === 'Identifier' && !isRightPartOfAssignment(node, parent)) {
+          addToScope(node.name)
+        }
+      }
+    });
+  }
+
+  walk(tree, {
+    enter(node: Node, parent: Node | null) {
+      if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+        scopeChain.unshift(new Set());
+        for (const param of node.params) {
+          extractIdentifiers(param).forEach(addToScope)
+        }
+        if (node.type === 'FunctionExpression' && node.id) {
+          addToScope(node.id.name)
+        }
+      }
+
+      if (node.type === 'ObjectPattern' || node.type === 'ArrayPattern') {
+        handleDestructuring(node);
+      }
+
+      if (node.type === 'VariableDeclaration') {
+        for (const dec of node.declarations) {
+          extractIdentifiers(dec.id).forEach(addToScope)
+        }
+      }
+
+      if (node.type === 'Identifier') {
+        if (
+          // This is an object property key, not a variable reference
+          !(parent?.type === 'Property' && !parent.computed && parent.key === node) &&
+          // This is a member expression property, not a variable reference
+          !(parent?.type === 'MemberExpression' && parent.property === node && !parent.computed) &&
+          !isInScope(node.name)
+        ) {
+          globals.add(node.name);
+        }
+      }
+    },
+
+    leave(node: Node) {
+      if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+        scopeChain.shift()
+      }
+    }
   })
+
+  return Array.from(globals)
 }
+
 
 function buildContext(
   context: Record<string, any>,

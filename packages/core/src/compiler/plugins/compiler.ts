@@ -52,7 +52,7 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
     // Collect phases
     const phases: WorkflowPhase[] = []
     for (const node of workflowNode.children.filter(n => n.type === 'phase')) {
-      const phase = workflowPhase(node as PhaseNode, [...contextKeys], file)
+      const phase = workflowPhase(node as PhaseNode, contextKeys, file)
       phases.push(phase)
       contextKeys.push(...phase.contextKeys)
     }
@@ -70,11 +70,10 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
 // Maps the PhaseNode into a WorkflowPhase interface
 function workflowPhase(
   phaseNode: PhaseNode,
-  contextKeys: ContextKey[],
+  [...contextKeys]: ContextKey[],
   file: VFile,
 ): WorkflowPhase {
   const actions: WorkflowAction[] = []
-  const dependencies = new Set<string>()
 
   function validateDependency(node: ExpressionNode, contextKey: string) {
     if (!contextKeys.includes(contextKey)) {
@@ -106,16 +105,11 @@ function workflowPhase(
       return CONTINUE
     }
 
-    // todo - explore if I can reimplement the variables() function from eval-estree
-    // needs to handle many node types not currently handled, including chain expressions,
-    // arrow functions etc
-    // todo - also, does the WorkflowPhase need dependencies stored - I think not?
     if (is(node, 'expression') && node.data?.estree) {
       const program = node.data!.estree! as Program
-      //for (const name of evalDependencies(program)) {
-      //  validateDependency(node, name)
-      //  dependencies.add(name)
-      //}
+      for (const name of evalDependencies(program)) {
+        validateDependency(node, name)
+      }
     }
   })
 
@@ -135,7 +129,6 @@ function workflowPhase(
 
   return {
     actions,
-    dependencies,
     contextKeys,
     trailingNodes,
   }
@@ -156,7 +149,7 @@ function workflowAction(
   const contextKeys: ContextKey[] = Object.keys({})
   const phases: WorkflowPhase[] = []
   for (const node of actionNode.children) {
-    const phase = workflowPhase(node as PhaseNode, [...contextKeys], file)
+    const phase = workflowPhase(node as PhaseNode, contextKeys, file)
     phases.push(phase)
     contextKeys.push(...phase.contextKeys)
   }

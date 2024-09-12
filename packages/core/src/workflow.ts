@@ -14,7 +14,6 @@ export class Workflow {
 
 export interface WorkflowPhase {
   readonly actions: ReadonlyArray<WorkflowAction>;
-  readonly dependencies: ReadonlySet<string>;
   readonly contextKeys: ReadonlyArray<string>;
   readonly trailingNodes: ReadonlyArray<RootContent>;
 }

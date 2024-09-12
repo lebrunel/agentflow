@@ -76,7 +76,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
               attributes[propName] = attr.value
             }
           } else {
-            file.message(
+            file.fail(
               'Unsupported attribute syntax in Action. Use key-value pairs only.',
               attr,
               'workflow-parse:unsupported-attribute-syntax'

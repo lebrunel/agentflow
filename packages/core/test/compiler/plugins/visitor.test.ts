@@ -1,4 +1,5 @@
 import { describe, expect, test } from 'bun:test'
+import { runtime } from 'test/support/runtime'
 import { unified } from 'unified'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
@@ -10,22 +11,62 @@ import { VFile } from 'vfile'
 import { workflowVisitor, validateEstree } from '~/compiler/plugins/visitor'
 
 import type { Program } from 'estree-jsx'
-import type { ActionNode } from '~/index'
+import type { Paragraph } from 'mdast'
+import type { ActionNode, CompileOptions } from '~/index'
 
 describe('workflowVisitor()', () => {
-  function parse(src: string) {
+  function parse(src: string, opts: CompileOptions = {}) {
     const proc = unified()
       .use(remarkParse)
       .use(remarkFrontmatter, ['yaml'])
       .use(remarkMdx)
-      .use(workflowVisitor, {})
+      .use(workflowVisitor, opts)
 
     return proc.runSync(proc.parse(src))
   }
 
-  test.todo('parses yaml frontmatter')
-  test.todo('throws error with invalid input schema')
-  test.todo('throws error with invalid yaml')
+  test('parses yaml frontmatter', () => {
+    const ast = parse(dd`
+    ---
+    foo: bar
+    inputs:
+      name:
+        type: 'text'
+    ---
+
+    Testing
+    `)
+
+    expect(ast.children[0].type).toBe('yaml')
+    const data = ast.children[0].data as any
+    expect(data.foo).toBe('bar')
+    expect(data.inputs).toEqual({ name: { type: 'text' } })
+  })
+
+  test('throws error with invalid input schema', () => {
+    const src = dd`
+    ---
+    inputs:
+      foo: 123
+    ---
+
+    Testing
+    `
+
+    expect(() => parse(src)).toThrow(/invalid input schema/i)
+  })
+
+  test('throws error with invalid yaml', () => {
+    const src = dd`
+    ---
+    **
+    ---
+
+    Testing
+    `
+
+    expect(() => parse(src)).toThrow()
+  })
 
   test('strips all blockquote blocks from the AST', () => {
     const ast = parse(dd`
@@ -53,24 +94,98 @@ describe('workflowVisitor()', () => {
   })
 
   describe('handle actions', () => {
-    test.todo('parses actions') // as action node
-    test.todo('kebab-cases action names')
-    test.todo('camel-cases prop names')
-    test.todo('props can be expressions')
-    test.todo('throws error with invalid expression')
-    test.todo('throws error with invalid props (rest operator)')
-    test.todo('throws error with inline actions')
+    test('parses actions', () => {
+      const ast = parse(`<Mock foo="bar" />`)
+
+      const node = ast.children[0] as any
+      expect(node.type).toBe('action')
+      expect(node.name).toBe('mock')
+      expect(node.attributes).toEqual({ foo: 'bar' })
+    })
+
+    test('kebab-cases action names', () => {
+      const ast = parse(`<FooBar />`)
+
+      const node = ast.children[0] as any
+      expect(node.type).toBe('action')
+      expect(node.name).toBe('foo-bar')
+    })
+
+    test('camel-cases prop names', () => {
+      const ast = parse(dd`
+      <Mock foo="bar" foo-bar="bar" FooQux="bar" />
+      `)
+
+      const node = ast.children[0] as any
+      expect(node.type).toBe('action')
+      expect(Object.keys(node.attributes)).toEqual(['foo', 'fooBar', 'fooQux'])
+    })
+
+    test('props can be expressions', () => {
+      const ast = parse(`<Mock foo={123} />`)
+
+      const node = ast.children[0] as any
+      expect(node.type).toBe('action')
+      expect(node.attributes.foo.type).toBe('expression')
+      expect(node.attributes.foo.data.estree.type).toBe('Program')
+    })
+
+    test('throws error with invalid expression', () => {
+      const src = `<Mock foo={eval('bad things')} />`
+      expect(() => parse(src)).toThrow()
+    })
+
+    test('throws error with invalid props (rest operator)', () => {
+      const src = `<Mock {...props} />`
+      expect(() => parse(src)).toThrow()
+    })
+
+    test('throws error with inline actions', () => {
+      const src = `Testing <Mock foo="bar" />`
+      expect(() => parse(src)).toThrow(/must be a block-level/i)
+    })
   })
 
   describe('handle actions with runtime', () => {
-    test.todo('throws error with unknown action')
-    test.todo('throws error if action props invalie')
-    test.todo('props can be expressions')
+    test('props can be expressions', () => {
+      const ast = parse(dd`
+      <Mock as="foo" value={"bar"} />
+      `, { runtime })
+
+      const node = ast.children[0] as any
+      expect(node.type).toBe('action')
+      expect(node.attributes.value.type).toBe('expression')
+      expect(node.attributes.value.data.estree.type).toBe('Program')
+    })
+
+    test('throws error with unknown action', () => {
+      const src = `<FooBar as="foo" value="bar" />`
+      expect(() => parse(src, { runtime })).toThrow(/unknown action/i)
+    })
+
+    test('throws error if action props invalie', () => {
+      const src = `<Mock as="foo" />`
+      expect(() => parse(src, { runtime })).toThrow(/invalid action attributes/i)
+    })
   })
 
-  test.todo('parses expressions')
-  test.todo('block expressions get treated as text') // wrapped in paragrph node
-  test.todo('throws error with invalid expression')
+  test('parses expressions', () => {
+    const ast = parse(dd`
+    {'block expression'}
+
+    Testing: {'text expression'}
+    `)
+
+    expect(ast.children[0].type).toBe('paragraph')
+    expect((ast.children[0] as Paragraph).children[0].type).toBe('expression')
+    expect(ast.children[1].type).toBe('paragraph')
+    expect((ast.children[1] as Paragraph).children[1].type).toBe('expression')
+  })
+
+  test('throws error with invalid expression', () => {
+    const src = `{eval('bad things')}`
+    expect(() => parse(src)).toThrow()
+  })
 })
 
 describe('validateEstree()', () => {

@@ -9,17 +9,17 @@ import { default as dd } from 'ts-dedent'
 import type { ActionNode } from '~/index'
 import { workflowVisitor } from '~/compiler/plugins'
 
+function parse(src: string) {
+  const proc = unified()
+    .use(remarkParse)
+    .use(remarkFrontmatter, ['yaml'])
+    .use(remarkMdx)
+    .use(workflowVisitor, {})
+
+  return proc.runSync(proc.parse(src))
+}
+
 describe('workflowVisitor()', () => {
-  function parse(src: string) {
-    const proc = unified()
-      .use(remarkParse)
-      .use(remarkFrontmatter, ['yaml'])
-      .use(remarkMdx)
-      .use(workflowVisitor, {})
-
-    return proc.runSync(proc.parse(src))
-  }
-
   test('strips all blockquote blocks from the AST', () => {
     const ast = parse(dd`
     # Title

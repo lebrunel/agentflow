@@ -22,8 +22,9 @@ export function evalExpression<T = any>(
   computed: ComputedContext = {},
 ): T {
   try {
-    return vm.runInNewContext(expression, buildContext(context, computed), {
-      timeout: 100,
+    const script = new vm.Script(`(${expression.trim()})`)
+    return script.runInNewContext(buildContext(context, computed), {
+      timeout: 50,
       breakOnSigint: true,
       contextCodeGeneration: { strings: false, wasm: false },
       microtaskMode: 'afterEvaluate',

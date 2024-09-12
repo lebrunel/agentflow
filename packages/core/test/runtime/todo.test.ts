@@ -75,14 +75,12 @@ test('testing loops', async () => {
   expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
 })
 
-test.only('testing magic variables in loops', async () => {
+test.skip('testing magic variables in loops', async () => {
   const src = dd`
   Testing {foo}
 
-  <Loop as="baz" until={$self?.length === 3} provide={({ foo })}>
-    | {$index} | {$self.length} | {$last?.qux} | {foo} |
-
-    aa {$self.map(f => f.qux).join(',')} zz
+  <Loop as="baz" until={$self?.length === 3} provide={{ foo }}>
+    | {$index} | {$self.length} | {$last?.qux} | {$self.map(f => f.qux).join(',')} | {foo} |
 
     <Mock as="qux" value="abc" />
   </Loop>

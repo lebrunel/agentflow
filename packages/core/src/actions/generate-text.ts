@@ -47,7 +47,7 @@ export default defineAction({
       })
 
     return {
-      result: { type: 'native', value: text },
+      result: { type: 'primitive', value: text },
       meta: { usage },
     }
   }

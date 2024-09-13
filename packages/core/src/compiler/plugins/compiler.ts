@@ -75,7 +75,7 @@ function workflowPhase(
   const contextKeys = new Set<string>(inputKeys)
 
   function validateDependency(node: ExpressionNode, contextKey: string) {
-    if (!contextKeys.has(contextKey)) {
+    if (!contextKeys.has(contextKey) && !contextKey.startsWith('$')) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,
@@ -97,7 +97,7 @@ function workflowPhase(
   // The visitor scans the tree in order, so it's important that actions are
   // added to the outputTypes BEFORE expression dependencies are validated
   visit(phaseNode, (node, _i, parent) => {
-    if (is(node, 'action') && parent === phaseNode) {
+    if (is(node, 'action')) {
       const contextKey = node.attributes.as
       validateUniqueness(node, contextKey)
       contextKeys.add(contextKey)
@@ -142,10 +142,10 @@ function workflowAction(
   const contextKey = actionNode.attributes.as
   const props = { ...actionNode.attributes }
 
-  const phases: WorkflowPhase[] = []
   let contextKeys: ContextKey[] = []
-  for (const node of actionNode.children) {
-    const phase = workflowPhase(node as PhaseNode, contextKeys, file)
+  const phases: WorkflowPhase[] = []
+  for (const node of actionNode.children.filter(n => n.type === 'phase')) {
+    const phase = workflowPhase(node, contextKeys, file)
     phases.push(phase)
     contextKeys = Array.from(phase.contextKeys)
   }

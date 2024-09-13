@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
-import { blue, bold, dim, italic } from 'picocolors'
+import { blue, bold, dim, green, italic, yellow } from 'picocolors'
 import { default as dd } from 'ts-dedent'
 import { compileSync, executeWorkflow, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
@@ -51,8 +51,8 @@ async function execWorkflow(name: string) {
   console.log()
   const ctrl = executeWorkflow(workflow, context, runtime)
 
-  ctrl.on('action', async ({ action, stream, input, output }) => {
-    console.log(dim('[['), `${blue(action.name)}@${blue(action.contextKey)}`, dim(']]'))
+  ctrl.on('action', async ({ action, stream, input, output }, cursor) => {
+    console.log(dim('[['), yellow(cursor.toString()), blue(action.name), green(action.contextKey), dim(']]'))
     console.log()
     console.log(dim(input))
     console.log()

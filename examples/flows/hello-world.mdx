@@ -7,10 +7,9 @@ inputs:
     message: Choose style of greeting
     type: select
     options:
-      - English Gentleman
-      - Hillbilly
-      - Reggae
-      - Steampunk
+      - Adoring fan
+      - Evil enemy
+      - Jilted lover
 ---
 
 # Hello World!
@@ -19,6 +18,6 @@ This is a Hello World workflow. Enter your name when prompted and receive a gree
 
 ---
 
-Write a concise "hello" message to {name}, in the style of: {style}
+In one concise sentence, say "hello" to {name}, in the style of: {style}
 
 <GenerateText as="greeting" model="ollama:llama3.1" />

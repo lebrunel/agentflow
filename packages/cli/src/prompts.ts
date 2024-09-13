@@ -7,7 +7,6 @@ import { bold, dim } from 'picocolors'
 import type {
   ContextValue,
   ContextValueMap,
-  ContextImageValue,
   TextInput,
   SelectInput,
   ArrayInput,
@@ -44,7 +43,7 @@ export async function promptInputs(inputs: WorkflowInputSchema): Promise<Context
 export async function promptText(name: string, schema: TextInput): Promise<ContextValue> {
   const message = schema.message || `Enter ${name}`
   const value = await (schema.multiline ? editor({ message }) : input({ message }))
-  return { type: 'text', value }
+  return { type: 'primitive', value }
 }
 
 export async function promptSelect(name: string, schema: SelectInput): Promise<ContextValue> {
@@ -58,7 +57,7 @@ export async function promptSelect(name: string, schema: SelectInput): Promise<C
   })
 
   const value = await select({ message, choices })
-  return { type: 'text', value }
+  return { type: 'primitive', value }
 }
 
 export async function promptFile(name: string, schema: FileInput): Promise<ContextValue> {
@@ -66,19 +65,18 @@ export async function promptFile(name: string, schema: FileInput): Promise<Conte
   const value = await input({ message, validate: isUrlOrPath })
 
   if (schema.fileType === 'image') {
-    const image: ContextImageValue['value'] = isUrl(value)
+    const image = isUrl(value)
       ? await loadRemoteImage(value)
       : loadLocalImage(value)
 
     // todo - validate that this is in fact an image
-
-    return { type: 'image', value: image }
+    return { type: 'file', value: image }
   } else {
     const text = isUrl(value)
       ? await fetch(value).then(r => r.text())
       : readFileSync(resolve(process.cwd(), value), { encoding: 'utf8' })
 
-    return { type: 'text', value: text }
+    return { type: 'primitive', value: text }
   }
 }
 
@@ -86,7 +84,7 @@ export async function promptArray(name: string, schema: ArrayInput): Promise<Con
   const message = schema.message || `Enter ${name}`
   const value = await multiline({ message })
   // todo - we need an array context type
-  return { type: 'text', value: '' }
+  return { type: 'json', value }
 }
 
 const multiline = createPrompt<string[], { message: string }>((config, done) => {
@@ -139,17 +137,17 @@ function isUrlOrPath(value: string): boolean | string {
   return 'must be URL or valid local file path'
 }
 
-async function loadRemoteImage(value: string): Promise<ContextImageValue['value']> {
+async function loadRemoteImage(value: string): Promise<File> {
   const url = new URL(value)
   const name = url.pathname.split('/').pop() || 'Unknown'
   const data = await fetch(url).then(r => r.arrayBuffer())
   const type = lookup(name) || 'application/octet-stream' // todo - fallback based on byte prefix
-  return { name, type, data }
+  return new File([data], name, { type })
 }
 
-function loadLocalImage(path: string): ContextImageValue['value'] {
+function loadLocalImage(path: string): File {
   const name = basename(path)
   const data = readFileSync(path)
-  const type = lookup(path) || 'application/octet-stream' // todo - fallback based on byte prefix
-  return { name, type, data: data.buffer as ArrayBuffer }
+  const type = lookup(name) || 'application/octet-stream' // todo - fallback based on byte prefix
+  return new File([data], name, { type })
 }

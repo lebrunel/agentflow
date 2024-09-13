@@ -46,15 +46,13 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
     const descriptionNodes = workflowRoot.children.slice(titleIdx)
     const inputSchema: WorkflowInputSchema = meta?.inputs || {}
 
-    // Create mutatable ContextTypeMap
-    const contextKeys: ContextKey[] = Object.keys(inputSchema)
-
     // Collect phases
+    let contextKeys: ContextKey[] = Object.keys(inputSchema)
     const phases: WorkflowPhase[] = []
     for (const node of workflowNode.children.filter(n => n.type === 'phase')) {
       const phase = workflowPhase(node as PhaseNode, contextKeys, file)
       phases.push(phase)
-      contextKeys.push(...phase.contextKeys)
+      contextKeys = Array.from(phase.contextKeys)
     }
 
     return new Workflow(
@@ -70,13 +68,14 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
 // Maps the PhaseNode into a WorkflowPhase interface
 function workflowPhase(
   phaseNode: PhaseNode,
-  [...contextKeys]: ContextKey[],
+  inputKeys: ContextKey[],
   file: VFile,
 ): WorkflowPhase {
   const actions: WorkflowAction[] = []
+  const contextKeys = new Set<string>(inputKeys)
 
   function validateDependency(node: ExpressionNode, contextKey: string) {
-    if (!contextKeys.includes(contextKey)) {
+    if (!contextKeys.has(contextKey)) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,
@@ -86,7 +85,7 @@ function workflowPhase(
   }
 
   function validateUniqueness(node: ActionNode, contextKey: string) {
-    if (contextKeys.includes(contextKey)) {
+    if (contextKeys.has(contextKey)) {
       file.fail(
         `Duplicate context name "${contextKey}". Each Action must have a unique name within the workflow.`,
         node,
@@ -101,7 +100,7 @@ function workflowPhase(
     if (is(node, 'action') && parent === phaseNode) {
       const contextKey = node.attributes.as
       validateUniqueness(node, contextKey)
-      contextKeys.push(contextKey)
+      contextKeys.add(contextKey)
       return CONTINUE
     }
 
@@ -141,17 +140,14 @@ function workflowAction(
   file: VFile,
 ): WorkflowAction {
   const contextKey = actionNode.attributes.as
-  const props = Object.entries(actionNode.attributes).reduce((obj, [key, val]) => {
-    if (key !== 'as') obj[key] = val
-    return obj
-  }, {} as any)
+  const props = { ...actionNode.attributes }
 
-  const contextKeys: ContextKey[] = Object.keys({})
   const phases: WorkflowPhase[] = []
+  let contextKeys: ContextKey[] = []
   for (const node of actionNode.children) {
     const phase = workflowPhase(node as PhaseNode, contextKeys, file)
     phases.push(phase)
-    contextKeys.push(...phase.contextKeys)
+    contextKeys = Array.from(phase.contextKeys)
   }
 
   return {

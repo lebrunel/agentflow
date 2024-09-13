@@ -13,7 +13,7 @@ export const loopAction = defineAction({
 export const ifAction = defineAction({
   name: 'if',
   schema: z.object({
-    condition: z.boolean(),
+    cond: z.boolean(),
     provide: z.record(z.string(), z.any()).default({}),
   }),
   execute() { throw new Error('no-op. action logic built in to controller') }

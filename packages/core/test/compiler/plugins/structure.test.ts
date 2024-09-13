@@ -160,4 +160,27 @@ describe('workflowStructure()', () => {
     expect(action3.name).toBe('mock')
     expect(action3.children.length).toBe(0)
   })
+
+  test('handles nested actions with sub-phases', () => {
+    const ast = parse(dd`
+    # title
+
+    <Loop as="l">
+      Paragraph
+
+      <Mock as="foo" value="foo" />
+
+      ---
+
+      Paragraph
+
+      <Mock as="bar" value="bar" />
+    </Loop>
+    `)
+
+    const loop = ast.children[1].children[1] as ActionNode
+    expect(loop.type).toBe('action')
+    expect(loop.name).toBe('loop')
+    expect(selectAll('phase', loop).length).toBe(2)
+  })
 })

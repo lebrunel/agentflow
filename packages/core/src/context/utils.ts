@@ -6,7 +6,7 @@ import remarkStringify from 'remark-stringify'
 import { default as dd } from 'ts-dedent'
 import { evalExpression } from '../runtime/eval'
 
-import type { Root, RootContent } from 'mdast'
+import type { Root, RootContent, Text } from 'mdast'
 import type { ComputedContext, ContextValue, ContextValueMap } from './types'
 
 
@@ -25,12 +25,8 @@ export function toContextValue(value: any): ContextValue {
     return { type: 'primitive', value: '!err' }
   }
 
-  if (typeof value === 'undefined') {
-    return { type: 'primitive', value: null }
-  }
-
-  if (['string', 'number', 'boolean', 'null'].includes(typeof value)) {
-    return { type: 'primitive', value: value as string | number | boolean | null }
+  if (['string', 'number', 'boolean', 'null', 'undefined'].includes(typeof value)) {
+    return { type: 'primitive', value: value as string | number | boolean | null | undefined }
   }
 
   if (value instanceof File) {
@@ -86,6 +82,8 @@ export function astToContext(
   }
 
   for (const node of nodes) {
+    const root = getLastRoot()
+
     const newNode = map(node, (node) => {
       if (is(node, 'expression')) {
         const contextValue = toContextValue(
@@ -95,7 +93,7 @@ export function astToContext(
         // Primitive gets stringified inline as a text node
         if (contextValue.type === 'primitive') {
           return u('text', { value: String(contextValue.value) })
-        // file and json values get pushed into blocks
+          // file and json values get pushed into blocks
         } else {
           blocks.push({ ...contextValue })
           return u('text', { value: '' })
@@ -105,26 +103,6 @@ export function astToContext(
       return node
     }) as RootContent
 
-    //visit(node, 'expression', (node, i, parent) => {
-    //  if (typeof i === 'undefined') return CONTINUE
-
-    //  const contextValue = toContextValue(
-    //    evalExpression(node.data!.estree!, unwrapContext(context), computed)
-    //  )
-
-    //  // Native gets stringified inline as a text node
-    //  if (contextValue.type === 'primitive') {
-    //    parent!.children[i] = u('text', { value: String(contextValue.value) })
-    //    return SKIP
-    //  // file and json values get pushed into blocks
-    //  } else {
-    //    parent!.children.splice(i, 1)
-    //    blocks.push({ ...contextValue })
-    //    return [SKIP, i]
-    //  }
-    //})
-
-    const root = getLastRoot()
     root.children.push(newNode)
   }
 

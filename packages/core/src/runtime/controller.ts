@@ -122,9 +122,50 @@ export class ExecutionController {
 
     const actionResult: Promise<ActionResult> = (async () => {
       switch (action.name) {
-        //case 'if':
-        //  // todo handle If
-        //  break
+        case 'if':
+          {
+            const cond = evalExpression(action.props.cond.value, unwrapContext(context))
+            if (cond) {
+              // Computed props
+              const $self = () => {
+                return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
+                  acc[actionLog.contextKey] = actionLog.output.value
+                  return acc
+                }, {} as Record<string, any>)
+              }
+
+              this.#cursor = ExecutionCursor.push(cursor)
+              const newContext = action.props.provide
+                ? evalExpression(
+                  action.props.provide.value,
+                  unwrapContext(context),
+                  computed
+                ) : {}
+
+              this.state.pushContext(
+                this.#cursor,
+                wrapContext(newContext),
+                { $self },
+              )
+
+              while (true) {
+                const currentCursor = this.cursor
+                await this.runNext({ afterAction, runAll })
+                if (this.cursor.eq(currentCursor)) {
+                  break
+                }
+              }
+
+              const value = $self()
+              this.#cursor = ExecutionCursor.pop(this.cursor)
+              return { result: { type: 'json', value } }
+
+            } else {
+              return { result: { type: 'primitive', value: undefined } }
+            }
+          }
+
+          break
         case 'loop':
           let loopIndex: number = this.cursor.iteration
 
@@ -134,7 +175,8 @@ export class ExecutionController {
             return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
               const c = ExecutionCursor.parse(actionLog.cursor)
               const i = c.iteration
-                ; (acc[i] ||= {})[actionLog.contextKey] = actionLog.output.value
+              acc[i] ||= {}
+              acc[i][actionLog.contextKey] = actionLog.output.value
               return acc
             }, [] as Array<Record<string, any>>)
           }
@@ -169,20 +211,7 @@ export class ExecutionController {
             loopIndex = this.cursor.iteration
           }
 
-          const { results } = this.state.getExecutionScope(this.#cursor)
-          const value = [...results.values()].map(actionLog => {
-            const output = actionLog.output
-            // special case for files, we want this to be jsonish
-            // todo - unure if this is right tbh... but will do for now
-            if (output.type === 'file') {
-              const file = output.value
-              return { [actionLog.contextKey]: { type: 'file', name: file.name, contentType: file.type} }
-            }
-            //if (output.type === 'primitive' && typeof output.value === 'symbol') {
-            //  return { [actionLog.contextKey]: { type: 'symbol', description: output.value.description } }
-            //}
-            return { [actionLog.contextKey]: actionLog.output.value }
-          })
+          const value = $self()
           this.#cursor = ExecutionCursor.pop(this.cursor)
           return { result: { type: 'json', value } as JsonContextValue }
 
@@ -349,7 +378,7 @@ export class ExecutionController {
             }
             if (this.state.stateMap.has(cursorForAction.toString())) {
               chunks.push(stringifyScope(ExecutionCursor.push(cursorForAction)))
-            } else {
+            } else if (actionLog.output.value !== undefined) {
               chunks.push(stringifyContext(actionLog.output))
             }
           }
@@ -407,13 +436,6 @@ export class ExecutionController {
     this.state.dropResultsFrom(cursor)
   }
 }
-
-
-
-
-
-
-
 
 /**
  * Represents the current state of workflow execution.

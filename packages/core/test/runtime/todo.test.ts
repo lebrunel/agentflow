@@ -101,3 +101,52 @@ test.skip('testing magic variables in loops', async () => {
   //expect(ctrl.state.getActionResult(ExecutionCursor.parse('/0.0.1'))?.output.value).toHaveLength(5)
   //expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
 })
+
+test('testing loop gen', async () => {
+  const { result: workflow } = compileSync(dd`
+  Intro
+
+  <Loop as="foo" until={$index === 3}>
+    <Mock as="a" value="aaa" />
+    <Mock as="b" value="bbb" />
+  </Loop>
+
+  {foo}
+
+  Exits
+  `)
+
+  const ctrl = new ExecutionController(workflow, {}, runtime)
+  await ctrl.runAll()
+
+  console.log(ctrl.getFinalOutput())
+})
+
+test('testing if gen', async () => {
+  const { result: workflow } = compileSync(dd`
+  Intro
+
+  <If as="foo" cond={true}>
+    <Mock as="a" value="aaa" />
+    <Mock as="b" value="bbb" />
+  </If>
+
+  <If as="bar" cond={false}>
+    <Mock as="x" value="xxx" />
+    <Mock as="y" value="yyy" />
+  </If>
+
+  zzz
+
+  Foo: {foo}
+
+  Bar: {bar}
+
+  Exits
+  `)
+
+  const ctrl = new ExecutionController(workflow, {}, runtime)
+  await ctrl.runAll()
+
+  console.log(ctrl.getFinalOutput())
+})

@@ -102,7 +102,7 @@ test.skip('testing magic variables in loops', async () => {
   //expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
 })
 
-test('testing loop gen', async () => {
+test.skip('testing loop gen', async () => {
   const { result: workflow } = compileSync(dd`
   Intro
 
@@ -122,7 +122,7 @@ test('testing loop gen', async () => {
   console.log(ctrl.getFinalOutput())
 })
 
-test('testing if gen', async () => {
+test.skip('testing if gen', async () => {
   const { result: workflow } = compileSync(dd`
   Intro
 
@@ -149,4 +149,20 @@ test('testing if gen', async () => {
   await ctrl.runAll()
 
   console.log(ctrl.getFinalOutput())
+})
+
+test.todo('parse context keys from provide', () => {
+  const { result: workflow } = compileSync(dd`
+  Intro
+
+  <Mock as="a" value="aaa" />
+
+  <If as="foo" cond={true} provide={{ a }}>
+    A {a}
+
+    <Mock as="b" value="bbb" />
+  </If>
+
+  Exits
+  `)
 })

@@ -5,7 +5,7 @@ import { VFile } from 'vfile'
 import { evalDependencies, WorkflowInputSchema } from '../../runtime'
 import { Workflow } from '../../workflow'
 
-import type { Program } from 'estree-jsx'
+import type { Program, Property } from 'estree-jsx'
 import type { Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
@@ -141,13 +141,15 @@ function workflowAction(
 ): WorkflowAction {
   const contextKey = actionNode.attributes.as
   const props = { ...actionNode.attributes }
-
-  let contextKeys: ContextKey[] = []
   const phases: WorkflowPhase[] = []
-  for (const node of actionNode.children.filter(n => n.type === 'phase')) {
-    const phase = workflowPhase(node, contextKeys, file)
-    phases.push(phase)
-    contextKeys = Array.from(phase.contextKeys)
+
+  if (actionNode.children.length) {
+    let contextKeys: ContextKey[] = contextKeysFromExpression(actionNode.attributes.provide)
+    for (const node of actionNode.children.filter(n => n.type === 'phase')) {
+      const phase = workflowPhase(node, contextKeys, file)
+      phases.push(phase)
+      contextKeys = Array.from(phase.contextKeys)
+    }
   }
 
   return {
@@ -157,4 +159,25 @@ function workflowAction(
     props,
     phases,
   }
+}
+
+function contextKeysFromExpression(attr: any): string[] {
+  if (attr && attr?.data?.estree) {
+    const tree = attr?.data?.estree as Program
+    const last = tree.body[tree.body.length - 1]
+    if (last.type === 'ExpressionStatement' && last.expression.type === 'ObjectExpression') {
+      return last.expression.properties
+        .filter((prop): prop is Property => prop.type === 'Property')
+        .map(prop => {
+          if (prop.key.type === 'Identifier') {
+            return prop.key.name
+          } else if (prop.key.type === 'Literal' && typeof prop.key.value === 'string') {
+            return prop.key.value
+          }
+          return null
+        })
+        .filter((name): name is string => typeof name === 'string')
+    }
+  }
+  return []
 }

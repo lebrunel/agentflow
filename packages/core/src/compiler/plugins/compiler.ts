@@ -1,5 +1,5 @@
 import { is } from 'unist-util-is'
-import { visit, CONTINUE } from 'unist-util-visit'
+import { visit, CONTINUE, SKIP } from 'unist-util-visit'
 import { toString } from 'mdast-util-to-string'
 import { VFile } from 'vfile'
 import { evalDependencies, WorkflowInputSchema } from '../../runtime'
@@ -74,8 +74,8 @@ function workflowPhase(
   const actions: WorkflowAction[] = []
   const contextKeys = new Set<string>(inputKeys)
 
-  function validateDependency(node: ExpressionNode, contextKey: string) {
-    if (!contextKeys.has(contextKey) && !contextKey.startsWith('$')) {
+  function validateDependency(node: ExpressionNode, contextKey: string, computedKeys: string[] = []) {
+    if (!contextKeys.has(contextKey) && !computedKeys.includes(contextKey)) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,
@@ -97,7 +97,20 @@ function workflowPhase(
   // The visitor scans the tree in order, so it's important that actions are
   // added to the outputTypes BEFORE expression dependencies are validated
   visit(phaseNode, (node, _i, parent) => {
+    // Ensure we don't traverse nested action scopes
+    if (is(parent, 'action')) return SKIP
+
     if (is(node, 'action')) {
+      for (const attr of Object.values(node.attributes)) {
+        if (is(attr, 'expression')) {
+          const expr = attr as ExpressionNode
+          const program = expr.data!.estree! as Program
+          for (const name of evalDependencies(program)) {
+            validateDependency(expr, name, getActionComputedContextKeys(node))
+          }
+        }
+      }
+
       const contextKey = node.attributes.as
       validateUniqueness(node, contextKey)
       contextKeys.add(contextKey)
@@ -145,6 +158,7 @@ function workflowAction(
 
   if (actionNode.children.length) {
     let contextKeys: ContextKey[] = contextKeysFromExpression(actionNode.attributes.provide)
+    contextKeys.push(...getActionComputedContextKeys(actionNode))
     for (const node of actionNode.children.filter(n => n.type === 'phase')) {
       const phase = workflowPhase(node, contextKeys, file)
       phases.push(phase)
@@ -158,6 +172,17 @@ function workflowAction(
     contentNodes,
     props,
     phases,
+  }
+}
+
+function getActionComputedContextKeys(node: ActionNode): string[] {
+  switch(node.name) {
+    case 'if':
+      return ['$self']
+    case 'loop':
+      return ['$self', '$index', '$last']
+    default:
+      return []
   }
 }
 

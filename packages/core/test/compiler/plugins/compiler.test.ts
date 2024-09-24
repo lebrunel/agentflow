@@ -227,4 +227,120 @@ describe('workflowCompiler() validations', () => {
     `
     expect(() => compile(src, { runtime })).toThrow(/unknown context/i)
   })
+
+  test('child scope can access provided context from parent scope', () => {
+    const src = dd`
+    ---
+    inputs:
+      languages:
+        type: array
+    ---
+
+    <GenerateText as="poem" model="openai:gpt-4o" />
+
+    <Loop
+      as="translations"
+      until={$index === languages.length}
+      provide={{ poem, languages }}>
+
+      Translate to {languages[$index]}:
+
+      {poem}
+
+      <GenerateText as="translation" model="openai:gpt-4o" />
+    </Loop>
+    `
+    expect(() => compile(src, { runtime })).not.toThrow()
+  })
+
+  test('child scope cannot access context not provided from parent scope', () => {
+    const src = dd`
+    ---
+    inputs:
+      languages:
+        type: array
+    ---
+
+    <GenerateText as="poem" model="openai:gpt-4o" />
+
+    <Loop
+      as="translations"
+      until={$index === languages.length}
+      provide={{ languages }}>
+
+      Translate to {languages[$index]}:
+
+      {poem}
+
+      <GenerateText as="translation" model="openai:gpt-4o" />
+    </Loop>
+    `
+    expect(() => compile(src, { runtime })).toThrow(/unknown context/i)
+  })
+
+  test('nested scope can access context provided from parent scope', () => {
+    const src = dd`
+    ---
+    inputs:
+      languages:
+        type: array
+      styles:
+        type: array
+    ---
+
+    <GenerateText as="poem" model="openai:gpt-4o" />
+
+    <Loop
+      as="translations"
+      until={$index === languages.length}
+      provide={{ poem, languages, styles, $parentIndex: $index }}>
+
+      <Loop
+        as="styledTranslations"
+        until={$index === styles.length}
+        provide={{ poem, language: languages[$parentIndex], styles }}>
+
+        Translate to {language} in {styles[$index]} style:
+
+        {poem}
+
+        <GenerateText as="translation" model="openai:gpt-4o" />
+      </Loop>
+    </Loop>
+    `
+    expect(() => compile(src, { runtime })).not.toThrow()
+  })
+
+  test('nested scope cannot access context not provided from parent scope', () => {
+    const src = dd`
+    ---
+    inputs:
+      languages:
+        type: array
+      styles:
+        type: array
+    ---
+
+    <GenerateText as="poem" model="openai:gpt-4o" />
+
+    <Loop
+      as="translations"
+      until={$index === languages.length}
+      provide={{ languages, styles, $parentIndex: $index }}>
+
+      <Loop
+        as="styledTranslations"
+        until={$index === styles.length}
+        provide={{ language: languages[$parentIndex], styles }}>
+
+        Translate to {language} in {styles[$index]} style:
+
+        {poem}
+
+        <GenerateText as="translation" model="openai:gpt-4o" />
+      </Loop>
+    </Loop>
+    `
+    expect(() => compile(src, { runtime })).toThrow(/unknown context/i)
+  })
 })

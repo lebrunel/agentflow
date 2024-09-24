@@ -17,7 +17,7 @@ const schema = z.object({
 export default defineAction({
   name: 'generate-object',
   schema,
-  execute: async function({ props, input, results, runtime }) {
+  execute: async function(props, { input, results, meta, runtime }) {
     const messages: CoreMessage[] = []
 
     for (const res of results) {
@@ -38,9 +38,8 @@ export default defineAction({
 
     const { object, usage } = await generateObject(opts)
 
-    return {
-      result: { type: 'json', value: object as any },
-      meta: { usage },
-    }
+    meta.usage = usage
+
+    return { type: 'json', value: object as any }
   }
 })

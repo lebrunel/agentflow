@@ -15,7 +15,7 @@ const schema = z.object({
 export default defineAction({
   name: 'generate-text',
   schema,
-  execute: async function({ props, input, results, runtime, stream }) {
+  execute: async function(props, { input, results, meta, runtime, stream }) {
     const messages: CoreMessage[] = []
 
     for (const res of results) {
@@ -46,9 +46,8 @@ export default defineAction({
         }
       })
 
-    return {
-      result: { type: 'primitive', value: text },
-      meta: { usage },
-    }
+    meta.usage = usage
+
+    return { type: 'primitive', value: text }
   }
 })

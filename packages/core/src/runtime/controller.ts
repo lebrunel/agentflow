@@ -11,7 +11,7 @@ import type { RootContent } from 'mdast'
 import type { Pushable } from 'it-pushable'
 import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
-import type { ActionResult, ActionLog } from '../action'
+import type { ActionResult, ActionLog, ActionContext, ActionMeta } from '../action'
 import type { ExpressionNode } from '../compiler'
 import type { ContextValueMap, JsonContextValue } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
@@ -165,75 +165,83 @@ export class ExecutionController {
             }
           }
 
-          break
         case 'loop':
-          let loopIndex: number = this.cursor.iteration
+          {
+            let loopIndex: number = this.cursor.iteration
 
-          // Computed props
-          const $index = () => loopIndex
-          const $self = () => {
-            return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
-              const c = ExecutionCursor.parse(actionLog.cursor)
-              const i = c.iteration
-              acc[i] ||= {}
-              acc[i][actionLog.contextKey] = actionLog.output.value
-              return acc
-            }, [] as Array<Record<string, any>>)
-          }
-          const $last = () => {
-            const self = $self()
-            return self[self.length - 1]
-          }
-
-          this.#cursor = ExecutionCursor.push(cursor)
-          const newContext = action.props.provide
-            ? evalExpression(
-              action.props.provide.value,
-              unwrapContext(context),
-              computed
-            ) : {}
-
-          this.state.pushContext(
-            this.#cursor,
-            wrapContext(newContext),
-            { $self, $index, $last },
-          )
-
-          while (true) {
-            if (
-              this.cursor.phaseIndex === 0 &&
-              this.cursor.actionIndex === 0 &&
-              evalExpression(
-                action.props.until.value,
-                unwrapContext(context),
-                { $index, $self, $last },
-              )
-            ) {
-              break
+            // Computed props
+            const $index = () => loopIndex
+            const $self = () => {
+              return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
+                const c = ExecutionCursor.parse(actionLog.cursor)
+                const i = c.iteration
+                acc[i] ||= {}
+                acc[i][actionLog.contextKey] = actionLog.output.value
+                return acc
+              }, [] as Array<Record<string, any>>)
+            }
+            const $last = () => {
+              const self = $self()
+              return self[self.length - 1]
             }
 
-            await this.runNext({ afterAction, runAll })
-            loopIndex = this.cursor.iteration
+            this.#cursor = ExecutionCursor.push(cursor)
+            const newContext = action.props.provide
+              ? evalExpression(
+                action.props.provide.value,
+                unwrapContext(context),
+                computed
+              ) : {}
+
+            this.state.pushContext(
+              this.#cursor,
+              wrapContext(newContext),
+              { $self, $index, $last },
+            )
+
+            while (true) {
+              if (
+                this.cursor.phaseIndex === 0 &&
+                this.cursor.actionIndex === 0 &&
+                evalExpression(
+                  action.props.until.value,
+                  unwrapContext(context),
+                  { $index, $self, $last },
+                )
+              ) {
+                break
+              }
+
+              await this.runNext({ afterAction, runAll })
+              loopIndex = this.cursor.iteration
+            }
+
+            const value = $self()
+            this.#cursor = ExecutionCursor.pop(this.cursor)
+            return { result: { type: 'json', value } as JsonContextValue }
           }
 
-          const value = $self()
-          this.#cursor = ExecutionCursor.pop(this.cursor)
-          return { result: { type: 'json', value } as JsonContextValue }
+        default: // handle arbitrary action
+          {
+            const handler = this.runtime.useAction(action.name)
+            const evalProps = Object.entries(action.props).reduce((props, [key, val]) => {
+              props[key] = isExpression(val)
+                ? evalExpression(val.value, context, computed)
+                : val
+              return props
+            }, {} as any)
+            const props = handler.parse(evalProps)
+            const actionCtx: ActionContext = {
+              input,
+              results: this.state.getPhaseResults(cursor),
+              meta: {},
+              runtime: this.runtime,
+              stream,
+            }
+            const result = await handler.execute(props, actionCtx)
+            return { result, meta: actionCtx.meta }
+          }
 
-        default:
-          // handle arbitrary action
-          // 1. evaluate and validate props
-          // 2. resolve with execute
-          const handler = this.runtime.useAction(action.name)
-          const evalProps = Object.entries(action.props).reduce((props, [key, val]) => {
-            props[key] = isExpression(val)
-              ? evalExpression(val.value, context, computed)
-              : val
-            return props
-          }, {} as any)
-          const props = handler.parse(evalProps)
-          const prevResults = this.state.getPhaseResults(cursor)
-          return handler.execute({ props, input, results: prevResults, runtime: this.runtime, stream })
       }
     })()
 

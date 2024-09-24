@@ -57,15 +57,15 @@ export interface ActionOptions<T extends z.ZodObject<any>> {
 
 export type ActionName = string
 
-export type ActionParams<T> = {
-  props: T,
+export type ActionContext = {
   input: ContextValue[],
   results: ActionLog[],
+  meta: ActionMeta,
   runtime: Runtime,
   stream: Pushable<string>,
 }
 
-export type ActionFn<T> = (params: ActionParams<T>) => ActionResult | PromiseLike<ActionResult>
+export type ActionFn<T> = (props: T, context: ActionContext) => ContextValue | PromiseLike<ContextValue>
 
 export interface ActionResult {
   result: ContextValue;

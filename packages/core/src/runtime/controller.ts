@@ -200,13 +200,18 @@ export class ExecutionController {
           )
 
           while (true) {
-            const isDone = evalExpression(
-              action.props.until.value,
-              unwrapContext(context),
-              { $index, $self, $last },
-            )
+            if (
+              this.cursor.phaseIndex === 0 &&
+              this.cursor.actionIndex === 0 &&
+              evalExpression(
+                action.props.until.value,
+                unwrapContext(context),
+                { $index, $self, $last },
+              )
+            ) {
+              break
+            }
 
-            if (isDone) { break }
             await this.runNext({ afterAction, runAll })
             loopIndex = this.cursor.iteration
           }

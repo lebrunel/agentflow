@@ -11,7 +11,7 @@ Intro
 
 <Loop
   as="loop"
-  until={$self[$self.length - 1].taskResult.startsWith('TASK COMPLETE:')}
+  until={$self[$self.length - 1] && $self[$self.length - 1].taskResult.startsWith('TASK COMPLETE:')}
   provide={{ objective }}>
 
   Based on the following objective, and the previous sub-task results (if any), please break down the objective into the next sub-task, and create a concise and detailed prompt for a subagent so it can execute that task.

@@ -166,3 +166,31 @@ test.todo('parse context keys from provide', () => {
   Exits
   `)
 })
+
+test('xyzxyz', async () => {
+  const { result: workflow } = compileSync(dd`
+  Intro
+
+  <Loop as="loop" until={$self.length === 3}>
+    A {$index}
+
+    <Mock as="a" value="aaa" />
+
+    ---
+
+    B: {a}
+
+    <Mock as="b" value="bbb" />
+  </Loop>
+
+  {loop}
+
+  <Mock as="c" value="ccc" />
+
+  Exits
+  `)
+
+  const ctrl = new ExecutionController(workflow, {}, runtime)
+  await ctrl.runAll()
+  console.log(ctrl.getFinalOutput())
+})

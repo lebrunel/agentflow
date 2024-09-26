@@ -1,9 +1,10 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, extname, join } from 'node:path'
+import { basename, dirname, extname, join } from 'node:path'
 import { Command } from 'commander'
 import { blue, bold, dim, green, italic, yellow } from 'picocolors'
 import { default as dd } from 'ts-dedent'
-import { compileSync, executeWorkflow, Runtime } from '@ada/core'
+import { stringify as stringifyYaml } from 'yaml'
+import { compileSync, executeWorkflow, tools, Runtime } from '@ada/core'
 import type { UserConfig } from '@ada/core'
 
 import { resolveConfig } from '../config'
@@ -19,9 +20,14 @@ const cmd = new Command()
 
 async function execWorkflow(name: string) {
   const cwd = process.cwd()
+  const now = new Date()
   const config = await resolveConfig(cwd)
   const runtime = new Runtime(config as UserConfig)
   const flowName = basename(name, extname(name))
+  const outputPath = buildOutputPath(config.paths.outputs, flowName, now)
+
+  const fileSystem = tools.createFileSystemTools(join(outputPath, 'files'))
+  runtime.registerTool(fileSystem.write_files)
 
   let flowPath: string | undefined
   for (const ext of ['md', 'mdx']) {
@@ -84,13 +90,16 @@ async function execWorkflow(name: string) {
     ctrl.on('complete', (result) => {
       const calculator = ctrl.getCostEstimate()
       displayUsageCost(calculator)
-      const now = new Date()
-      const outputDir = ensureOutputDir(join(cwd, config.paths.outputs), now)
-      const outputName = generateOutputName(flowName, now)
-      const outputPath = join(outputDir, outputName)
-      const content = appendFrontmatter(workflow.title, now, result)
-      writeFileSync(outputPath, content, { encoding: 'utf8' })
-      // todo - print token stats/costs and add to output metadata
+      mkdirSync(outputPath, { recursive: true })
+      writeFileSync(
+        join(outputPath, 'output.md'),
+        appendFrontmatter(result, {
+          title: workflow.title,
+          created: now.toString(),
+          usage: calculator.data
+        }),
+        { encoding: 'utf8' }
+      )
       resolve()
     })
   })
@@ -112,28 +121,21 @@ function displayUsageCost(calculator: CostCalculator) {
   console.log()
 }
 
-function appendFrontmatter(title: string, created: Date, body: string) {
+function appendFrontmatter(body: string, data: any) {
   return dd`
   ---
-  title: ${title}
-  created: ${created.toISOString()}
+  ${stringifyYaml(data).trim()}
   ---
 
   ${body}
   `
 }
 
-function ensureOutputDir(outputsDir: string, created: Date) {
-  const date = created.toISOString().slice(2, 10).replace(/-/g, '')
-  const dirName = join(outputsDir, date)
-  if (!existsSync(dirName)) mkdirSync(dirName, { recursive: true })
-  return dirName
-}
-
-function generateOutputName(fileName: string, created: Date): string {
-  const daySeconds = (created.getHours() * 3600) + (created.getMinutes() * 60) + created.getSeconds()
-  const slug = daySeconds.toString(36).padStart(4, '0')
-  return `${slug}-${fileName}`
+function buildOutputPath(baseDir: string, workflowName: string, now: Date): string {
+  const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
+  const daySecs = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds()
+  const dayStr = daySecs.toString().padStart(5, '0')
+  return join(baseDir, dateStr, `${dayStr}-${workflowName}`)
 }
 
 export default cmd

@@ -21,7 +21,7 @@ import type { ContextKey } from '~/context'
  */
 export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> = function(
   this: Processor,
-  options: CompileOptions,
+  _options: CompileOptions,
 ) {
   this.compiler = function(node, file) {
     const workflowNode = node as WorkflowNode
@@ -75,7 +75,11 @@ function workflowPhase(
   const contextKeys = new Set<string>(inputKeys)
 
   function validateDependency(node: ExpressionNode, contextKey: string, computedKeys: string[] = []) {
-    if (!contextKeys.has(contextKey) && !computedKeys.includes(contextKey)) {
+    if (
+      !contextKeys.has(contextKey) &&
+      !computedKeys.includes(contextKey) &&
+      !['z'].includes(contextKey)
+    ) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
         node,

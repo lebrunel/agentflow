@@ -13,7 +13,7 @@
     "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"
   },
   "dependencies": {
-    "ai": "^3.3.4",
+    "ai": "^3.4.3",
     "change-case": "^5.4.4",
     "estree-walker": "^3.0.3",
     "it-pushable": "^3.2.3",

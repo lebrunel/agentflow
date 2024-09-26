@@ -1,5 +1,5 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
-import type { experimental_ProviderRegistry as ProviderRegistry, LanguageModel } from 'ai'
+import type { LanguageModel, Provider } from 'ai'
 import type { z } from 'zod'
 import { ifAction, loopAction, genTextAction, genObjectAction } from '../actions'
 import type { UserConfig } from './config'
@@ -23,7 +23,7 @@ const tools: Tool<z.ZodType>[] = []
 export class Runtime {
   private actions: ActionRegistry = defaultRegistry(actions)
   private tools: ToolRegistry = defaultRegistry(tools)
-  private providers: ProviderRegistry = createProviderRegistry({})
+  private providers: Provider = createProviderRegistry({})
 
   constructor(config: UserConfig = {}) {
     for (const action of builtInActions) {
@@ -64,18 +64,26 @@ export class Runtime {
     return !!this.tools[name]
   }
 
-  registerAction(name: string, action: Action): void {
+  registerAction(action: Action): void
+  registerAction(name: string, action: Action): void
+  registerAction(nameOrAction: string | Action, maybeAction?: Action): void {
+    const [name, action] = handleParams<Action>(nameOrAction, maybeAction)
     if (this.hasAction(name)) {
       throw new Error(`Action already registered: ${name}`)
     }
-    this.actions[name] = action
+
+    this.actions[name] = action!
   }
 
-  registerTool(name: string, tool: Tool<z.ZodType>): void {
+  registerTool(tool: Tool<z.ZodType>): void
+  registerTool(name: string, tool: Tool): void
+  registerTool(nameOrTool: string | Tool, maybeTool?: Tool): void {
+    const [name, tool] = handleParams<Tool>(nameOrTool, maybeTool)
     if (this.hasTool(name)) {
       throw new Error(`Tool already registered: ${name}`)
     }
-    this.tools[name] = tool
+
+    this.tools[name] = tool!
   }
 
   useAction(name: string): Action {
@@ -101,6 +109,24 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
   return items.reduce((map, item) => {
     return { ...map, [item.name]: item }
   }, {})
+}
+
+// Helpers
+
+function handleParams<T extends { name: string }>(
+  nameOrItem: string | T,
+  item?: T,
+): [name: string, item: T] {
+  let name: string
+  if (typeof nameOrItem === 'string') {
+    name = nameOrItem
+  } else {
+    name = nameOrItem.name
+    item = nameOrItem
+  }
+
+  if (!item) throw new Error(`Cannot register '${name}' without valid item`)
+  return [name, item]
 }
 
 // Types

@@ -1,8 +1,9 @@
 import { z } from 'zod'
 import { default as dd } from 'ts-dedent'
-
-import type { AssistantContent, CoreAssistantMessage, CoreUserMessage, UserContent } from 'ai'
 import { stringifyContext, type ContextValue } from '../../context'
+
+import type { CoreAssistantMessage, CoreUserMessage } from 'ai'
+
 
 export const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.
@@ -73,9 +74,9 @@ export async function toCoreMessage(
 
 function getDataUrlFromFile(file: File): Promise<string> {
   return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result as string);
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
 }

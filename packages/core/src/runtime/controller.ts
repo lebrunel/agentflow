@@ -11,7 +11,7 @@ import type { RootContent } from 'mdast'
 import type { Pushable } from 'it-pushable'
 import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
-import type { ActionResult, ActionLog, ActionContext, ActionMeta } from '../action'
+import type { ActionResult, ActionLog, ActionContext } from '../action'
 import type { ExpressionNode } from '../compiler'
 import type { ContextValueMap, JsonContextValue } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
@@ -201,6 +201,9 @@ export class ExecutionController {
 
             while (true) {
               if (
+                // Ensures until check happens at beginning of loops
+                // todo - can this behaviour be opted out of for early breaks
+                // in fact, should early break be default with full looping being the option
                 this.cursor.phaseIndex === 0 &&
                 this.cursor.actionIndex === 0 &&
                 evalExpression(

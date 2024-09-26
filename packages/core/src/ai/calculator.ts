@@ -1,4 +1,4 @@
-import type { CompletionTokenUsage } from 'ai'
+import type { LanguageModelUsage } from 'ai'
 
 import { models as defaultModels, type ModelSpec } from './models'
 
@@ -34,7 +34,17 @@ export class CostCalculator {
     return this.inputCost + this.outputCost
   }
 
-  addUsage(model: string, usage: CompletionTokenUsage): void {
+  get data() {
+    return {
+      inputTokens: this.inputTokens,
+      outputTokens: this.outputTokens,
+      inputCost: formatMoney(this.inputCost),
+      outputCost: formatMoney(this.outputCost),
+      totalCost: formatMoney(this.totalCost),
+    }
+  }
+
+  addUsage(model: string, usage: LanguageModelUsage): void {
     this.#inputTokens += usage.promptTokens
     this.#outputTokens += usage.completionTokens
 
@@ -55,5 +65,5 @@ export function formatMoney(amount: number, currencySymbol: string = '$') {
 
 interface UncostedRecord {
   model: string;
-  usage: CompletionTokenUsage;
+  usage: LanguageModelUsage;
 }

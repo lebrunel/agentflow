@@ -1,7 +1,7 @@
 ---
 inputs:
   objective:
-    message: Describe what you would like me to do
+    message: 'Please enter your objective:'
     type: text
 ---
 
@@ -11,30 +11,61 @@ Intro
 
 <Loop
   as="loop"
-  until={$self[$self.length - 1] && $self[$self.length - 1].taskResult.startsWith('TASK COMPLETE:')}
+  until={$last && $last.status.isComplete}
   provide={{ objective }}>
 
   Based on the following objective, and the previous sub-task results (if any), please break down the objective into the next sub-task, and create a concise and detailed prompt for a subagent so it can execute that task.
 
   IMPORTANT!!! when dealing with code tasks make sure you check the code for errors and provide fixes and support as part of the next sub-task. If you find any bugs or have suggestions for better code, please include them in the next sub-task prompt.
 
-  Please assess if the objective has been fully achieved. If the previous sub-task results comprehensively address all aspects of the objective, include the phrase "TASK COMPLETE:" at the beginning of your response. If the objective is not yet fully achieved, break it down into the next sub-task and create a concise and detailed prompt for a subagent to execute that task.:
-
   Objective: {objective}
 
   Previous sub-task results:
-  - {$self.length ? $self.map(l => l.taskResult).join('\n- ') : 'None'}
+  - {
+      $self.filter(l => !!l.result).length ?
+      $self.filter(l => !!l.result).map(l => l.result).join('\n- ') :
+      'None'
+    }
 
-  <GenerateText as="taskPrompt" model="ollama:llama3.1" />
+  <GenerateText
+    as="prompt"
+    model="anthropic:claude-3-5-sonnet-20240620" />
 
   ---
 
   Previous tasks:
-  {$self.length ? $self.map(l => `Task: ${l.taskPrompt}\nResult: ${l.taskResult}`).join('\n') : 'None'}
+  {
+    $self.filter(l => !!l.result).length ?
+    $self.filter(l => !!l.result).map(l => {
+      return `Task: ${l.prompt}\nResult: ${l.result}`
+    }).join('\n') :
+    'None'
+  }
 
-  {taskPrompt}
+  {prompt}
 
-  <GenerateText as="taskResult" model="ollama:llama3.1" />
+  <GenerateText
+    as="result"
+    model="anthropic:claude-3-5-sonnet-20240620" />
+
+  ---
+
+  Based on the following objective, and the previous sub-task results, please make an assessment on whether the objective has been fully achieved. Only mark the objective as complete if the previous sub-task results comprehensively address all aspects of the objective. If there aren't any sub-task results, then by definition the objective is not complete.
+
+  Objective: {objective}
+
+  Previous sub-task results:
+  - {$self.length ? $self.map(l => l.result).join('\n- ') : 'None'}
+
+  <GenerateObject
+    as="status"
+    model="anthropic:claude-3-5-sonnet-20240620"
+    schema={
+      z.object({
+        isComplete: z.boolean().describe('Whether the objective is fully achieved')
+      })
+    } />
+
 </Loop>
 
 ---
@@ -42,8 +73,13 @@ Intro
 Objective: {objective}
 
 Sub-task results:
-- {loop.map(l => l.taskResult).join('\n- ')}
+- { loop.filter(l => !!l.result).map(l => l.result).join('\n- ') }
 
-Please review and refine the sub-task results into a cohesive final output. Add any missing information or details as needed.
+Please review and refine the sub-task results into a cohesive final output. Add any missing information or details as needed. If the final output consists of one or more files, then use the provided tool to save the files to disk.
 
-<GenerateText as="final" model="ollama:llama3.1" />
+<GenerateText
+  as="final"
+  model="anthropic:claude-3-5-sonnet-20240620"
+  tools={
+    ['write_files']
+  } />

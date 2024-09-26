@@ -8,9 +8,9 @@
   "dependencies": {
     "@ada/cli": "workspace:*",
     "@ada/core": "workspace:*",
-    "@ai-sdk/anthropic": "^0.0.44",
-    "@ai-sdk/openai": "^0.0.50",
-    "ollama-ai-provider": "^0.12.0"
+    "@ai-sdk/anthropic": "^0.0.50",
+    "@ai-sdk/openai": "^0.0.62",
+    "ollama-ai-provider": "^0.15.1"
   },
   "devDependencies": {
     "@types/bun": "latest"

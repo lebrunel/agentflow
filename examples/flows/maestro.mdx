@@ -21,11 +21,7 @@ Intro
   Objective: {objective}
 
   Previous sub-task results:
-  - {
-      $self.filter(l => !!l.result).length ?
-      $self.filter(l => !!l.result).map(l => l.result).join('\n- ') :
-      'None'
-    }
+  - { $self.filter(l => !!l.result).length ? $self.filter(l => !!l.result).map(l => l.result).join('\n- ') : 'None' }
 
   <GenerateText
     as="prompt"

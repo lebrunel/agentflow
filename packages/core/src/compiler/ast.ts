@@ -1,4 +1,5 @@
 import type { Node, Root, RootContent } from 'mdast'
+import type { Handlers } from 'mdast-util-to-markdown'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
 import type { Workflow } from '../workflow'
 
@@ -23,6 +24,10 @@ export interface ExpressionNode extends Node {
   type: 'expression';
   data?: MdxJsxExpressionAttributeData;
   value: string;
+}
+
+export interface CustomHandlers extends Handlers {
+  expression: (node: ExpressionNode) => string
 }
 
 declare module 'mdast' {

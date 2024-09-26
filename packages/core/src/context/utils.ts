@@ -1,14 +1,15 @@
 import { unified } from 'unified'
 import { u } from 'unist-builder'
-import { is } from 'unist-util-is'
-import { map } from 'unist-util-map'
+import { selectAll } from 'unist-util-select'
+import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
 import { default as dd } from 'ts-dedent'
 import { evalExpression } from '../runtime/eval'
 
-import type { Root, RootContent, Text } from 'mdast'
+import type { Root, RootContent } from 'mdast'
+import type { Options } from 'remark-stringify'
 import type { ComputedContext, ContextValue, ContextValueMap } from './types'
-
+import type { CustomHandlers, ExpressionNode } from '../compiler'
 
 /**
  * TODO
@@ -83,27 +84,33 @@ export function astToContext(
 
   for (const node of nodes) {
     const root = getLastRoot()
+    const expressions = selectAll('expression', node) as ExpressionNode[]
 
-    const newNode = map(node, (node) => {
-      if (is(node, 'expression')) {
+    // If we have expressions, then we stringify the RootContent node, evaluate
+    // the expression and manipulate the string, micro parse the string and
+    // replace the node with the new node
+    if (expressions.length) {
+      let nodeStr = stringifyAST([node])
+      for (const expr of expressions) {
         const contextValue = toContextValue(
-          evalExpression(node.value, unwrapContext(context), computed)
+          evalExpression(expr.value, unwrapContext(context), computed)
         )
 
-        // Primitive gets stringified inline as a text node
+        // Primitives get stringified in place
+        // Images get pushed as new content blocks
         if (contextValue.type === 'primitive') {
-          return u('text', { value: String(contextValue.value) })
-          // file and json values get pushed into blocks
+          nodeStr = nodeStr.replace(`{${expr.value}}`, String(contextValue.value))
         } else {
+          nodeStr = nodeStr.replace(`{${expr.value}}`, '')
           blocks.push({ ...contextValue })
-          return u('text', { value: '' })
         }
       }
 
-      return node
-    }) as RootContent
-
-    root.children.push(newNode)
+      const microRoot = microParse(nodeStr)
+      root.children.push(...microRoot.children)
+    } else {
+      root.children.push(node)
+    }
   }
 
   return blocks.map(block => {
@@ -120,8 +127,15 @@ export function stringifyAST(nodes: Root | RootContent[]): string {
     return stringifyAST(u('root', nodes))
   }
 
+  const stringifyOptions: Options & { handlers: Partial<CustomHandlers> } = {
+    bullet: '-',
+    handlers: {
+      expression: (node: ExpressionNode) => `{${node.value}}`
+    }
+  }
+
   return unified()
-    .use(remarkStringify)
+    .use(remarkStringify, stringifyOptions)
     .stringify(nodes)
     .trim()
 }
@@ -148,4 +162,10 @@ export function stringifyContext(ctx: ContextValue | ContextValue[]): string {
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
   }
+}
+
+function microParse(str: string): Root {
+  return unified()
+    .use(remarkParse)
+    .parse(str)
 }

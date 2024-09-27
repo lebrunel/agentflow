@@ -1,5 +1,5 @@
 {
-  "name": "@ada/core",
+  "name": "@agentflow/core",
   "private": true,
   "type": "module",
   "exports": {

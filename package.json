@@ -1,5 +1,5 @@
 {
-  "name": "project-ada-monorepo",
+  "name": "agentflow",
   "private": true,
   "workspaces": [
     "examples",

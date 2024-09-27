@@ -1,5 +1,5 @@
 {
-  "name": "project-ada-examples",
+  "name": "@agentflow/examples",
   "private": true,
   "type": "module",
   "scripts": {

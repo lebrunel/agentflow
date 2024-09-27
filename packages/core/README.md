@@ -1,3 +1,3 @@
-# @ada/core
+# AgentFlow Core `@agentflow/core`
 
 WIP - Todo

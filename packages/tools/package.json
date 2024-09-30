@@ -1,0 +1,28 @@
+{
+  "name": "@agentflow/tools",
+  "version": "0.1.0-alpha1",
+  "description": "AgentFlow library of function-calling tools to enhancing LLM capabilities in your workflows.",
+  "type": "module",
+  "homepage": "https://github.com/lebrunel/agentflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lebrunel/agentflow",
+    "directory": "packages/tools"
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "exports": {
+    ".": {
+      "import": "./dist/node.ts",
+      "types": "./src/node.ts"
+    }
+  },
+  "scripts": {
+    "build": "bun run build.ts"
+  },
+  "dependencies": {
+    "@agentflow/core": "workspace:*"
+  }
+}

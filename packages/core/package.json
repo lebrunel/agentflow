@@ -1,6 +1,5 @@
 {
   "name": "@agentflow/core",
-  "private": true,
   "type": "module",
   "exports": {
     ".": {
@@ -9,8 +8,7 @@
     }
   },
   "scripts": {
-    "build": "bun build ./src/index.ts --outdir=./dist && bun run build:tsc",
-    "build:tsc": "tsc --emitDeclarationOnly --isolatedDeclarations --allowJs false --noEmit false --outDir ./dist"
+    "build": "bun run build.ts"
   },
   "dependencies": {
     "ai": "^3.4.3",

@@ -1,6 +1,6 @@
 {
   "name": "@agentflow/core",
-  "version": "0.1,0-alpha1",
+  "version": "0.1.0-alpha1",
   "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
   "type": "module",
   "exports": {

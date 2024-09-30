@@ -1,11 +1,23 @@
 {
   "name": "@agentflow/core",
+  "version": "0.1,0-alpha1",
+  "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
   "type": "module",
   "exports": {
     ".": {
-      "import": "./src/index.ts",
+      "import": "./dist/index.js",
       "types": "./src/index.ts"
     }
+  },
+  "files": [
+    "dist/**/*",
+    "src/**/*"
+  ],
+  "homepage": "ttps://github.com/lebrunel/agentflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lebrunel/agentflow",
+    "directory": "packages/core"
   },
   "scripts": {
     "build": "bun run build.ts"

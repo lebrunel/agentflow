@@ -10,8 +10,7 @@
     "directory": "packages/tools"
   },
   "files": [
-    "dist/**/*",
-    "src/**/*"
+    "dist/**/*"
   ],
   "exports": {
     ".": {
@@ -21,7 +20,7 @@
   },
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf dist/* && bun run build:tsc",
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
     "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {

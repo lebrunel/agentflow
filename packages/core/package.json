@@ -10,7 +10,8 @@
     "directory": "packages/core"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "src/**/*"
   ],
   "exports": {
     ".": {
@@ -22,9 +23,8 @@
   "unpkg": "./dist/index.min.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "rm -rf dist/* && bun run build:tsc && bun run build:web",
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
     "build:tsc": "tsc --p tsconfig.build.json",
-    "build:web": "bun run build.ts"
   },
   "dependencies": {
     "ai": "^3.4.3",

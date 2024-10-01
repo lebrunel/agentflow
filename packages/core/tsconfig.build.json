@@ -1,16 +1,14 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "./tsconfig.json",
 
   "compilerOptions": {
-    "baseUrl": ".",
-    "outDir": "./dist",
-
+    "allowJs": false,
     "noEmit": false,
     "declaration": true,
-    "allowImportingTsExtensions": false
+    "emitDeclarationOnly": true
   },
 
   "include": [
-    "src/**/*.ts"
+    "src/**/*"
   ]
 }

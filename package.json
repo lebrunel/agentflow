@@ -1,12 +1,18 @@
 {
   "name": "agentflow",
   "private": true,
+  "packageManager": "bun@1.1.29",
   "workspaces": [
     "examples",
     "packages/*"
   ],
+  "scripts": {
+    "build": "turbo build --filter='./packages/*'"
+  },
   "devDependencies": {
-    "@types/bun": "latest"
+    "@changesets/cli": "^2.27.8",
+    "@types/bun": "latest",
+    "turbo": "^2.1.3"
   },
   "peerDependencies": {
     "typescript": "^5.0.0"

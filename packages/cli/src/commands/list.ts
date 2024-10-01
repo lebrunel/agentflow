@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs'
 import { basename, join } from 'node:path'
 import { Command } from 'commander'
-import { bold } from 'picocolors'
-import { globSync } from 'fast-glob'
-import { compileSync, Runtime } from '@ada/core'
+import pc from 'picocolors'
+import fg from 'fast-glob'
+import { compileSync, Runtime } from '@agentflow/core'
 
 import { resolveConfig } from '../config'
 
@@ -23,7 +23,7 @@ async function listWorkflows() {
 
   // Collect workflows into rows
   const rows: {id: string, title: string}[] = []
-  for (const path of globSync(flowsPath)) {
+  for (const path of fg.globSync(flowsPath)) {
     try {
       const id = basename(path).replace(/\.mdx?$/, '')
       const data = readFileSync(path, { encoding: 'utf8' })
@@ -46,7 +46,7 @@ async function listWorkflows() {
     const truncTitle = row.title.length > wTitle
       ? row.title.slice(0, wTitle - 1) + '…'
       : row.title
-    console.log(`  ${bold(row.id).padEnd(wId)}  ${truncTitle}`)
+    console.log(`  ${pc.bold(row.id).padEnd(wId)}  ${truncTitle}`)
   }
 }
 

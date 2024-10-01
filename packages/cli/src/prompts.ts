@@ -3,7 +3,7 @@ import { basename, resolve } from 'node:path'
 import { lookup } from 'mime-types'
 import { createPrompt, isEnterKey, usePrefix, useState, useKeypress } from '@inquirer/core'
 import { input, editor, select } from '@inquirer/prompts'
-import { bold, dim } from 'picocolors'
+import pc from 'picocolors'
 import type {
   ContextValue,
   ContextValueMap,
@@ -12,8 +12,7 @@ import type {
   ArrayInput,
   FileInput,
   WorkflowInputSchema
-} from '@ada/core'
-import type {  } from '@ada/core'
+} from '@agentflow/core'
 
 export async function promptInputs(inputs: WorkflowInputSchema): Promise<ContextValueMap> {
   const context: ContextValueMap = {}
@@ -107,7 +106,7 @@ const multiline = createPrompt<string[], { message: string }>((config, done) => 
   })
 
   const prompt: string[] = [
-    `${prefix} ${bold(config.message)} ${dim('(blank line to end)')}`
+    `${prefix} ${pc.bold(config.message)} ${pc.dim('(blank line to end)')}`
   ]
   if (values.length) {
     prompt.push('- '+values.join('\n- '))

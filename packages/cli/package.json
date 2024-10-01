@@ -1,13 +1,29 @@
 {
   "name": "@agentflow/cli",
-  "version": "0.0.1",
-  "private": true,
+  "version": "0.1.0-alpha2",
+  "description": "xxx",
   "type": "module",
+  "homepage": "https://github.com/lebrunel/agentflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lebrunel/agentflow",
+    "directory": "packages/cli"
+  },
+  "files": [
+    "bin/**/*",
+    "dist/**/*"
+  ],
   "bin": {
-    "ada": "./bin/ada.ts"
+    "aflow": "./bin/cli.sh",
+    "agentflow": "./bin/cli.sh"
+  },
+  "scripts": {
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
+    "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {
-    "@ada/core": "workspace:*",
+    "@agentflow/core": "workspace:*",
+    "@agentflow/tools": "workspace:*",
     "@inquirer/prompts": "^5.3.8",
     "@types/mime-types": "^2.1.4",
     "commander": "^12.1.0",

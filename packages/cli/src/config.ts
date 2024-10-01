@@ -1,9 +1,11 @@
 import { existsSync } from 'node:fs'
 import { resolve } from 'node:path'
-import type { UserConfig } from '@ada/core'
+import type { UserConfig } from '@agentflow/core'
+
+const CONFIG_FILE_NAME = 'agentflow.config.js'
 
 export async function resolveConfig(baseDir: string): Promise<ResolvedConfig> {
-  const configPath = resolve(baseDir, 'ada.config.ts')
+  const configPath = resolve(baseDir, CONFIG_FILE_NAME)
 
   let userConfig: UserConfig = {}
   if (existsSync(configPath)) {

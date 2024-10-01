@@ -1,15 +1,16 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { basename, dirname, extname, join } from 'node:path'
 import { Command } from 'commander'
-import { blue, bold, dim, green, italic, yellow } from 'picocolors'
-import { default as dd } from 'ts-dedent'
+import pc from 'picocolors'
+import { dedent as dd } from 'ts-dedent'
 import { stringify as stringifyYaml } from 'yaml'
-import { compileSync, executeWorkflow, tools, Runtime } from '@ada/core'
-import type { UserConfig } from '@ada/core'
+import { compileSync, executeWorkflow, Runtime } from '@agentflow/core'
+import { createFileSystemTools } from '@agentflow/tools'
+import type { UserConfig } from '@agentflow/core'
 
 import { resolveConfig } from '../config'
 import { promptInputs } from '../prompts'
-import type { CostCalculator } from '@ada/core'
+import type { CostCalculator } from '@agentflow/core'
 
 const cmd = new Command()
   .name('exec')
@@ -26,7 +27,7 @@ async function execWorkflow(name: string) {
   const flowName = basename(name, extname(name))
   const outputPath = buildOutputPath(config.paths.outputs, flowName, now)
 
-  const fileSystem = tools.createFileSystemTools(join(outputPath, 'files'))
+  const fileSystem = createFileSystemTools(join(outputPath, 'files'))
   runtime.registerTool(fileSystem.write_files)
 
   let flowPath: string | undefined
@@ -48,7 +49,7 @@ async function execWorkflow(name: string) {
   // todo - check for error messages on file
   const workflow = file.result
 
-  console.log(`🚀 ${bold(workflow.title)}`)
+  console.log(`🚀 ${pc.bold(workflow.title)}`)
   console.log()
   //console.log(workflow.description)
   //console.log()
@@ -58,9 +59,9 @@ async function execWorkflow(name: string) {
   const ctrl = executeWorkflow(workflow, context, runtime)
 
   ctrl.on('action', async ({ action, stream, input, output }, cursor) => {
-    console.log(dim('[['), yellow(cursor.toString()), blue(action.name), green(action.contextKey), dim(']]'))
+    console.log(pc.dim('[['), pc.yellow(cursor.toString()), pc.blue(action.name), pc.green(action.contextKey), pc.dim(']]'))
     console.log()
-    console.log(dim(input))
+    console.log(pc.dim(input))
     console.log()
 
     let isStreaming = false
@@ -109,15 +110,15 @@ function displayUsageCost(calculator: CostCalculator) {
   const maxWidth = Math.min(80, process.stdout.columns || 80)
   const formatCost = (cost: number) => (cost/100).toFixed(4)
 
-  console.log(dim('-'.repeat(maxWidth)))
+  console.log(pc.dim('-'.repeat(maxWidth)))
   console.log()
-  console.log(dim(italic(`Costs are estimated and will not be 100% accurate.`)))
-  console.log(dim(italic(`Refer to your AI provider for actual costs.`)))
+  console.log(pc.dim(pc.italic(`Costs are estimated and will not be 100% accurate.`)))
+  console.log(pc.dim(pc.italic(`Refer to your AI provider for actual costs.`)))
   console.log()
-  console.log(dim('Input cost'), '  ', dim('$'), formatCost(calculator.inputCost), ' ', dim(`${calculator.inputTokens} tks`))
-  console.log(dim('Output cost'), ' ', dim('$'), formatCost(calculator.outputCost), ' ', dim(`${calculator.outputTokens} tks`))
-  console.log(dim('-'.repeat(22)))
-  console.log(dim(bold('Total')), '       ', dim(bold('$')), bold(formatCost(calculator.totalCost)))
+  console.log(pc.dim('Input cost'), '  ', pc.dim('$'), formatCost(calculator.inputCost), ' ', pc.dim(`${calculator.inputTokens} tks`))
+  console.log(pc.dim('Output cost'), ' ', pc.dim('$'), formatCost(calculator.outputCost), ' ', pc.dim(`${calculator.outputTokens} tks`))
+  console.log(pc.dim('-'.repeat(22)))
+  console.log(pc.dim(pc.bold('Total')), '       ', pc.dim(pc.bold('$')), pc.bold(formatCost(calculator.totalCost)))
   console.log()
 }
 

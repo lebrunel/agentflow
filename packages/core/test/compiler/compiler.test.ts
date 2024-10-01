@@ -1,7 +1,8 @@
 import { describe, expect, test } from 'bun:test'
 import { runtime } from 'test/support/runtime'
 import { VFile } from 'vfile'
-import { compile, compileSync, createProcessor, Workflow } from '~/index'
+
+import { compile, compileSync, createProcessor, Workflow } from 'src/index'
 
 describe('compile()', () => {
   test('returns a promise that resolves to a WorkflowFile', () => {

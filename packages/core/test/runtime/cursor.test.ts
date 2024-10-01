@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
-import { ExecutionCursor } from '~/runtime'
+
+import { ExecutionCursor } from 'src/runtime'
 
 describe('ExecutionCursor', () => {
   const cursor1 = ExecutionCursor.parse('/0.0.1')

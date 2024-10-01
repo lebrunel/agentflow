@@ -6,13 +6,13 @@ import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
 import { selectAll } from 'unist-util-select'
 import { parse } from 'acorn'
-import { default as dd } from 'ts-dedent'
+import { dedent as dd } from 'ts-dedent'
 import { VFile } from 'vfile'
-import { workflowVisitor, validateEstree } from '~/compiler/plugins/visitor'
-
 import type { Program } from 'estree-jsx'
 import type { Paragraph } from 'mdast'
-import type { ActionNode, CompileOptions } from '~/index'
+
+import { workflowVisitor, validateEstree } from 'src/compiler/plugins/visitor'
+import type { ActionNode, CompileOptions } from 'src/index'
 
 describe('workflowVisitor()', () => {
   function parse(src: string, opts: CompileOptions = {}) {

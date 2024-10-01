@@ -6,10 +6,10 @@ import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
 import { VFile } from 'vfile'
-import { default as dd } from 'ts-dedent'
-import { workflowVisitor, workflowStructure, workflowCompiler } from '~/compiler/plugins'
+import { dedent as dd } from 'ts-dedent'
 
-import type { CompileOptions } from '~/index'
+import { workflowVisitor, workflowStructure, workflowCompiler } from 'src/compiler/plugins/index'
+import type { CompileOptions } from 'src/index'
 
 function compile(src: string | VFile, opts: CompileOptions = {}) {
   const proc = unified()

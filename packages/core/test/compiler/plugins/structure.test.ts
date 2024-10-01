@@ -4,11 +4,11 @@ import { selectAll } from 'unist-util-select'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
-import { default as dd } from 'ts-dedent'
-import { workflowVisitor, workflowStructure } from '~/compiler/plugins'
-
+import { dedent as dd } from 'ts-dedent'
 import type { Root } from 'mdast'
-import type { ActionNode, CompileOptions, PhaseNode } from '~/index'
+
+import { workflowVisitor, workflowStructure } from 'src/compiler/plugins/index'
+import type { ActionNode, CompileOptions, PhaseNode } from 'src/index'
 
 describe('workflowStructure()', () => {
   function parse(src: string, opts: CompileOptions = {}) {

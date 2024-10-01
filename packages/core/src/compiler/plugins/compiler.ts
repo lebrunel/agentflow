@@ -9,9 +9,9 @@ import type { Program, Property } from 'estree-jsx'
 import type { Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
-import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 import type { CompileOptions } from '../compiler'
-import type { ContextKey } from '~/context'
+import type { ContextKey } from '../../context'
+import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 
 /**
  * Compiles a workflow from a markdown AST node into a Workflow object.

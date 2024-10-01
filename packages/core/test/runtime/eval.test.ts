@@ -1,8 +1,8 @@
 import { expect, test, describe } from 'bun:test'
 import { parse } from 'acorn'
-import { evalDependencies } from '~/index'
-
 import type { Program } from 'estree-jsx'
+
+import { evalDependencies } from 'src/index'
 
 describe('evalDependencies', () => {
   function testExpression(expr: string, expected: string[]) {

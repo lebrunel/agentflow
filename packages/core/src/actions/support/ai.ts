@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { default as dd } from 'ts-dedent'
+import { dedent as dd } from 'ts-dedent'
 import { stringifyContext, type ContextValue } from '../../context'
 
 import type { CoreAssistantMessage, CoreUserMessage } from 'ai'

@@ -3,7 +3,7 @@ import { u } from 'unist-builder'
 import { selectAll } from 'unist-util-select'
 import remarkParse from 'remark-parse'
 import remarkStringify from 'remark-stringify'
-import { default as dd } from 'ts-dedent'
+import { dedent as dd } from 'ts-dedent'
 import { evalExpression } from '../runtime/eval'
 
 import type { Root, RootContent } from 'mdast'

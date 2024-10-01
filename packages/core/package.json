@@ -24,7 +24,7 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
-    "build:tsc": "tsc --p tsconfig.build.json",
+    "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {
     "ai": "^3.4.3",

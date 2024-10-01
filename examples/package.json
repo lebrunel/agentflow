@@ -2,20 +2,11 @@
   "name": "@agentflow/examples",
   "private": true,
   "type": "module",
-  "scripts": {
-    "adax": "bun ada"
-  },
   "dependencies": {
-    "@ada/cli": "workspace:*",
-    "@ada/core": "workspace:*",
-    "@ai-sdk/anthropic": "^0.0.50",
-    "@ai-sdk/openai": "^0.0.62",
+    "@agentflow/cli": "workspace:*",
+    "@agentflow/core": "workspace:*",
+    "@ai-sdk/anthropic": "^0.0.51",
+    "@ai-sdk/openai": "^0.0.63",
     "ollama-ai-provider": "^0.15.1"
-  },
-  "devDependencies": {
-    "@types/bun": "latest"
-  },
-  "peerDependencies": {
-    "typescript": "^5.0.0"
   }
 }

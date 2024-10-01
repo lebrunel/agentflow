@@ -5,6 +5,7 @@
     "allowJs": false,
     "noEmit": false,
     "declaration": true,
+    "declarationMap": true,
     "emitDeclarationOnly": true
   },
 

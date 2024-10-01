@@ -1,4 +1,4 @@
-import type { experimental_Provider as Provider } from 'ai'
+import type { Provider } from 'ai'
 import type { z } from 'zod'
 
 import type { Plugin } from './runtime'

@@ -1,7 +1,7 @@
 # AgentFlow Starter Kit `@agentflow/create-agentflow`
 
-![NPM Version](https://img.shields.io/npm/v/%40agentflow%2Fcreate-agentflow?style=flat-square)
-![NPM License](https://img.shields.io/npm/l/%40agentflow%2Fcreate-agentflow?style=flat-square)
+![NPM Version](https://img.shields.io/npm/v/create-agentflow?style=flat-square)
+![NPM License](https://img.shields.io/npm/l/create-agentflow?style=flat-square)
 
 The recommended way to quickly set up and bootstrap AgentFlow projects.
 

@@ -24,6 +24,7 @@
     "picocolors": "^1.1.0"
   },
   "devDependencies": {
-    "@types/minimist": "^1.2.5"
+    "@types/minimist": "^1.2.5",
+    "fast-glob": "^3.3.2"
   }
 }

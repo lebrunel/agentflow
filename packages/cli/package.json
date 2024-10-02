@@ -1,7 +1,7 @@
 {
   "name": "@agentflow/cli",
-  "version": "0.1.0-alpha2",
-  "description": "xxx",
+  "version": "0.1.0-alpha1",
+  "description": "Command-line interface for AgentFlow, providing essential tools to create, manage, and execute AI-powered workflows.",
   "type": "module",
   "homepage": "https://github.com/lebrunel/agentflow",
   "repository": {

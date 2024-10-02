@@ -1,0 +1,21 @@
+# dependencies
+node_modules/
+jspm_packages/
+
+# dotenv
+.env
+
+# logs
+logs
+*.log*
+
+# yarn
+.yarn-integrity
+.yarn/cache
+.yarn/unplugged
+.yarn/build-state.yml
+.yarn/install-state.gz
+.pnp.*
+
+# agentflow
+/outputs

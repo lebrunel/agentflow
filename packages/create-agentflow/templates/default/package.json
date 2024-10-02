@@ -1,0 +1,10 @@
+{
+  "name": "@agentflow/examples",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "@agentflow/cli": "latest",
+    "@agentflow/core": "latest",
+    "@ai-sdk/openai": "latest"
+  }
+}

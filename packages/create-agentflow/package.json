@@ -1,0 +1,29 @@
+{
+  "name": "create-agentflow",
+  "version": "0.1.0-alpha1",
+  "description": "The recommended way to quickly set up and bootstrap AgentFlow projects.",
+  "license": "Apache-2.0",
+  "type": "module",
+  "homepage": "https://github.com/lebrunel/agentflow",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/lebrunel/agentflow",
+    "directory": "packages/create-agentflow"
+  },
+  "files": [
+    "dist/**/*"
+  ],
+  "bin": "index.js",
+  "scripts": {
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
+    "build:tsc": "tsc --p tsconfig.build.json"
+  },
+  "dependencies": {
+    "@inquirer/prompts": "^6.0.1",
+    "minimist": "^1.2.8",
+    "picocolors": "^1.1.0"
+  },
+  "devDependencies": {
+    "@types/minimist": "^1.2.5"
+  }
+}

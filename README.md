@@ -1,5 +1,7 @@
 # AgentFlow
 
+![GitHub License](https://img.shields.io/github/license/lebrunel/agentflow?style=flat-square)
+
 AgentFlow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language.
 
 - 💬 **Natural language as code** - Write powerful workflows using natural language and Markdown, making automation accessible to all.

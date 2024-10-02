@@ -1,5 +1,8 @@
 # AgentFlow Core `@agentflow/core`
 
+![NPM Version](https://img.shields.io/npm/v/%40agentflow%2Fcore?style=flat-square)
+![NPM License](https://img.shields.io/npm/l/%40agentflow%2Fcore?style=flat-square)
+
 AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.
 
 `@agentflow/core` is the heart of the AgentFlow framework. This package is responsible for transforming human-readable, Markdown-based text files into fully executable workflows.

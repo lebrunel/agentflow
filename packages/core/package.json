@@ -1,7 +1,8 @@
 {
   "name": "@agentflow/core",
-  "version": "0.1.0-alpha2",
+  "version": "0.1.0",
   "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
+  "license": "Apache-2.0",
   "type": "module",
   "homepage": "https://github.com/lebrunel/agentflow",
   "repository": {
@@ -10,8 +11,7 @@
     "directory": "packages/core"
   },
   "files": [
-    "dist/**/*",
-    "src/**/*"
+    "dist/**/*"
   ],
   "exports": {
     ".": {

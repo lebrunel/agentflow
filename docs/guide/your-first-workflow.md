@@ -8,6 +8,9 @@ To write a useful and effective workflow with Agentflow, you will need to be abl
 
 ## The structure of a workflow
 
+A workflow is a plain text document, formatted using Markdown.
+that is processed from top to bottom. The contents of the workflow contains natural language instructions and [actions](#actions)"
+
 ### Using Markdown
 
 ### Phases

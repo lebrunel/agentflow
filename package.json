@@ -3,6 +3,7 @@
   "private": true,
   "packageManager": "bun@1.1.29",
   "workspaces": [
+    "docs",
     "examples",
     "packages/*"
   ],

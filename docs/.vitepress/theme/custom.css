@@ -1,0 +1,6 @@
+:root {
+  --vp-home-hero-image-background-image:
+    radial-gradient(ellipse 100% 50% at center, transparent 33%, var(--vp-c-bg) 220px),
+    conic-gradient(from 45deg, #FFD850, #FF36F3, #8E5FFF, #FFD850);
+  --vp-home-hero-image-filter: blur(32px);
+}

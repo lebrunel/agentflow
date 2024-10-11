@@ -6,6 +6,10 @@ hero:
   name: "Agentflow"
   text: xxx
   tagline: "Agentflow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language."
+  image:
+    light: '/home.svg'
+    dark: '/home-dark.svg'
+    alt: 'Agentflow'
   actions:
     - theme: brand
       text: Markdown Examples

@@ -17,7 +17,7 @@ Workflows are written using Markdown - a lightweight markup syntax that adds som
 - Flow elements (`<GenText as="foo" />`) are used to call [actions](#actions).
 - Flow elements that wrap around an inner block of content have [scoping rules](#block-scoping).
 - MDX-like JavaScript expressions (`Hello {name}`) are fully supported and are used to inject the result of previous actions into the current context.
-- Frontmatter is fully supported and used to define [input data](/guide/user-input).
+- Frontmatter is fully supported and used to define [input data](/guide/input-data).
 
 ## Phases
 

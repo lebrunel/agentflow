@@ -7,15 +7,16 @@ export default defineConfig({
   description: 'Agentflow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language.',
 
   head: [
-    ['link', { rel: 'icon', href: '/logo.webp' }]
+    ['link', { rel: 'icon', href: '/images/logo.webp' }]
   ],
 
   // https://vitepress.dev/reference/default-theme-config
   themeConfig: {
     logo: {
-      src: '/logo.webp',
+      src: '/images/logo.webp',
       alt: 'Agentflow'
     },
+
     nav: [
       { text: 'Home', link: '/' },
       { text: 'Guide', link: '/guide/getting-started' },
@@ -72,7 +73,12 @@ export default defineConfig({
 
     socialLinks: [
       { icon: 'github', link: 'https://github.com/lebrunel/agentflow' }
-    ]
+    ],
+
+    footer: {
+      message: 'Released under the Apache-2.0 License.',
+      copyright: 'Copyright © 2024 Push Code Ltd'
+    }
   },
 
 

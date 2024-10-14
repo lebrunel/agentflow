@@ -4,3 +4,7 @@
     conic-gradient(from 45deg, #FFD850, #FF36F3, #8E5FFF, #FFD850);
   --vp-home-hero-image-filter: blur(32px);
 }
+
+.VPButton.medium {
+  border-radius: 6px !important;
+}

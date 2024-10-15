@@ -30,7 +30,7 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
       if (is(node, 'yaml')) {
         try {
           node.data = parseYaml(node.value)
-          WorkflowInputSchema.parse((node.data as any).inputs || {})
+          WorkflowInputSchema.parse((node.data as any).input || {})
         } catch(e: any) {
           if (e instanceof z.ZodError) {
             for (const issue of e.issues) {

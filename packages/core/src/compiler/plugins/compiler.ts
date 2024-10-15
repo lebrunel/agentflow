@@ -44,7 +44,7 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
       || 'Untitled'
 
     const descriptionNodes = workflowRoot.children.slice(titleIdx)
-    const inputSchema: WorkflowInputSchema = meta?.inputs || {}
+    const inputSchema: WorkflowInputSchema = meta?.input || {}
 
     // Collect phases
     let contextKeys: ContextKey[] = Object.keys(inputSchema)

@@ -27,7 +27,7 @@ describe('workflowCompiler()', () => {
   const src = dd`
   ---
   foo: bar
-  inputs:
+  input:
     name:
       type: text
   ---
@@ -63,7 +63,7 @@ describe('workflowCompiler()', () => {
 
   test('.meta parsed from frontmatter', () => {
     expect(workflow.meta.foo).toBe('bar')
-    expect(workflow.meta.inputs).toEqual({ name: { type: 'text' }})
+    expect(workflow.meta.input).toEqual({ name: { type: 'text' }})
   })
 
   test('.descriptionNodes from introductory text', () => {
@@ -163,7 +163,7 @@ describe('workflowCompiler() validations', () => {
   test('actions cannot create context duplicating with input', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       foo:
         type: text
     ---
@@ -193,7 +193,7 @@ describe('workflowCompiler() validations', () => {
   test('expressions can reference context that exists', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       name:
         type: text
     ---
@@ -214,7 +214,7 @@ describe('workflowCompiler() validations', () => {
   test('expressions cannot reference context that is undefined', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       name:
         type: text
     ---
@@ -231,7 +231,7 @@ describe('workflowCompiler() validations', () => {
   test('child scope can access provided context from parent scope', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       languages:
         type: array
     ---
@@ -256,7 +256,7 @@ describe('workflowCompiler() validations', () => {
   test('child scope cannot access context not provided from parent scope', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       languages:
         type: array
     ---
@@ -281,7 +281,7 @@ describe('workflowCompiler() validations', () => {
   test('nested scope can access context provided from parent scope', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       languages:
         type: array
       styles:
@@ -314,7 +314,7 @@ describe('workflowCompiler() validations', () => {
   test('nested scope cannot access context not provided from parent scope', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       languages:
         type: array
       styles:

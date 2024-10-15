@@ -7,7 +7,7 @@ import type { ContextValueMap } from 'src/index'
 
 const src = dd`
 ---
-inputs:
+input:
   name:
     type: text
 ---

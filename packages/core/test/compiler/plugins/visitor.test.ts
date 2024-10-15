@@ -29,7 +29,7 @@ describe('workflowVisitor()', () => {
     const ast = parse(dd`
     ---
     foo: bar
-    inputs:
+    input:
       name:
         type: 'text'
     ---
@@ -40,13 +40,13 @@ describe('workflowVisitor()', () => {
     expect(ast.children[0].type).toBe('yaml')
     const data = ast.children[0].data as any
     expect(data.foo).toBe('bar')
-    expect(data.inputs).toEqual({ name: { type: 'text' } })
+    expect(data.input).toEqual({ name: { type: 'text' } })
   })
 
   test('throws error with invalid input schema', () => {
     const src = dd`
     ---
-    inputs:
+    input:
       foo: 123
     ---
 

@@ -14,10 +14,10 @@ import type {
   WorkflowInputSchema
 } from '@agentflow/core'
 
-export async function promptInputs(inputs: WorkflowInputSchema): Promise<ContextValueMap> {
+export async function promptInputs(inputSchema: WorkflowInputSchema): Promise<ContextValueMap> {
   const context: ContextValueMap = {}
 
-  for (const [name, schema] of Object.entries(inputs)) {
+  for (const [name, schema] of Object.entries(inputSchema)) {
     switch (schema.type) {
       case 'text':
         context[name] = await promptText(name, schema)

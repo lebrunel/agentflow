@@ -6,14 +6,14 @@ This is a simple workflow that generates a joke and then reviews it.
 
 Generate a hillarious one-liner joke for a family-friendly audience:
 
-<GenerateText
+<GenText
   as="joke"
   model="ollama:llama3.1"
   />
 
 Now be a comedy critic. Review the joke above and give it an honest score out of 5:
 
-<GenerateObject
+<GenObject
   as="review"
   model="ollama:llama3.1"
   schema={

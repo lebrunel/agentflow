@@ -23,7 +23,7 @@ Intro
   Previous sub-task results:
   - { $self.filter(l => !!l.result).length ? $self.filter(l => !!l.result).map(l => l.result).join('\n- ') : 'None' }
 
-  <GenerateText
+  <GenText
     as="prompt"
     model="anthropic:claude-3-5-sonnet-20240620" />
 
@@ -40,7 +40,7 @@ Intro
 
   {prompt}
 
-  <GenerateText
+  <GenText
     as="result"
     model="anthropic:claude-3-5-sonnet-20240620" />
 
@@ -53,7 +53,7 @@ Intro
   Previous sub-task results:
   - {$self.length ? $self.map(l => l.result).join('\n- ') : 'None'}
 
-  <GenerateObject
+  <GenObject
     as="status"
     model="anthropic:claude-3-5-sonnet-20240620"
     schema={
@@ -73,7 +73,7 @@ Sub-task results:
 
 Please review and refine the sub-task results into a cohesive final output. Add any missing information or details as needed. If the final output consists of one or more files, then use the provided tool to save the files to disk.
 
-<GenerateText
+<GenText
   as="final"
   model="anthropic:claude-3-5-sonnet-20240620"
   tools={

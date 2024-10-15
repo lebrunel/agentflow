@@ -170,7 +170,7 @@ describe('workflowCompiler() validations', () => {
 
     Paragraph
 
-    <GenerateText as="foo" model="openai:gpt-4o" />
+    <GenText as="foo" model="openai:gpt-4o" />
     `
     expect(() => compile(src, { runtime })).toThrow(/duplicate context/i)
   })
@@ -179,13 +179,13 @@ describe('workflowCompiler() validations', () => {
     const src = dd`
     Paragraph
 
-    <GenerateText as="foo" model="openai:gpt-4o" />
+    <GenText as="foo" model="openai:gpt-4o" />
 
     ---
 
     Paragraph
 
-    <GenerateText as="foo" model="openai:gpt-4o" />
+    <GenText as="foo" model="openai:gpt-4o" />
     `
     expect(() => compile(src, { runtime })).toThrow(/duplicate context/i)
   })
@@ -200,7 +200,7 @@ describe('workflowCompiler() validations', () => {
 
     Paragraph
 
-    <GenerateText as="description" model="openai:gpt-4o" />
+    <GenText as="description" model="openai:gpt-4o" />
 
     ---
 
@@ -223,7 +223,7 @@ describe('workflowCompiler() validations', () => {
 
     Paragraph {description}
 
-    <GenerateText as="description" model="openai:gpt-4o" />
+    <GenText as="description" model="openai:gpt-4o" />
     `
     expect(() => compile(src, { runtime })).toThrow(/unknown context/i)
   })
@@ -236,7 +236,7 @@ describe('workflowCompiler() validations', () => {
         type: array
     ---
 
-    <GenerateText as="poem" model="openai:gpt-4o" />
+    <GenText as="poem" model="openai:gpt-4o" />
 
     <Loop
       as="translations"
@@ -247,7 +247,7 @@ describe('workflowCompiler() validations', () => {
 
       {poem}
 
-      <GenerateText as="translation" model="openai:gpt-4o" />
+      <GenText as="translation" model="openai:gpt-4o" />
     </Loop>
     `
     expect(() => compile(src, { runtime })).not.toThrow()
@@ -261,7 +261,7 @@ describe('workflowCompiler() validations', () => {
         type: array
     ---
 
-    <GenerateText as="poem" model="openai:gpt-4o" />
+    <GenText as="poem" model="openai:gpt-4o" />
 
     <Loop
       as="translations"
@@ -272,7 +272,7 @@ describe('workflowCompiler() validations', () => {
 
       {poem}
 
-      <GenerateText as="translation" model="openai:gpt-4o" />
+      <GenText as="translation" model="openai:gpt-4o" />
     </Loop>
     `
     expect(() => compile(src, { runtime })).toThrow(/unknown context/i)
@@ -288,7 +288,7 @@ describe('workflowCompiler() validations', () => {
         type: array
     ---
 
-    <GenerateText as="poem" model="openai:gpt-4o" />
+    <GenText as="poem" model="openai:gpt-4o" />
 
     <Loop
       as="translations"
@@ -304,7 +304,7 @@ describe('workflowCompiler() validations', () => {
 
         {poem}
 
-        <GenerateText as="translation" model="openai:gpt-4o" />
+        <GenText as="translation" model="openai:gpt-4o" />
       </Loop>
     </Loop>
     `
@@ -321,7 +321,7 @@ describe('workflowCompiler() validations', () => {
         type: array
     ---
 
-    <GenerateText as="poem" model="openai:gpt-4o" />
+    <GenText as="poem" model="openai:gpt-4o" />
 
     <Loop
       as="translations"
@@ -337,7 +337,7 @@ describe('workflowCompiler() validations', () => {
 
         {poem}
 
-        <GenerateText as="translation" model="openai:gpt-4o" />
+        <GenText as="translation" model="openai:gpt-4o" />
       </Loop>
     </Loop>
     `

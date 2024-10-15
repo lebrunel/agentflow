@@ -13,7 +13,7 @@ const schema = z.object({
 })
 
 export default defineAction({
-  name: 'generate-text',
+  name: 'gen-text',
   schema,
   execute: async function(props, { input, results, meta, runtime, stream }) {
     const messages: CoreMessage[] = []

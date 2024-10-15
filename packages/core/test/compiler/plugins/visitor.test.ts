@@ -78,12 +78,12 @@ describe('workflowVisitor()', () => {
 
     Another paragraph
 
-    <GenerateText as="foo" model="openai:gpt-4o" />
+    <GenText as="foo" model="openai:gpt-4o" />
 
     <Loop as="loop" until={$index === 5}>
       > A nested comment block
 
-      <GenerateText as="bar" model="openai:gpt-4o" />
+      <GenText as="bar" model="openai:gpt-4o" />
     </Loop>
     `)
 

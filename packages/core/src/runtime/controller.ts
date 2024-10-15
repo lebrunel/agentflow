@@ -122,18 +122,14 @@ export class ExecutionController {
 
     const actionResult: Promise<ActionResult> = (async () => {
       switch (action.name) {
-        case 'if':
+        case 'cond':
           {
-            const cond = evalExpression(action.props.cond.value, unwrapContext(context))
-            if (cond) {
-              // Computed props
-              const $self = () => {
-                return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
-                  acc[actionLog.contextKey] = actionLog.output.value
-                  return acc
-                }, {} as Record<string, any>)
-              }
+            const cond = evalExpression(
+              action.props.if.value,
+              unwrapContext(context),
+            )
 
+            if (cond) {
               this.#cursor = ExecutionCursor.push(cursor)
               const newContext = action.props.provide
                 ? evalExpression(
@@ -145,7 +141,6 @@ export class ExecutionController {
               this.state.pushContext(
                 this.#cursor,
                 wrapContext(newContext),
-                { $self },
               )
 
               while (true) {
@@ -156,7 +151,10 @@ export class ExecutionController {
                 }
               }
 
-              const value = $self()
+              const value = this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
+                acc[actionLog.contextKey] = actionLog.output.value
+                return acc
+              }, {} as Record<string, any>)
               this.#cursor = ExecutionCursor.pop(this.cursor)
               return { result: { type: 'json', value } }
 

@@ -52,9 +52,9 @@ describe('workflowCompiler()', () => {
 
     ---
 
-    <If as="i" cond={b === "bbb"}>
+    <Cond as="i" if={b === "bbb"}>
       <Mock as="c" value="ccc" />
-    </If>
+    </Cond>
   </Loop>
 
   Final para
@@ -94,7 +94,7 @@ describe('workflowCompiler()', () => {
     const action = workflow.phases[1].actions[0]
     expect(action.name).toBe('loop')
     expect(action.phases.length).toBe(2)
-    expect(action.phases[1].actions[0].name).toBe('if')
+    expect(action.phases[1].actions[0].name).toBe('cond')
     expect(action.phases[1].actions[0].phases[0].actions[0].name).toBe('mock')
     expect(action.phases[1].actions[0].phases[0].actions[0].contextKey).toBe('c')
   })

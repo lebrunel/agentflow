@@ -181,8 +181,6 @@ function workflowAction(
 
 function getActionComputedContextKeys(node: ActionNode): string[] {
   switch(node.name) {
-    case 'if':
-      return ['$self']
     case 'loop':
       return ['$self', '$index', '$last']
     default:

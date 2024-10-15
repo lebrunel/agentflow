@@ -1,14 +1,14 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import type { LanguageModel, Provider } from 'ai'
 import type { z } from 'zod'
-import { ifAction, loopAction, genTextAction, genObjectAction } from '../actions'
+import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
 import type { Tool } from '../tool'
 import { kebabCase } from 'change-case'
 
 const builtInActions: Action[] = [
-  ifAction,
+  condAction,
   loopAction,
 ]
 

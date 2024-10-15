@@ -126,15 +126,15 @@ test.skip('testing if gen', async () => {
   const { result: workflow } = compileSync(dd`
   Intro
 
-  <If as="foo" cond={true}>
+  <Cond as="foo" if={true}>
     <Mock as="a" value="aaa" />
     <Mock as="b" value="bbb" />
-  </If>
+  </Cond>
 
-  <If as="bar" cond={false}>
+  <Cond as="bar" if={false}>
     <Mock as="x" value="xxx" />
     <Mock as="y" value="yyy" />
-  </If>
+  </Cond>
 
   zzz
 
@@ -157,11 +157,11 @@ test.todo('parse context keys from provide', () => {
 
   <Mock as="a" value="aaa" />
 
-  <If as="foo" cond={true} provide={{ a }}>
+  <Cond as="foo" if={true} provide={{ a }}>
     A {a}
 
     <Mock as="b" value="bbb" />
-  </If>
+  </Cond>
 
   Exits
   `)

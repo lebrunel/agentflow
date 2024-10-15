@@ -137,9 +137,9 @@ describe('workflowStructure()', () => {
     <Loop as="l">
       Paragraph
 
-      <If as="i">
+      <Cond as="i" if={true}>
         <Mock as="foo" value="foo" />
-      </If>
+      </Cond>
     </Loop>
     `)
 
@@ -152,7 +152,7 @@ describe('workflowStructure()', () => {
     const phase2 = action1.children[0] as PhaseNode
     expect(phase2.children[1].type).toBe('action')
     const action2 = phase2.children[1] as ActionNode
-    expect(action2.name).toBe('if')
+    expect(action2.name).toBe('cond')
     expect(action2.children[0].type).toBe('phase')
     const phase3 = action2.children[0] as PhaseNode
     expect(phase3.children[0].type).toBe('action')

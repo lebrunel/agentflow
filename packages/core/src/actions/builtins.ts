@@ -10,10 +10,10 @@ export const loopAction = defineAction({
   execute() { throw new Error('no-op. action logic built in to controller') }
 })
 
-export const ifAction = defineAction({
-  name: 'if',
+export const condAction = defineAction({
+  name: 'cond',
   schema: z.object({
-    cond: z.boolean(),
+    if: z.boolean(),
     provide: z.record(z.string(), z.any()).default({}),
   }),
   execute() { throw new Error('no-op. action logic built in to controller') }

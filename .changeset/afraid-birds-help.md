@@ -1,7 +1,7 @@
 ---
-"create-agentflow": patch
-"@agentflow/core": patch
-"@agentflow/cli": patch
+"create-agentflow": minor
+"@agentflow/core": minor
+"@agentflow/cli": minor
 ---
 
 Renamed frontmatter.inputs as frontmatter.input.

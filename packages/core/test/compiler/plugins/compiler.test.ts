@@ -27,6 +27,10 @@ describe('workflowCompiler()', () => {
   const src = dd`
   ---
   foo: bar
+  data:
+    choices:
+      - foo
+      - bar
   input:
     name:
       type: text
@@ -66,6 +70,15 @@ describe('workflowCompiler()', () => {
     expect(workflow.meta.input).toEqual({ name: { type: 'text' }})
   })
 
+  test('.initialContext parsed from frontmatter data', () => {
+    expect(workflow.initialContext.choices.type).toBe('json')
+    expect(workflow.initialContext.choices.value).toEqual(['foo', 'bar'])
+  })
+
+  test('.inputSchema parsed from frontmatter data', () => {
+    expect(workflow.inputSchema.name.type).toBe('text')
+  })
+
   test('.descriptionNodes from introductory text', () => {
     expect(workflow.descriptionNodes.length).toBe(2)
     expect(toString(workflow.descriptionNodes[0])).toBe('Title')
@@ -75,10 +88,10 @@ describe('workflowCompiler()', () => {
   test('.phases structure', () => {
     expect(workflow.phases.length).toBe(2)
     expect(workflow.phases[0].actions.length).toBe(1)
-    expect(workflow.phases[0].contextKeys).toEqual(new Set(['name', 'a']))
+    expect(workflow.phases[0].contextKeys).toEqual(new Set(['choices', 'name', 'a']))
     expect(workflow.phases[0].trailingNodes.length).toBe(0)
     expect(workflow.phases[1].actions.length).toBe(1)
-    expect(workflow.phases[1].contextKeys).toEqual(new Set(['name', 'a', 'l']))
+    expect(workflow.phases[1].contextKeys).toEqual(new Set(['choices', 'name', 'a', 'l']))
     expect(workflow.phases[1].trailingNodes.length).toBe(1)
   })
 
@@ -160,6 +173,53 @@ describe('workflowCompiler() .title', () => {
 })
 
 describe('workflowCompiler() validations', () => {
+  test('input data cannot contain duplicate keys ', ()=> {
+    const src = dd`
+    ---
+    data:
+      foo: 1
+      bar: 2
+      foo: 3
+    ---
+
+    Paragraph
+    `
+    expect(() => compile(src, { runtime })).toThrow(/keys must be unique/i)
+  })
+
+  test('input schema cannot contain duplicate keys ', ()=> {
+    const src = dd`
+    ---
+    input:
+      foo:
+        type: string
+      bar:
+        type: string
+      foo:
+        type: string
+    ---
+
+    Paragraph
+    `
+    expect(() => compile(src, { runtime })).toThrow(/keys must be unique/i)
+  })
+
+  test('input schema cannot duplicate input data ', ()=> {
+    const src = dd`
+    ---
+    data:
+      foo: 1
+      bar: 1
+    input:
+      foo:
+        type: text
+    ---
+
+    Paragraph
+    `
+    expect(() => compile(src, { runtime })).toThrow(/duplicate context/i)
+  })
+
   test('actions cannot create context duplicating with input', () => {
     const src = dd`
     ---

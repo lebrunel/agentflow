@@ -6,11 +6,11 @@ import { evalDependencies, WorkflowInputSchema } from '../../runtime'
 import { Workflow } from '../../workflow'
 
 import type { Program, Property } from 'estree-jsx'
-import type { Root, RootContent } from 'mdast'
+import type { Node, Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
 import type { CompileOptions } from '../compiler'
-import type { ContextKey } from '../../context'
+import { wrapContext, type ContextKey, type ContextValueMap } from '../../context'
 import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 
 /**
@@ -44,20 +44,40 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
       || 'Untitled'
 
     const descriptionNodes = workflowRoot.children.slice(titleIdx)
+    const initialContext = wrapContext(meta?.data || {})
     const inputSchema: WorkflowInputSchema = meta?.input || {}
 
+    // Build initial context keys
+    let contextKeys = new Set<ContextKey>()
+    function addContextKeys(obj: Record<string, any>) {
+      for (const contextKey of Object.keys(obj)) {
+        if (contextKeys.has(contextKey)) {
+          file.fail(
+            `Duplicate context name "${contextKey}". Each Input must have a unique name within the workflow.`,
+            yaml,
+            'workflow-parse:duplicate-context'
+          )
+        } else {
+          contextKeys.add(contextKey)
+        }
+      }
+    }
+    addContextKeys(initialContext)
+    addContextKeys(inputSchema)
+
     // Collect phases
-    let contextKeys: ContextKey[] = Object.keys(inputSchema)
     const phases: WorkflowPhase[] = []
     for (const node of workflowNode.children.filter(n => n.type === 'phase')) {
       const phase = workflowPhase(node as PhaseNode, contextKeys, file)
       phases.push(phase)
-      contextKeys = Array.from(phase.contextKeys)
+      // Create a copy of the context
+      contextKeys = new Set<ContextKey>(phase.contextKeys)
     }
 
     return new Workflow(
       title,
       descriptionNodes,
+      initialContext,
       inputSchema,
       phases,
       meta,
@@ -68,13 +88,12 @@ export const workflowCompiler: Plugin<[CompileOptions], WorkflowNode, Workflow> 
 // Maps the PhaseNode into a WorkflowPhase interface
 function workflowPhase(
   phaseNode: PhaseNode,
-  inputKeys: ContextKey[],
+  contextKeys: Set<ContextKey>,
   file: VFile,
 ): WorkflowPhase {
   const actions: WorkflowAction[] = []
-  const contextKeys = new Set<string>(inputKeys)
 
-  function validateDependency(node: ExpressionNode, contextKey: string, computedKeys: string[] = []) {
+  function validateDependency(node: ExpressionNode, contextKey: ContextKey, computedKeys: string[] = []) {
     if (
       !contextKeys.has(contextKey) &&
       !computedKeys.includes(contextKey) &&
@@ -88,7 +107,7 @@ function workflowPhase(
     }
   }
 
-  function validateUniqueness(node: ActionNode, contextKey: string) {
+  function validateUniqueness(node: ActionNode, contextKey: ContextKey) {
     if (contextKeys.has(contextKey)) {
       file.fail(
         `Duplicate context name "${contextKey}". Each Action must have a unique name within the workflow.`,
@@ -161,12 +180,16 @@ function workflowAction(
   const phases: WorkflowPhase[] = []
 
   if (actionNode.children.length) {
-    let contextKeys: ContextKey[] = contextKeysFromExpression(actionNode.attributes.provide)
-    contextKeys.push(...getActionComputedContextKeys(actionNode))
+    // Create nested context
+    const provided: ContextKey[] = contextKeysFromExpression(actionNode.attributes.provide)
+    provided.push(...getActionComputedContextKeys(actionNode))
+    let contextKeys = new Set<ContextKey>(provided)
+
+    // Collect sub-phases
     for (const node of actionNode.children.filter(n => n.type === 'phase')) {
       const phase = workflowPhase(node, contextKeys, file)
       phases.push(phase)
-      contextKeys = Array.from(phase.contextKeys)
+      contextKeys = new Set<ContextKey>(phase.contextKeys)
     }
   }
 

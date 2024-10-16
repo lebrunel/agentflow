@@ -1,11 +1,13 @@
 import type { RootContent } from 'mdast'
 
+import type { ContextKey, ContextValueMap } from './context'
 import type { WorkflowInputSchema } from './runtime'
 
 export class Workflow {
   constructor(
     public title: string,
     readonly descriptionNodes: ReadonlyArray<RootContent>,
+    readonly initialContext: Readonly<ContextValueMap>,
     readonly inputSchema: Readonly<WorkflowInputSchema>,
     readonly phases: ReadonlyArray<WorkflowPhase>,
     readonly meta: Readonly<Record<string, any>> = {}
@@ -14,7 +16,7 @@ export class Workflow {
 
 export interface WorkflowPhase {
   readonly actions: ReadonlyArray<WorkflowAction>;
-  readonly contextKeys: ReadonlySet<string>;
+  readonly contextKeys: ReadonlySet<ContextKey>;
   readonly trailingNodes: ReadonlyArray<RootContent>;
 }
 

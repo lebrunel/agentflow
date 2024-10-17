@@ -1,30 +1,10 @@
 {
   "name": "@agentflow/core",
   "version": "0.1.0",
-  "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
-  "license": "Apache-2.0",
-  "type": "module",
-  "homepage": "https://github.com/lebrunel/agentflow",
   "repository": {
     "type": "git",
     "url": "https://github.com/lebrunel/agentflow",
     "directory": "packages/core"
-  },
-  "files": [
-    "dist/**/*"
-  ],
-  "exports": {
-    ".": {
-      "import": "./dist/index.js",
-      "types": "./dist/index.d.ts"
-    }
-  },
-  "browser": "./dist/index.min.js",
-  "unpkg": "./dist/index.min.js",
-  "types": "./dist/index.d.ts",
-  "scripts": {
-    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
-    "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {
     "ai": "^3.4.3",
@@ -49,5 +29,25 @@
     "vfile": "^6.0.2",
     "yaml": "^2.5.0",
     "zod": "^3.23.8"
-  }
+  },
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "browser": "./dist/index.min.js",
+  "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
+  "files": [
+    "dist/**/*"
+  ],
+  "homepage": "https://github.com/lebrunel/agentflow",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
+    "build:tsc": "tsc --p tsconfig.build.json"
+  },
+  "type": "module",
+  "types": "./dist/index.d.ts",
+  "unpkg": "./dist/index.min.js"
 }

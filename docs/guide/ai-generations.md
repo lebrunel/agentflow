@@ -41,11 +41,11 @@ Scrape the following web page and create a list of conference speakers:
   model="anthropic:claude-3-5-sonnet-20240620"
   output="array"
   schema={
-    $z.object({
-      name: $z.string().describe('Full name of the speaker'),
-      company: $z.string().describe('Comany name'),
-      twitter: $z.string().describe('LinkedIn social profile').optional(),
-      twitter: $z.string().describe('Twitter social profile').optional(),
+    $.z.object({
+    name: $.z.string().describe('Full name of the speaker'),
+    company: $.z.string().describe('Comany name'),
+    twitter: $.z.string().describe('LinkedIn social profile').optional(),
+    twitter: $.z.string().describe('Twitter social profile').optional(),
     })
   } />
 ```
@@ -73,7 +73,7 @@ When the `output` type is `no-schema`, the LLM is free to determine its own sche
 :::
 
 ::: info ℹ️ Zod schemas
-The `schema` attribute accepts an expression that returns a [zod schema](https://zod.dev), using the `$z` helper. Ensuring the schema is property described helps guide the LLM to generate an accurate output.
+The `schema` attribute accepts an expression that returns a [zod schema](https://zod.dev), using the `$.z` helper. Ensuring the schema is property described helps guide the LLM to generate an accurate output.
 :::
 
 The result of the generation will be stored in the workflow's state as a JSON type using the name given in the `as` attribute. Because the value is structured data, expressions can access, traverse and iterate over the value.

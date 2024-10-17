@@ -16,9 +16,9 @@ export class ExecutionState {
     return this.scoped(cursor, extractContext)
   }
 
-  getComputed(cursor: ExecutionCursor): Record<string, any> {
+  getHelpers(cursor: ExecutionCursor): Record<string, any> {
     return this.scoped(cursor, scope => {
-      return scope.computed
+      return scope.helpers
     })
   }
 
@@ -53,7 +53,7 @@ export class ExecutionState {
   /**
    * Pushes a new scope with the given context onto the state map
    */
-  pushContext(cursor: ExecutionCursor, context: ContextValueMap, computed: Record<string, any> = {}): void {
+  pushContext(cursor: ExecutionCursor, context: ContextValueMap, helpers: Record<string, any> = {}): void {
     let scopes = this.stateMap.get(cursor.path)
 
     if (!scopes) {
@@ -63,7 +63,7 @@ export class ExecutionState {
 
     scopes[cursor.iteration] = {
       context,
-      computed,
+      helpers,
       results: new Map<string, ActionLog>(),
     }
   }
@@ -119,6 +119,6 @@ function extractContext(scope: ExecutionScope): ContextValueMap {
 
 interface ExecutionScope {
   context: ContextValueMap;
-  computed: Record<string, any>;
+  helpers: Record<string, any>;
   results: Map<string, ActionLog>
 }

@@ -4,11 +4,6 @@ import { z } from 'zod'
 
 import type { Identifier, Node, Program, Pattern, ObjectPattern, ArrayPattern } from 'estree-jsx'
 
-// Always passed into the eval context
-const globals = {
-  z
-}
-
 /**
  * Evaluates an expression synchronously using the provided context, returning
  * the result of the expression.
@@ -16,15 +11,11 @@ const globals = {
 export function evalExpression<T = any>(
   expression: string,
   context: Record<string, any>,
-  computed: Record<string, any> = {},
+  helpers: Record<string, any> = {},
 ): T {
   try {
     const script = new vm.Script(`(${expression.trim()})`)
-    return script.runInNewContext({
-      ...context,
-      ...globals,
-      ...computed,
-    }, {
+    return script.runInNewContext({ ...context, ...helpers }, {
       timeout: 50,
       breakOnSigint: true,
       contextCodeGeneration: { strings: false, wasm: false },

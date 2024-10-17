@@ -3,10 +3,10 @@ import { z } from 'zod'
 import type { LanguageModelUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 import type { ContextValue } from './context'
-import type { Runtime } from './runtime'
+import type { ExecutionController, Runtime } from './runtime'
 
 export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<T>): Action<z.infer<T>> {
-  const { name, execute } = options
+  const { name, helpers, execute } = options
 
   const baseSchema = z.object({
     as: z.string(),
@@ -36,6 +36,7 @@ export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<
 
   return {
     name,
+    helpers,
     execute,
     parse,
     validate,
@@ -44,6 +45,7 @@ export function defineAction<T extends z.ZodObject<any>>(options: ActionOptions<
 
 export interface Action<T = any> {
   name: ActionName;
+  helpers?: ActionHelpers | ActionHelpersFn;
   execute: ActionFn<T>
   parse: (props: any) => T;
   validate: (props: any, shapeOnly?: boolean) => void;
@@ -52,10 +54,17 @@ export interface Action<T = any> {
 export interface ActionOptions<T extends z.ZodObject<any>> {
   name: ActionName;
   schema: T;
+  helpers?: ActionHelpers | ActionHelpersFn;
   execute: ActionFn<z.infer<T>>;
 }
 
 export type ActionName = string
+
+export type ActionHelpers = {
+  [name: string]: any;
+}
+
+export type ActionHelpersFn = (controller: ExecutionController) => ActionHelpers
 
 export type ActionContext = {
   input: ContextValue[],

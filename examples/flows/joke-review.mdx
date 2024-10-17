@@ -17,8 +17,8 @@ Now be a comedy critic. Review the joke above and give it an honest score out of
   as="review"
   model="ollama:llama3.1"
   schema={
-    z.object({
-      review: z.string().describe('A one sentence review'),
-      score: z.number().describe('A score between one and five, where 1 is not funny and 5 is side-splittingly hillarious.'),
+    $.z.object({
+      review: $.z.string().describe('A one sentence review'),
+      score: $.z.number().describe('A score between one and five, where 1 is not funny and 5 is side-splittingly hillarious.'),
     })
   } />

@@ -11,7 +11,7 @@ import type { RootContent } from 'mdast'
 import type { Pushable } from 'it-pushable'
 import type { Runtime } from './runtime'
 import type { ModelSpec } from '../ai'
-import type { ActionResult, ActionLog, ActionContext } from '../action'
+import type { ActionResult, ActionLog, ActionContext, ActionHelpers } from '../action'
 import type { ExpressionNode } from '../compiler'
 import type { ContextValueMap, JsonContextValue } from '../context'
 import type { Workflow, WorkflowPhase, WorkflowAction } from '../workflow'
@@ -119,23 +119,24 @@ export class ExecutionController {
     const phases = this.#workflow.fetchScope(cursor)
     const action = this.#workflow.fetchAction(cursor)
     const context = this.state.getContext(cursor)
-    const computed = this.state.getComputed(cursor)
-    const input = astToContext(action.contentNodes as RootContent[], context, computed)
+    const helpers = this.state.getHelpers(cursor)
+    const input = astToContext(action.contentNodes as RootContent[], context, helpers)
     const stream = pushable<string>({ objectMode: true })
 
     const actionResult: Promise<ActionResult> = (async () => {
       switch (action.name) {
         case 'cond':
           {
-            // Computed props
+            // Helpers
             const $ = toGetters({
               self: () => unwrapContext(this.state.getContext(this.cursor))
             })
+            const newHelpers = { $, [`$${action.contextKey}`]: $ }
 
             const cond = evalExpression(
               action.props.if.value,
               unwrapContext(context),
-              { ...computed, $, [`$${action.contextKey}`]: $ },
+              { ...helpers, ...newHelpers },
             )
 
             if (cond) {
@@ -144,14 +145,14 @@ export class ExecutionController {
                 ? evalExpression(
                     action.props.provide.value,
                     unwrapContext(context),
-                    { ...computed, $, [`$${action.contextKey}`]: $ },
+                    { ...helpers, ...newHelpers },
                   )
                 : {}
 
               this.state.pushContext(
                 this.#cursor,
                 wrapContext(newContext),
-                { $, [`$${action.contextKey}`]: $ }
+                newHelpers,
               )
 
               while (true) {
@@ -189,6 +190,7 @@ export class ExecutionController {
                 return self[self.length - 1]
               }
             })
+            const newHelpers = { $, [`$${action.contextKey}`]: $ }
 
             while (true) {
               // Evaluate loop props at beginning of iteration
@@ -196,7 +198,7 @@ export class ExecutionController {
                 const breakCondition = evalExpression(
                   action.props.until.value,
                   unwrapContext(context),
-                  { ...computed, $, [`$${action.contextKey}`]: $ },
+                  { ...helpers, ...newHelpers },
                 )
                 if (breakCondition) { break }
 
@@ -205,14 +207,14 @@ export class ExecutionController {
                   ? evalExpression(
                       action.props.provide.value,
                       unwrapContext(context),
-                      { ...computed, $, [`$${action.contextKey}`]: $ },
+                      { ...helpers, ...newHelpers },
                     )
                   : {}
 
                 this.state.pushContext(
                   this.#cursor,
                   wrapContext(newContext),
-                  { $, [`$${action.contextKey}`]: $ },
+                  newHelpers,
                 )
               }
 
@@ -228,13 +230,25 @@ export class ExecutionController {
         default: // handle arbitrary action
           {
             const handler = this.runtime.useAction(action.name)
+
+            // Helpers
+            const $: ActionHelpers = typeof handler.helpers === 'function'
+              ? handler.helpers(this)
+              : handler.helpers
+            const newHelpers = { $, [`$${action.contextKey}`]: $ }
+
             const evalProps = Object.entries(action.props).reduce((props, [key, val]) => {
               props[key] = isExpression(val)
-                ? evalExpression(val.value, context, computed)
+                ? evalExpression(
+                    val.value,
+                    context,
+                    { ...helpers, ...newHelpers },
+                  )
                 : val
               return props
             }, {} as any)
             const props = handler.parse(evalProps)
+
             const actionCtx: ActionContext = {
               input,
               results: this.state.getPhaseResults(cursor),
@@ -242,6 +256,7 @@ export class ExecutionController {
               runtime: this.runtime,
               stream,
             }
+
             const result = await handler.execute(props, actionCtx)
             return { result, meta: actionCtx.meta }
           }
@@ -404,7 +419,7 @@ export class ExecutionController {
           const cursorForPhase = ExecutionCursor.parse(group[0].cursor)
           const phase = this.#workflow.fetchPhase(cursorForPhase)
           const context = this.state.getContext(cursorForPhase)
-          const computed = this.state.getComputed(cursorForPhase)
+          const helpers = this.state.getHelpers(cursorForPhase)
           const chunks: string[] = []
 
           for (const actionLog of group) {
@@ -421,7 +436,7 @@ export class ExecutionController {
           }
 
           if (phase.trailingNodes.length) {
-            const trailingValue = astToContext(phase.trailingNodes as RootContent[], context, computed)
+            const trailingValue = astToContext(phase.trailingNodes as RootContent[], context, helpers)
             chunks.push(stringifyContext(trailingValue))
           }
 

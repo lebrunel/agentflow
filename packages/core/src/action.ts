@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-import type { CompletionTokenUsage } from 'ai'
+import type { LanguageModelUsage } from 'ai'
 import type { Pushable } from 'it-pushable'
 import type { ContextValue } from './context'
 import type { Runtime } from './runtime'
@@ -73,7 +73,7 @@ export interface ActionResult {
 }
 
 export interface ActionMeta {
-  usage?: CompletionTokenUsage;
+  usage?: LanguageModelUsage;
 }
 
 export interface ActionLog {

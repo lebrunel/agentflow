@@ -3,7 +3,6 @@ import { walk } from 'estree-walker'
 import { z } from 'zod'
 
 import type { Identifier, Node, Program, Pattern, ObjectPattern, ArrayPattern } from 'estree-jsx'
-import type { ComputedContext } from '../context'
 
 // Always passed into the eval context
 const globals = {
@@ -17,11 +16,15 @@ const globals = {
 export function evalExpression<T = any>(
   expression: string,
   context: Record<string, any>,
-  computed: ComputedContext = {},
+  computed: Record<string, any> = {},
 ): T {
   try {
     const script = new vm.Script(`(${expression.trim()})`)
-    return script.runInNewContext(buildContext(context, computed), {
+    return script.runInNewContext({
+      ...context,
+      ...globals,
+      ...computed,
+    }, {
       timeout: 50,
       breakOnSigint: true,
       contextCodeGeneration: { strings: false, wasm: false },
@@ -119,19 +122,4 @@ export function evalDependencies(tree: Program): string[] {
   })
 
   return Array.from(globals)
-}
-
-
-function buildContext(
-  context: Record<string, any>,
-  computed: ComputedContext,
-): Record<string, any> {
-  return Object.entries(computed).reduce((ctx, [name, fn]) => {
-    Object.defineProperty(ctx, name, {
-      get: () => fn(),
-      enumerable: true,
-      configurable: true,
-    })
-    return ctx
-  }, { ...context, ...globals })
 }

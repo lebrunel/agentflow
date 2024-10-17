@@ -33,8 +33,6 @@ export function workflowVisitor(options: CompileOptions): Transformer<Root, Root
           WorkflowInputSchema.parse((node.data as any).input || {})
         } catch(e: any) {
           if (e instanceof z.ZodError) {
-            //console.log('^^^^^^^^^^')
-            //console.log(e.issues)
             for (const issue of e.issues) {
               file.fail(
                 `Invalid input schema at \`${issue.path.join('.')}\`. ${issue.message}`,

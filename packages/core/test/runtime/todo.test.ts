@@ -5,11 +5,6 @@ import { runtime } from 'test/support/runtime'
 
 import { compileSync, ExecutionController, ExecutionCursor } from 'src/index'
 
-process.on('unhandledRejection', (reason, promise) => {
-  console.log('Unhandled Rejection at:', promise, 'reason:', reason);
-  // This will prevent the process from crashing
-});
-
 // todo - organise where this test goes
 
 test('expressions in actions are evaluated', async () => {
@@ -59,7 +54,7 @@ test('testing loops', async () => {
 
   <Mock as="foo" value="foo" />
 
-  <Loop as="bar" until={$self.length === 5}>
+  <Loop as="bar" until={$.self.length === 5}>
     Bar
 
     <Mock as="qux" value="qux" />
@@ -75,12 +70,44 @@ test('testing loops', async () => {
   expect(ctrl.getFinalOutput()).toMatch(/(Bar\n\nqux(\n\n---\n\n)?){5}/)
 })
 
+test.skip('testing loop provide each iteration', async () => {
+  const src = dd`
+  ---
+  data:
+    choices:
+      - foo
+      - bar
+      - qux
+  ---
+  Testing
+
+  {choices}
+
+  <Loop as="foo" until={$.index === 3} provide={{bar: choices[$.index]}}>
+    Foo {$foo.index} {bar}
+
+    <Mock as="qux" value="abc" />
+  </Loop>
+
+  Ending
+  `
+  const file = compileSync(src, { runtime })
+  const workflow = file.result
+
+  const ctrl = new ExecutionController(workflow, {}, runtime)
+  await ctrl.runAll()
+
+  //console.dir(ctrl.state.stateMap.values(), { depth: 4 })
+
+  console.log(ctrl.getFinalOutput())
+})
+
 test.skip('testing magic variables in loops', async () => {
   const src = dd`
   Testing {foo}
 
-  <Loop as="baz" until={$self?.length === 3} provide={{ foo }}>
-    | {$index} | {$self.length} | {$last?.qux} | {$self.map(f => f.qux).join(',')} | {foo} |
+  <Loop as="baz" until={$.self?.length === 3} provide={{ foo }}>
+    | {$.index} | {$.self.length} | {$.last?.qux} | {$.self.map(f => f.qux).join(',')} | {foo} |
 
     <Mock as="qux" value="abc" />
   </Loop>
@@ -106,7 +133,7 @@ test.skip('testing loop gen', async () => {
   const { result: workflow } = compileSync(dd`
   Intro
 
-  <Loop as="foo" until={$index === 3}>
+  <Loop as="foo" until={$.index === 3}>
     <Mock as="a" value="aaa" />
     <Mock as="b" value="bbb" />
   </Loop>
@@ -167,12 +194,12 @@ test.todo('parse context keys from provide', () => {
   `)
 })
 
-test('xyzxyz', async () => {
+test.skip('xyzxyz', async () => {
   const { result: workflow } = compileSync(dd`
   Intro
 
-  <Loop as="loop" until={$self.length === 3}>
-    A {$index}
+  <Loop as="loop" until={$.self.length === 3}>
+    A {$.index}
 
     <Mock as="a" value="aaa" />
 

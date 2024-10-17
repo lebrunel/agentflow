@@ -8,7 +8,7 @@ import { evalExpression } from '../runtime/eval'
 
 import type { Root, RootContent } from 'mdast'
 import type { Options } from 'remark-stringify'
-import type { ComputedContext, ContextValue, ContextValueMap } from './types'
+import type { ContextValue, ContextValueMap } from './types'
 import type { CustomHandlers, ExpressionNode } from '../compiler'
 
 /**
@@ -63,7 +63,7 @@ export function wrapContext(obj: Record<string, any>): ContextValueMap {
 export function astToContext(
   nodes: RootContent[],
   context: ContextValueMap,
-  computed: ComputedContext = {},
+  computed: Record<string, any> = {},
 ): ContextValue[] {
   const blocks: Array<Root | ContextValue> = [
     u('root', [])

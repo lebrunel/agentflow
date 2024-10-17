@@ -10,7 +10,7 @@ import type { Node, Root, RootContent } from 'mdast'
 import type { Plugin, Processor } from 'unified'
 import type { ActionNode, ExpressionNode, PhaseNode, WorkflowNode } from '../ast'
 import type { CompileOptions } from '../compiler'
-import { wrapContext, type ContextKey, type ContextValueMap } from '../../context'
+import { wrapContext, type ContextKey } from '../../context'
 import type { WorkflowPhase, WorkflowAction } from '../../workflow'
 
 /**
@@ -93,11 +93,12 @@ function workflowPhase(
 ): WorkflowPhase {
   const actions: WorkflowAction[] = []
 
-  function validateDependency(node: ExpressionNode, contextKey: ContextKey, computedKeys: string[] = []) {
+  function validateDependency(node: ExpressionNode, contextKey: ContextKey, namespace?: string) {
+    const computedNames = ['z', '$']
+    if (namespace) computedNames.push(`$${namespace}`)
     if (
       !contextKeys.has(contextKey) &&
-      !computedKeys.includes(contextKey) &&
-      !['z'].includes(contextKey)
+      !computedNames.includes(contextKey)
     ) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
@@ -129,7 +130,7 @@ function workflowPhase(
           const expr = attr as ExpressionNode
           const program = expr.data!.estree! as Program
           for (const name of evalDependencies(program)) {
-            validateDependency(expr, name, getActionComputedContextKeys(node))
+            validateDependency(expr, name, node.attributes.as)
           }
         }
       }
@@ -182,7 +183,7 @@ function workflowAction(
   if (actionNode.children.length) {
     // Create nested context
     const provided: ContextKey[] = contextKeysFromExpression(actionNode.attributes.provide)
-    provided.push(...getActionComputedContextKeys(actionNode))
+    provided.push('$', `$${actionNode.attributes.as}`)
     let contextKeys = new Set<ContextKey>(provided)
 
     // Collect sub-phases
@@ -199,15 +200,6 @@ function workflowAction(
     contentNodes,
     props,
     phases,
-  }
-}
-
-function getActionComputedContextKeys(node: ActionNode): string[] {
-  switch(node.name) {
-    case 'loop':
-      return ['$self', '$index', '$last']
-    default:
-      return []
   }
 }
 

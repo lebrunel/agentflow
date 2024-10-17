@@ -1,27 +1,22 @@
 import { ExecutionCursor, parseLocation } from './cursor'
 
 import type { ActionLog } from '../action'
-import type { ComputedContext, ContextValueMap, JsonContextValue } from '../context'
+import type { ContextValueMap } from '../context'
 
 export class ExecutionState {
-  readonly stateMap: Map<string, ExecutionScope> = new Map()
+  readonly stateMap: Map<string, ExecutionScope[]> = new Map()
   readonly actionLog: ActionLog[] = []
 
-  getExecutionScope(cursor: ExecutionCursor): ExecutionScope {
-    return this.scoped(cursor, scope => scope)
+  getAllContexts(cursor: ExecutionCursor): ContextValueMap[] {
+    const scopes = this.stateMap.get(cursor.path) || []
+    return scopes.map(extractContext)
   }
 
   getContext(cursor: ExecutionCursor): ContextValueMap {
-    return this.scoped(cursor, scope => {
-      const context = { ...scope.context }
-      for (const result of scope.results.values()) {
-        context[result.contextKey] = { ...result.output }
-      }
-      return context
-    })
+    return this.scoped(cursor, extractContext)
   }
 
-  getComputed(cursor: ExecutionCursor): ComputedContext {
+  getComputed(cursor: ExecutionCursor): Record<string, any> {
     return this.scoped(cursor, scope => {
       return scope.computed
     })
@@ -30,27 +25,6 @@ export class ExecutionState {
   getScopeResults(cursor: ExecutionCursor): ActionLog[] {
     return this.scoped(cursor, scope => {
       return [...scope.results.values()]
-    })
-  }
-
-  getGroupedScopeResults(cursor: ExecutionCursor): ActionLog[][] {
-    return this.scoped(cursor, scope => {
-      const groupMap: Map<string, ActionLog[]> = new Map()
-
-      for (const [location, actionLog] of scope.results) {
-        const key = location.replace(/\.\d+$/, '')
-
-        let group = groupMap.get(key)
-
-        if (!group) {
-          group = []
-          groupMap.set(key, group)
-        }
-
-        group.push(actionLog)
-      }
-
-      return Array.from(groupMap.values())
     })
   }
 
@@ -79,12 +53,19 @@ export class ExecutionState {
   /**
    * Pushes a new scope with the given context onto the state map
    */
-  pushContext(cursor: ExecutionCursor, context: ContextValueMap, computed: ComputedContext = {}): void {
-    this.stateMap.set(cursor.path, {
+  pushContext(cursor: ExecutionCursor, context: ContextValueMap, computed: Record<string, any> = {}): void {
+    let scopes = this.stateMap.get(cursor.path)
+
+    if (!scopes) {
+      scopes = []
+      this.stateMap.set(cursor.path, scopes)
+    }
+
+    scopes[cursor.iteration] = {
       context,
       computed,
       results: new Map<string, ActionLog>(),
-    })
+    }
   }
 
   pushResult(cursor: ExecutionCursor, result: ActionLog): void {
@@ -95,22 +76,25 @@ export class ExecutionState {
 
   dropResultsFrom(cursor: ExecutionCursor): void {
     // drop future scopes
-    dropFromKey(cursor.path, this.stateMap)
-    const scope = this.stateMap.get(cursor.path)
+    dropFromKey(this.stateMap, cursor.path)
+
+    // drop results from current location
+    const scopes = this.stateMap.get(cursor.path)
+    const scope = (scopes || [])[cursor.iteration]
     if (scope) {
-      // drop results from current location
-      dropFromKey(cursor.location, scope.results, true)
+      dropFromKey(scope.results, cursor.location, true)
     }
   }
 
   private scoped<T>(cursor: ExecutionCursor, callback: (scope: ExecutionScope) => T): T {
-    const scope = this.stateMap.get(cursor.path)
+    const scopes = this.stateMap.get(cursor.path)
+    const scope = (scopes || [])[cursor.iteration]
     if (!scope) throw new Error(`Scope not found: ${cursor.toString()}`)
     return callback(scope)
   }
 }
 
-function dropFromKey<K, V>(key: string, map: Map<K, V>, dropKey: boolean = false): boolean {
+function dropFromKey<K, V>(map: Map<K, V>, key: string, dropKey: boolean = false): boolean {
   let keyFound = false
   for (const k of map.keys()) {
     if (keyFound) {
@@ -123,12 +107,18 @@ function dropFromKey<K, V>(key: string, map: Map<K, V>, dropKey: boolean = false
   return keyFound
 }
 
+function extractContext(scope: ExecutionScope): ContextValueMap {
+  const context = { ...scope.context }
+  for (const result of scope.results.values()) {
+    context[result.contextKey] = { ...result.output }
+  }
+  return context
+}
 
-
-/// types
+// types
 
 interface ExecutionScope {
   context: ContextValueMap;
-  computed: ComputedContext;
+  computed: Record<string, any>;
   results: Map<string, ActionLog>
 }

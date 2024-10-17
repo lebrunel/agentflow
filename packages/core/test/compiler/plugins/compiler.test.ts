@@ -48,7 +48,7 @@ describe('workflowCompiler()', () => {
 
   ---
 
-  <Loop as="l" until={$index === 3}>
+  <Loop as="l" until={$.index === 3}>
 
     Para
 
@@ -300,10 +300,10 @@ describe('workflowCompiler() validations', () => {
 
     <Loop
       as="translations"
-      until={$index === languages.length}
+      until={$.index === languages.length}
       provide={{ poem, languages }}>
 
-      Translate to {languages[$index]}:
+      Translate to {languages[$.index]}:
 
       {poem}
 
@@ -325,10 +325,10 @@ describe('workflowCompiler() validations', () => {
 
     <Loop
       as="translations"
-      until={$index === languages.length}
+      until={$.index === languages.length}
       provide={{ languages }}>
 
-      Translate to {languages[$index]}:
+      Translate to {languages[$.index]}:
 
       {poem}
 
@@ -352,15 +352,15 @@ describe('workflowCompiler() validations', () => {
 
     <Loop
       as="translations"
-      until={$index === languages.length}
-      provide={{ poem, languages, styles, $parentIndex: $index }}>
+      until={$.index === languages.length}
+      provide={{ poem, languages, styles, $parentIndex: $.index }}>
 
       <Loop
         as="styledTranslations"
-        until={$index === styles.length}
+        until={$.index === styles.length}
         provide={{ poem, language: languages[$parentIndex], styles }}>
 
-        Translate to {language} in {styles[$index]} style:
+        Translate to {language} in {styles[$.index]} style:
 
         {poem}
 
@@ -385,15 +385,15 @@ describe('workflowCompiler() validations', () => {
 
     <Loop
       as="translations"
-      until={$index === languages.length}
-      provide={{ languages, styles, $parentIndex: $index }}>
+      until={$.index === languages.length}
+      provide={{ languages, styles, $parentIndex: $.index }}>
 
       <Loop
         as="styledTranslations"
-        until={$index === styles.length}
+        until={$.index === styles.length}
         provide={{ language: languages[$parentIndex], styles }}>
 
-        Translate to {language} in {styles[$index]} style:
+        Translate to {language} in {styles[$.index]} style:
 
         {poem}
 

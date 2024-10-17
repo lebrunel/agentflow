@@ -1,6 +1,6 @@
 import { createNanoEvents, type Unsubscribe } from 'nanoevents'
 import { pushable } from 'it-pushable'
-import { ExecutionCursor } from './cursor'
+import { ExecutionCursor, parseLocation } from './cursor'
 import { evalExpression } from './eval'
 import { ExecutionNavigator } from './navigator'
 import { ExecutionState } from './state'
@@ -30,7 +30,10 @@ export class ExecutionController {
   constructor(workflow: Workflow, input: ContextValueMap, runtime: Runtime) {
     this.#workflow = new ExecutionNavigator(workflow)
     this.runtime = runtime
-    this.state.pushContext(this.cursor, input)
+    this.state.pushContext(this.cursor, {
+      ...workflow.initialContext,
+      ...input
+    })
   }
 
   get cursor(): ExecutionCursor {
@@ -124,23 +127,31 @@ export class ExecutionController {
       switch (action.name) {
         case 'cond':
           {
+            // Computed props
+            const $ = toGetters({
+              self: () => unwrapContext(this.state.getContext(this.cursor))
+            })
+
             const cond = evalExpression(
               action.props.if.value,
               unwrapContext(context),
+              { ...computed, $, [`$${action.contextKey}`]: $ },
             )
 
             if (cond) {
               this.#cursor = ExecutionCursor.push(cursor)
               const newContext = action.props.provide
                 ? evalExpression(
-                  action.props.provide.value,
-                  unwrapContext(context),
-                  computed
-                ) : {}
+                    action.props.provide.value,
+                    unwrapContext(context),
+                    { ...computed, $, [`$${action.contextKey}`]: $ },
+                  )
+                : {}
 
               this.state.pushContext(
                 this.#cursor,
                 wrapContext(newContext),
+                { $, [`$${action.contextKey}`]: $ }
               )
 
               while (true) {
@@ -151,10 +162,7 @@ export class ExecutionController {
                 }
               }
 
-              const value = this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
-                acc[actionLog.contextKey] = actionLog.output.value
-                return acc
-              }, {} as Record<string, any>)
+              const value = $.self
               this.#cursor = ExecutionCursor.pop(this.cursor)
               return { result: { type: 'json', value } }
 
@@ -165,59 +173,54 @@ export class ExecutionController {
 
         case 'loop':
           {
+            this.#cursor = ExecutionCursor.push(cursor)
             let loopIndex: number = this.cursor.iteration
 
             // Computed props
-            const $index = () => loopIndex
-            const $self = () => {
-              return this.state.getScopeResults(this.cursor).reduce((acc, actionLog) => {
-                const c = ExecutionCursor.parse(actionLog.cursor)
-                const i = c.iteration
-                acc[i] ||= {}
-                acc[i][actionLog.contextKey] = actionLog.output.value
-                return acc
-              }, [] as Array<Record<string, any>>)
-            }
-            const $last = () => {
-              const self = $self()
-              return self[self.length - 1]
-            }
-
-            this.#cursor = ExecutionCursor.push(cursor)
-            const newContext = action.props.provide
-              ? evalExpression(
-                action.props.provide.value,
-                unwrapContext(context),
-                computed
-              ) : {}
-
-            this.state.pushContext(
-              this.#cursor,
-              wrapContext(newContext),
-              { $self, $index, $last },
-            )
+            const $ = toGetters({
+              index: () => loopIndex,
+              self: () => {
+                return this.state
+                  .getAllContexts(this.cursor)
+                  .map(unwrapContext)
+              },
+              last: function() {
+                const self = this.self()
+                return self[self.length - 1]
+              }
+            })
 
             while (true) {
-              if (
-                // Ensures until check happens at beginning of loops
-                // todo - can this behaviour be opted out of for early breaks
-                // in fact, should early break be default with full looping being the option
-                this.cursor.phaseIndex === 0 &&
-                this.cursor.actionIndex === 0 &&
-                evalExpression(
+              // Evaluate loop props at beginning of iteration
+              if (this.cursor.phaseIndex === 0 && this.cursor.actionIndex === 0) {
+                const breakCondition = evalExpression(
                   action.props.until.value,
                   unwrapContext(context),
-                  { $index, $self, $last },
+                  { ...computed, $, [`$${action.contextKey}`]: $ },
                 )
-              ) {
-                break
+                if (breakCondition) { break }
+
+                // Create new context
+                const newContext = action.props.provide
+                  ? evalExpression(
+                      action.props.provide.value,
+                      unwrapContext(context),
+                      { ...computed, $, [`$${action.contextKey}`]: $ },
+                    )
+                  : {}
+
+                this.state.pushContext(
+                  this.#cursor,
+                  wrapContext(newContext),
+                  { $, [`$${action.contextKey}`]: $ },
+                )
               }
 
               await this.runNext({ afterAction, runAll })
               loopIndex = this.cursor.iteration
             }
 
-            const value = $self()
+            const value = $.self
             this.#cursor = ExecutionCursor.pop(this.cursor)
             return { result: { type: 'json', value } as JsonContextValue }
           }
@@ -348,16 +351,18 @@ export class ExecutionController {
   getCostEstimate(models?: Record<string, ModelSpec>): CostCalculator {
     const calculator = new CostCalculator(models)
 
-    for (const scope of this.state.stateMap.values()) {
-      for (const actionLog of scope.results.values()) {
-        if (typeof actionLog.meta.usage === 'undefined') continue
+    for (const scopes of this.state.stateMap.values()) {
+      for (const scope of scopes) {
+        for (const actionLog of scope.results.values()) {
+          if (typeof actionLog.meta.usage === 'undefined') continue
 
-        const cursor = ExecutionCursor.parse(actionLog.cursor)
-        const action = this.#workflow.findAction(cursor)
-        const model = action?.props?.model
+          const cursor = ExecutionCursor.parse(actionLog.cursor)
+          const action = this.#workflow.findAction(cursor)
+          const model = action?.props?.model
 
-        if (typeof model === 'string') {
-          calculator.addUsage(model, actionLog.meta.usage)
+          if (typeof model === 'string') {
+            calculator.addUsage(model, actionLog.meta.usage)
+          }
         }
       }
     }
@@ -374,9 +379,27 @@ export class ExecutionController {
     }
 
     const stringifyScope = (cursor: ExecutionCursor): string => {
-      const results = this.state.getGroupedScopeResults(cursor)
+      const scopes = this.state.stateMap.get(cursor.path) || []
 
-      return results
+      return scopes
+        // Flatten scopes into grouped arrays of results for each phase
+        .flatMap(scope => {
+          const groupMap: Map<number, ActionLog[]> = new Map()
+          for (const [location, actionLog] of scope.results) {
+            const { phaseIndex } = parseLocation(location)
+            let group = groupMap.get(phaseIndex)
+
+            if (!group) {
+              group = []
+              groupMap.set(phaseIndex, group)
+            }
+
+            group.push(actionLog)
+          }
+
+          return Array.from(groupMap.values())
+        })
+        // Map each group into string for the phase
         .map(group => {
           const cursorForPhase = ExecutionCursor.parse(group[0].cursor)
           const phase = this.#workflow.fetchPhase(cursorForPhase)
@@ -404,6 +427,7 @@ export class ExecutionController {
 
           return chunks.join('\n\n')
         })
+        // Join phases
         .join('\n\n---\n\n')
     }
 
@@ -485,10 +509,19 @@ export function executeWorkflow(
   return controller
 }
 
-
-
 function isExpression(val: any): val is ExpressionNode {
   return typeof val === 'object' && val.type === 'expression' && !!val.data
+}
+
+function toGetters(props: Record<string, () => any>): Record<string, any> {
+  return Object.entries(props).reduce((getters, [name, fn]) => {
+    Object.defineProperty(getters, name, {
+      get: () => fn(),
+      enumerable: true,
+      configurable: true,
+    })
+    return getters
+  }, {})
 }
 
 

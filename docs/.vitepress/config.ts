@@ -5,7 +5,6 @@ export default defineConfig({
   title: 'Agentflow',
   titleTemplate: ':title ⋮ Agentflow',
   description: 'Agentflow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language.',
-  base: '/agentflow/',
 
   head: [
     ['link', { rel: 'icon', href: '/images/logo.webp' }]

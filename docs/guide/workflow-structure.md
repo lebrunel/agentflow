@@ -76,9 +76,73 @@ Agentflow ships with a handful of built-in actions:
 
 In addition to the built-in actions, users can create custom actions. Under the hood, an action is just a function that returns a result. It's possible to create custom actions that interface and interact with just about anything imaginable.
 
+## Expressions
+
+Expressions are small snippets of JavaScript embedded within a workflow, denoted by a pair of braces (`{ }`). Expressions provide a way to access input data and results from previous actions, and dynamically inject that data into subsequent workflow content and action attributes.
+
+Expressions are evaluated at runtime, allowing for dynamic and context-aware workflows that can adapt based on input, generated content, and the current execution state.
+
+Expressions can be used in the following places:
+
+- **Text expressions** - Used within lines of text.
+- **Flow expressions** - Root level blocks that can span multiple lines.
+- **Attribute expressions** - Use in action attributes.
+
+For example:
+
+```mdx
+This is a text expression: Hello {name}!
+
+{
+  // this is a flow expression
+  instructions.join('\n').map(str => `- ${str}`)
+}
+
+<GenText as="foo" model={preferredModel} />
+```
+
+### Context in expressions
+
+Expressions can access:
+
+- A workflow's [input data](/guide/input-data) defined in its Frontmatter.
+- Results from previous actions **in the same scope**.
+- Helper functions and properties provided by the current (or parent) action.
+
+### Action helpers
+
+Actions can provide "helpers" that are accessible in its own attributes, and in the case of `<Loop />` and `<Cond />`, within its own scope. Action helpers can be accessed through special variables:
+
+- The `$` variable provides access to the current action's helpers.
+- A variable prefixed with `$` followed by the action name (e.g., `$foo` for an action with `as="foo"`) also provides access to that action's helpers.
+
+This is particularly useful in nested scenarios:
+
+```mdx
+<Loop
+  as="outer"
+  until={$.index === items.length}
+  provide{{ items }}>
+
+  <Loop
+    as="inner"
+    until={$.index === items[$outer.index].subitems.length}
+    provide={{
+      item: items[$outer.index],
+      subitem: items[$outer.index].subitems[$.index],
+    }}>
+
+    Item: {item.name}
+    Subitem: {subitem.name}
+  </Loop>
+</Loop>
+```
+
+In this example, `$` refers to the outer loop's helpers when used in the outer loop's expressions, but refers to the inner loop's helpers when used in the inner loop's expressios. Therefore the inner loop can access both the inner and outer loop's helpers by using the `$outer` variable.
+
 ### Block scoping
 
-Some actions, like `<Loop />` and `<Cond />`, wrap around an inner block of the workflow. This block has its own "scope", and can be organised with sub-phases and actions. It's like a workflow within a workflow.
+Where actions wrap around a block of workflow (like `<Loop />` and `<Cond />`), the wrapped block has its own "scope". Each scope can be organised with sub-phases and actions. It's like embedding a workflow within a workflow.
 
 Nested scopes are **isolated by default**. Whilst assigning actions to the same variable name in the same scope will cause a compile error, names can be reused within a new scope. Additionally, state from the parent scope must be explicitly provided using the `provide` attribute.
 
@@ -89,10 +153,13 @@ Write a poem about cats.
 
 <Loop
   as="translations"
-  until={$index === langs.length}
-  provide={{ langs, original: poem }}>
+  until={$.index === langs.length}
+  provide={{
+    language: langs[$.index],
+    original: poem,
+  }}>
 
-  Translate this poem to {langs[$index]}:
+  Translate this poem to {language}:
   {original}
 
   <GenText as="poem" model="openai:gpt-4o" />

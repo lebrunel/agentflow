@@ -52,8 +52,6 @@ Scrape the following web page and create a list of conference speakers:
 
 The `<GenObject />` action works the same way as `<GenText />` in that it uses the immediately preceding context as input. In addition, it accepts the following attributes:
 
-
-
 | attribute         | type      | description | required |
 | ----------------- | --------- | ----------- | -------- |
 | as                | `string`  | Unique variable name. | ✅ |
@@ -73,16 +71,16 @@ When the `output` type is `no-schema`, the LLM is free to determine its own sche
 :::
 
 ::: info ℹ️ Zod schemas
-The `schema` attribute accepts an expression that returns a [zod schema](https://zod.dev), using the `$.z` helper. Ensuring the schema is property described helps guide the LLM to generate an accurate output.
+The `schema` attribute accepts an expression that returns a [zod schema](https://zod.dev), using the `$.z` [action helper](/guide/workflow-structure#action-helpers). Ensuring the schema is property described helps guide the LLM to generate an accurate output.
 :::
 
-The result of the generation will be stored in the workflow's state as a JSON type using the name given in the `as` attribute. Because the value is structured data, expressions can access, traverse and iterate over the value.
+The result of the generation will be stored in the workflow's state as a JSON type using the name given in the `as` attribute. Because the value is structured data, subsequent expressions can access, traverse and iterate over the value.
 
 ```mdx
 <Loop
   as="messages"
-  until={$index === speakers.filter(s => !!s.twitter).length}
-  provide={{ speaker: speakers.filter(s => !!s.twitter)[$index] }}>
+  until={$.index === speakers.filter(s => !!s.twitter).length}
+  provide={{ speaker: speakers.filter(s => !!s.twitter)[$.index] }}>
 
   Write a tweet to the conference speaker thanking them for their
   presentation. Use a disturbing amount of emojis.

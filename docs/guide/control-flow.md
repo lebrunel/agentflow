@@ -9,8 +9,8 @@ Looping is a powerful, foundational programming concept that most modern, genera
 ```mdx
 <Loop
   as="history"
-  until={2000 + $index > new Date().getFullYear()}
-  provide={{ year: 2000 + $index }}>
+  until={2000 + $.index > new Date().getFullYear()}
+  provide={{ year: 2000 + $.index }}>
 
   Write an interesting fact about the year: {year}
 
@@ -35,15 +35,15 @@ Both the `until` and `provide` expressions are evaluated at the beginning of **e
 
 The result of the loop will be stored in the workflow's state as a JSON array type using the name given in the `as` attribute.
 
-### Computed properties
+### Helper properties
 
-In the loop example above, you may have noticed the use of `$index`. This is a computed property. Computed properties allow expressions within the `<Loop />` action and its child scope to introspectively access the current state of the loop.
+In the loop example above, you may have noticed the use of `$.index`. This is a [action helper](/guide/workflow-structure#action-helpers). The `<Loop />` action helpers allow the actions own attribute expressions and flow expressions within the child scope to introspectively access the current state of the loop.
 
 | property | type     | description           |
 | -------- | -------- | --------------------- |
-| `$index` | `number` | The zero-based index of the current iteration within the loop. |
-| `$self`  | `array`  | An array of objects representing the accumulated state of all iterations of the loop. |
-| `$last`  | `object` or `undefined` | The result of the previous iteration (undefined on the first iteration). Equivalent to `$self[$self.length - 1]`. |
+| `index`  | `number` | The zero-based index of the current iteration within the loop. |
+| `self`   | `array`  | An array of objects representing the accumulated state of all iterations of the loop. |
+| `last`   | `object` or `undefined` | The result of the previous iteration (undefined on the first iteration). Equivalent to `$.self[$.self.length - 1]`. |
 
 ## Conditional branching
 
@@ -76,4 +76,4 @@ For now, implementing an If/Else pattern requires multiple `<Cond />` actions wi
 | if        | `boolean` | Expression returning a boolean to determine whether to execute the block. | ✅ |
 | provide   | `object`  | Optional expression returning an object of keys and values that are provided to the child scope. Evaluated once at the start of | |
 
-The `<Cond />` action provides no computed properties.
+The `<Cond />` action provides no helpers.

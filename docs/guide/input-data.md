@@ -22,10 +22,10 @@ data:
 
 <Loop
   as="translations"
-  until={$index === langs.length}
+  until={$.index === langs.length}
   provide={{ langs, quote }}>
 
-  Translate "{ quote }" into { langs[$index] }
+  Translate "{ quote }" into { langs[$.index] }
 
   <GenText as="translated" model="openai:gpt-4o" />
 </Loop>
@@ -55,10 +55,10 @@ input:
 
 <Loop
   as="translations"
-  until={$index === langs.length}
+  until={$.index === langs.length}
   provide={{ langs, quote }}>
 
-  Translate "{ quote }" into { langs[$index] }
+  Translate "{ quote }" into { langs[$.index] }
 
   <GenText as="translated" model="openai:gpt-4o" />
 </Loop>

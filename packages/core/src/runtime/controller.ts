@@ -177,7 +177,7 @@ export class ExecutionController {
             this.#cursor = ExecutionCursor.push(cursor)
             let loopIndex: number = this.cursor.iteration
 
-            // Computed props
+            // Helpers
             const $ = toGetters({
               index: () => loopIndex,
               self: () => {

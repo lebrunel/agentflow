@@ -94,11 +94,11 @@ function workflowPhase(
   const actions: WorkflowAction[] = []
 
   function validateDependency(node: ExpressionNode, contextKey: ContextKey, namespace?: string) {
-    const computedNames = ['z', '$']
-    if (namespace) computedNames.push(`$${namespace}`)
+    const helperNames = ['z', '$']
+    if (namespace) helperNames.push(`$${namespace}`)
     if (
       !contextKeys.has(contextKey) &&
-      !computedNames.includes(contextKey)
+      !helperNames.includes(contextKey)
     ) {
       file.fail(
         `Unknown context "${contextKey}". This Action depends on a context that hasn't been defined earlier in the workflow.`,

@@ -11,7 +11,7 @@ Intro
 
 <Loop
   as="loop"
-  until={$last && $last.status.isComplete}
+  until={$.last && $.last.status.isComplete}
   provide={{ objective }}>
 
   Based on the following objective, and the previous sub-task results (if any), please break down the objective into the next sub-task, and create a concise and detailed prompt for a subagent so it can execute that task.
@@ -21,7 +21,7 @@ Intro
   Objective: {objective}
 
   Previous sub-task results:
-  - { $self.filter(l => !!l.result).length ? $self.filter(l => !!l.result).map(l => l.result).join('\n- ') : 'None' }
+  - { $.self.filter(l => !!l.result).length ? $.self.filter(l => !!l.result).map(l => l.result).join('\n- ') : 'None' }
 
   <GenText
     as="prompt"
@@ -31,8 +31,8 @@ Intro
 
   Previous tasks:
   {
-    $self.filter(l => !!l.result).length ?
-    $self.filter(l => !!l.result).map(l => {
+    $.self.filter(l => !!l.result).length ?
+    $.self.filter(l => !!l.result).map(l => {
       return `Task: ${l.prompt}\nResult: ${l.result}`
     }).join('\n') :
     'None'
@@ -51,7 +51,7 @@ Intro
   Objective: {objective}
 
   Previous sub-task results:
-  - {$self.length ? $self.map(l => l.result).join('\n- ') : 'None'}
+  - {$.self.length ? $.self.map(l => l.result).join('\n- ') : 'None'}
 
   <GenObject
     as="status"

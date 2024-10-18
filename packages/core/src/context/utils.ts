@@ -63,7 +63,7 @@ export function wrapContext(obj: Record<string, any>): ContextValueMap {
 export function astToContext(
   nodes: RootContent[],
   context: ContextValueMap,
-  computed: Record<string, any> = {},
+  helpers: Record<string, any> = {},
 ): ContextValue[] {
   const blocks: Array<Root | ContextValue> = [
     u('root', [])
@@ -93,7 +93,7 @@ export function astToContext(
       let nodeStr = stringifyAST([node])
       for (const expr of expressions) {
         const contextValue = toContextValue(
-          evalExpression(expr.value, unwrapContext(context), computed)
+          evalExpression(expr.value, unwrapContext(context), helpers)
         )
 
         // Primitives get stringified in place

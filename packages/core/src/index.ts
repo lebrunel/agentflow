@@ -5,13 +5,28 @@ global.TextDecoderStream = TextDecoderStream
 export {
   compile,
   compileSync,
-  createProcessor,
+  createCompiler,
+  createScope,
+  walkScope,
   type CompileOptions,
-  type WorkflowNode,
-  type PhaseNode,
   type ActionNode,
   type ExpressionNode,
-} from './compiler'
+  type WorkflowScope,
+  type WorkflowPhase,
+  type WorkflowAction,
+  type WorkflowWalker,
+} from './ast'
+
+//export {
+//  compile,
+//  compileSync,
+//  createProcessor,
+//  type CompileOptions,
+//  type WorkflowNode,
+//  type PhaseNode,
+//  type ActionNode,
+//  type ExpressionNode,
+//} from './compiler'
 
 export {
   fromContextValue,
@@ -66,10 +81,8 @@ export {
 } from './tool'
 
 export {
-  Workflow,
-  type WorkflowPhase,
-  type WorkflowAction,
-} from './workflow'
+  Workflow
+} from './workflow2'
 
 export {
   models,

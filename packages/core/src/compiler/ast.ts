@@ -14,14 +14,14 @@ export interface PhaseNode extends Node {
 }
 
 export interface ActionNode extends Node {
-  type: 'action';
+  type: 'actionx';
   name: string;
   children: RootContent[] | PhaseNode[];
   attributes: Record<string, any>;
 }
 
 export interface ExpressionNode extends Node {
-  type: 'expression';
+  type: 'expressionx';
   data?: MdxJsxExpressionAttributeData;
   value: string;
 }
@@ -30,22 +30,22 @@ export interface CustomHandlers extends Handlers {
   expression: (node: ExpressionNode) => string
 }
 
-declare module 'mdast' {
-  interface PhrasingContentMap {
-    conextNode: ExpressionNode;
-  }
+//declare module 'mdast' {
+//  interface PhrasingContentMap {
+//    expressionNode: ExpressionNode;
+//  }
+//
+//  interface BlockContentMap {
+//    actionNode: ActionNode;
+//  }
+//
+//  interface RootContentMap {
+//    actionNode: ActionNode;
+//  }
+//}
 
-  interface BlockContentMap {
-    actionNode: ActionNode;
-  }
-
-  interface RootContentMap {
-    actionNode: ActionNode;
-  }
-}
-
-declare module 'unified' {
-  interface CompileResultMap {
-    workflow: Workflow;
-  }
-}
+//declare module 'unified' {
+//  interface CompileResultMap {
+//    workflow: Workflow;
+//  }
+//}

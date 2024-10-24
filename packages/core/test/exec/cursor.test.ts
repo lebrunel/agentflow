@@ -19,13 +19,13 @@ describe('ExecutionCursor', () => {
     expect(cursor2.location).toBe('0.0.0')
   })
 
-  test('iteration, phase and action indicies', () => {
+  test('iteration, phase and step indicies', () => {
     expect(cursor1.iteration).toBe(0)
     expect(cursor1.phaseIndex).toBe(0)
-    expect(cursor1.actionIndex).toBe(1)
+    expect(cursor1.stepIndex).toBe(1)
     expect(cursor2.iteration).toBe(0)
     expect(cursor2.phaseIndex).toBe(0)
-    expect(cursor2.actionIndex).toBe(0)
+    expect(cursor2.stepIndex).toBe(0)
   })
 
   test('toString() returns original string', () => {

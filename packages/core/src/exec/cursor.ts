@@ -51,7 +51,7 @@ export class ExecutionCursor {
    *
    * The cursor path string should be in the format '/a.b.c/x.y.z',
    * where a, b, c, x, y, z are non-negative integers representing iteration,
-   * phaseIndex, and actionIndex respectively.
+   * phaseIndex, and stepIndex respectively.
    *
    * If the provided cursor path is invalid, an error is thrown.
    *
@@ -116,9 +116,9 @@ export class ExecutionCursor {
   }
 
   /**
-   * Returns the current action index within the workflow phase.
+   * Returns the current step index within the workflow phase.
    */
-  get actionIndex(): number {
+  get stepIndex(): number {
     return this.#location[2]
   }
 
@@ -200,7 +200,7 @@ export function cursorCompare(
 
 /**
  * Parses a cursor location string and returns an object with
- * iteration, phaseIndex, and actionIndex numbers. The location string should be
+ * iteration, phaseIndex, and stepIndex numbers. The location string should be
  * in the format 'a.b.c', where a, b, and c are non-negative integers.
  */
 export function parseLocation(location: string) {
@@ -212,7 +212,7 @@ export function parseLocation(location: string) {
   return {
     iteration: indices[0],
     phaseIndex: indices[1],
-    actionIndex: indices[2],
+    stepIndex: indices[2],
   }
 }
 
@@ -221,10 +221,10 @@ const CURSOR_REGEX = /^(\/\d+\.\d+\.\d+)+$/
 
 /**
  * Represents a cursor location in a workflow execution.
- * It contains three elements: iteration count, phase index, and action index.
+ * It contains three elements: iteration count, phase index, and step index.
  */
 export type CursorLocation = [
   iteration: number,
   phaseIndex: number,
-  actionIndex: number,
+  stepIndex: number,
 ]

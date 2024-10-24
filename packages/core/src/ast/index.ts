@@ -1,4 +1,4 @@
 export * from './compiler'
-export * from './scope-tree'
+export * from './scoped-view'
 export * from './types'
 export * from './validations'

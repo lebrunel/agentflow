@@ -1,29 +1,48 @@
-import type { RootContent } from 'mdast'
+import { is } from 'unist-util-is'
+import { toString } from 'mdast-util-to-string'
+import { compile, compileSync, createScopedView, walkScopeTree } from './ast'
 
-import type { ContextKey, ContextValueMap } from './context'
-import type { WorkflowInputSchema } from './runtime'
+import type { Root } from 'mdast'
+import type { Compatible, VFile } from 'vfile'
+import type { CompileOptions, WorkflowScope, WorkflowWalker } from './ast'
 
 export class Workflow {
-  constructor(
-    public title: string,
-    readonly descriptionNodes: ReadonlyArray<RootContent>,
-    readonly initialContext: Readonly<ContextValueMap>,
-    readonly inputSchema: Readonly<WorkflowInputSchema>,
-    readonly phases: ReadonlyArray<WorkflowPhase>,
-    readonly meta: Readonly<Record<string, any>> = {}
-  ) {}
-}
+  readonly ast: Root
+  readonly meta: Record<string, any>
+  readonly title: string
+  readonly view: WorkflowScope
 
-export interface WorkflowPhase {
-  readonly actions: ReadonlyArray<WorkflowAction>;
-  readonly contextKeys: ReadonlySet<ContextKey>;
-  readonly trailingNodes: ReadonlyArray<RootContent>;
-}
+  constructor(ast: Root, file: VFile) {
+    this.ast = ast
+    this.view = createScopedView(ast.children)
 
-export interface WorkflowAction<T = any> {
-  readonly name: string;
-  readonly contextKey: string;
-  readonly contentNodes: ReadonlyArray<RootContent>;
-  readonly props: Readonly<T>;
-  readonly phases: ReadonlyArray<WorkflowPhase>;
+    const yaml = ast.children[0].type === 'yaml'
+      ? ast.children[0]
+      : undefined
+
+    const firstNode = ast.children[yaml ? 1 : 0]
+    const titleNode = is(firstNode, 'heading')
+      ? firstNode
+      : undefined
+
+    this.meta = yaml?.data || {}
+    this.title = this.meta?.title
+      || (titleNode && toString(titleNode))
+      || file.basename
+      || 'Untitled'
+  }
+
+  static async compile(source: Compatible, options?: CompileOptions): Promise<Workflow> {
+    const file = await compile(source, options)
+    return file.result
+  }
+
+  static compileSync(source: Compatible, options?: CompileOptions): Workflow {
+    const file = compileSync(source, options)
+    return file.result
+  }
+
+  walk<T extends Record<string, any>>(handlers: WorkflowWalker<T>): void {
+    return walkScopeTree(this.view, handlers)
+  }
 }

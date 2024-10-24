@@ -7,7 +7,7 @@ import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
 import yaml from 'yaml'
-import { Workflow } from '../workflow2'
+import { Workflow } from '../workflow'
 import { validateWorkflow, validateEstree } from './validations'
 
 import type { Program } from 'estree-jsx'

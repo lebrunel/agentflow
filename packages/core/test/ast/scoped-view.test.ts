@@ -1,15 +1,15 @@
 import { describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
-import { createCompiler, createScopeTree, walkScopeTree } from 'src/ast'
+import { createCompiler, createScopedView, walkScopeTree } from 'src/ast'
 import type { WorkflowScope } from 'src/ast'
 
 function tree(src: string): WorkflowScope {
   const proc = createCompiler()
   const ast = proc.runSync(proc.parse(src))
-  return createScopeTree(ast.children)
+  return createScopedView(ast.children)
 }
 
-describe('createScopeTree()', () => {
+describe('createScopedView()', () => {
   test('accepts single phase', () => {
     const scope = tree(dd`
     Hello
@@ -57,12 +57,12 @@ describe('createScopeTree()', () => {
 
     // root scope
     expect(scope.phases).toHaveLength(1)
-    expect(scope.phases[0].actions).toHaveLength(1)
+    expect(scope.phases[0].steps).toHaveLength(1)
     // 1st scope
-    expect(scope.phases[0].actions[0].childScope?.phases).toHaveLength(1)
-    expect(scope.phases[0].actions[0].childScope?.phases[0].actions).toHaveLength(1)
+    expect(scope.phases[0].steps[0].childScope?.phases).toHaveLength(1)
+    expect(scope.phases[0].steps[0].childScope?.phases[0].steps).toHaveLength(1)
     // 2nd scope
-    expect(scope.phases[0].actions[0].childScope?.phases[0].actions[0].childScope?.phases).toHaveLength(1)
+    expect(scope.phases[0].steps[0].childScope?.phases[0].steps[0].childScope?.phases).toHaveLength(1)
   })
 
   test('accepts nested scopes with sub-phases', () => {
@@ -78,25 +78,23 @@ describe('createScopeTree()', () => {
 
     // root scope
     expect(scope.phases).toHaveLength(1)
-    expect(scope.phases[0].actions).toHaveLength(1)
+    expect(scope.phases[0].steps).toHaveLength(1)
     // 1st scope
-    expect(scope.phases[0].actions[0].childScope?.phases).toHaveLength(2)
+    expect(scope.phases[0].steps[0].childScope?.phases).toHaveLength(2)
   })
 
-  test('accepts expressions and actions within a phase', () => {
+  test('accepts steps within phases', () => {
     const scope = tree(dd`
-    Hello
-
-    <Mock as="foo" value="a" />
-
     World {foo}
 
     <Mock as="bar" value={'b'} />
     `)
 
-    expect(scope.phases).toHaveLength(1)
-    expect(scope.phases[0].actions).toHaveLength(2)
-    expect(scope.phases[0].execNodes).toHaveLength(4)
+    expect(scope.phases[0].steps).toHaveLength(1)
+    expect(scope.phases[0].steps[0].content).toBeTruthy()
+    expect(scope.phases[0].steps[0].expressions).toHaveLength(1)
+    expect(scope.phases[0].steps[0].action).toBeTruthy()
+    expect(scope.phases[0].steps[0].childScope).toBeUndefined()
   })
 })
 
@@ -128,11 +126,11 @@ describe('walkScopeTree()', () => {
       },
 
       onPhase(phase, context) {
-        expect(phase.actions).toHaveLength(context.path === 'root' ? 2 : 1)
+        expect(phase.steps).toHaveLength(context.path === 'root' ? 2 : 1)
       },
 
-      onAction(action, context) {
-        switch(action.node.attributes.as) {
+      onStep(step, context) {
+        switch(step.action?.attributes.as) {
           case 'foo':
             expect(context.path).toBe('root')
             break

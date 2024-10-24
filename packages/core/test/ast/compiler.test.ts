@@ -2,7 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
 import dd from 'ts-dedent'
 import { createCompiler, compile, compileSync } from 'src/ast'
-import { Workflow } from 'src/workflow2'
+import { Workflow } from 'src/workflow'
 import type { Paragraph, Yaml } from 'mdast'
 import type { ActionNode, ExpressionNode } from 'src/ast'
 

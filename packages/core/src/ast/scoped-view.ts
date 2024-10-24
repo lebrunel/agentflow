@@ -1,21 +1,21 @@
+import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
-import { visit, SKIP } from 'unist-util-visit'
+import { selectAll } from 'unist-util-select'
 
 import type { RootContent } from 'mdast'
-
 import type {
   ActionNode,
   ExpressionNode,
   WorkflowScope,
   WorkflowPhase,
-  WorkflowAction,
+  WorkflowStep,
   WorkflowWalker,
 } from './types'
 
 /**
  * TODO
  */
-export function createScopeTree(
+export function createScopedView(
   nodes: RootContent[],
   parentNode?: ActionNode,
 ): WorkflowScope {
@@ -30,7 +30,7 @@ export function createScopeTree(
         const phase = createPhase(nodes.slice(startPosition, i))
         phases.push(phase)
       }
-      startPosition = i + 1
+      startPosition = i+1
     }
   })
 
@@ -44,45 +44,37 @@ export function createScopeTree(
 }
 
 function createPhase(nodes: RootContent[]): WorkflowPhase {
-  const actions: WorkflowAction[] = []
-  const execNodes: Array<ActionNode | ExpressionNode> = []
+  const steps: WorkflowStep[] = []
   let startPosition = 0
 
-  nodes.forEach((rootContentNode, i) => {
-    visit(rootContentNode, (node, _i, parent) => {
-      // Ensure we don't traverse nested action scopes
-      if (is(parent, 'action')) return SKIP
-
-      if (is(node, 'action')) {
-        const action = createAction(node, nodes.slice(startPosition, i))
-        for (const attr of Object.values(node.attributes)) {
-          if (is(attr, 'expression')) execNodes.push(attr as ExpressionNode)
-        }
-        actions.push(action)
-        execNodes.push(node)
-        startPosition = i + 1
-      }
-
-      if (is(node, 'expression')) {
-        execNodes.push(node)
-      }
-    })
+  nodes.forEach((node, i) => {
+    if (is(node, 'action')) {
+      const step = createStep(nodes.slice(startPosition, i), node)
+      steps.push(step)
+      startPosition = i+1
+    }
   })
 
-  return { actions, execNodes }
-}
-
-function createAction(
-  node: ActionNode,
-  inputNodes: RootContent[],
-): WorkflowAction {
-  let childScope: WorkflowScope | undefined
-
-  if (node.children.length) {
-    childScope = createScopeTree(node.children, node)
+  // process last block
+  if (startPosition < nodes.length) {
+    const step = createStep(nodes.slice(startPosition))
+    steps.push(step)
   }
 
-  return { node, inputNodes, childScope }
+  return { steps }
+}
+
+function createStep(
+  nodes: RootContent[],
+  action?: ActionNode,
+): WorkflowStep {
+  const content = u('root', nodes)
+  const expressions = selectAll('expression', content) as ExpressionNode[]
+  const childScope = action?.children.length
+    ? createScopedView(action.children, action)
+    : undefined
+
+  return { content, expressions, action, childScope }
 }
 
 /**
@@ -101,12 +93,12 @@ export function walkScopeTree<T extends Record<string, any>>(
 
   function handlePhase(phase: WorkflowPhase, context: T) {
     if (typeof walker.onPhase === 'function') walker.onPhase(phase, context)
-    phase.actions.forEach(action => handleAction(action, context))
+    phase.steps.forEach(step => handleStep(step, context))
   }
 
-  function handleAction(action: WorkflowAction, context: T) {
-    if (typeof walker.onAction === 'function') walker.onAction(action, context)
-    if (action.childScope) handleScope(action.childScope, context)
+  function handleStep(step: WorkflowStep, context: T) {
+    if (typeof walker.onStep === 'function') walker.onStep(step, context)
+    if (step.childScope) handleScope(step.childScope, context)
   }
 
   handleScope(scope, {} as T)

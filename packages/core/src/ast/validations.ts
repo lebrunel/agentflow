@@ -1,13 +1,20 @@
 import { is } from 'unist-util-is'
 import { walk } from 'estree-walker'
-import { evalDependencies } from '../runtime'
 
-import type { Program, Property } from 'estree-jsx'
 import type { Node } from 'mdast'
 import type { VFile } from 'vfile'
 import type { ExpressionNode } from './types'
 import type { ContextKey } from '../context'
-import type { Workflow } from '../workflow2'
+import type { Workflow } from '../workflow'
+import type {
+  Identifier,
+  Node as EsNode,
+  Program,
+  Property,
+  Pattern,
+  ObjectPattern,
+  ArrayPattern
+} from 'estree-jsx'
 
 const AST_WHITELIST: Node['type'][] = [
   'Program',
@@ -86,7 +93,7 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
       } else {
         const provideAttr = scope.parentNode.attributes.provide
         if (provideAttr) {
-          for (const key of getContextKeysFromExpression(provideAttr)) {
+          for (const key of getObjectKeysFromExpression(provideAttr)) {
             validateUniqueness(key, contextKeys, { node: scope.parentNode!, file })
             contextKeys.add(key)
           }
@@ -97,16 +104,23 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
     },
 
     onPhase(phase, context) {
-      for (const node of phase.execNodes) {
-        if (is(node, 'action')) {
-          const contextKey: ContextKey = node.attributes.as
+      for (const step of phase.steps) {
+        for (const node of step.expressions.filter(n => !!n.data?.estree)) {
+          // Validate flow/text expression deps
+          for (const key of getDependenciesFromExpression(node.data!.estree!)) {
+            validateDependency(key, context.contextKeys, { node, file })
+          }
+        }
+
+        if (step.action) {
+          const contextKey: ContextKey = step.action.attributes.as
 
           // Validate Attribute Expression deps
-          for (const attr of Object.values(node.attributes)) {
+          for (const attr of Object.values(step.action.attributes)) {
             if (is(attr, 'expression')) {
               const expr = attr as ExpressionNode
               const program = expr.data!.estree! as Program
-              for (const key of evalDependencies(program)) {
+              for (const key of getDependenciesFromExpression(program)) {
                 validateDependency(key, context.contextKeys, {
                   node: expr,
                   file: file,
@@ -117,14 +131,11 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
           }
 
           // Add action contextKey to set
-          validateUniqueness(contextKey, context.contextKeys, { node, file })
+          validateUniqueness(contextKey, context.contextKeys, {
+            node: step.action,
+            file,
+          })
           context.contextKeys.add(contextKey)
-
-        } else if (is(node, 'expression') && node.data?.estree) {
-          // Validate flow/text expression deps
-          for (const key of evalDependencies(node.data.estree)) {
-            validateDependency(key, context.contextKeys, { node, file })
-          }
         }
       }
 
@@ -224,7 +235,7 @@ export function validateUniqueness(
   }
 }
 
-function getContextKeysFromExpression(attr: ExpressionNode): ContextKey[] {
+function getObjectKeysFromExpression(attr: ExpressionNode): ContextKey[] {
   const tree = attr?.data?.estree as Program
   const last = tree.body[tree.body.length - 1]
   if (last.type === 'ExpressionStatement' && last.expression.type === 'ObjectExpression') {
@@ -241,4 +252,87 @@ function getContextKeysFromExpression(attr: ExpressionNode): ContextKey[] {
       .filter((name): name is string => typeof name === 'string')
   }
   return []
+}
+
+function getDependenciesFromExpression(tree: Program): string[] {
+  const globals = new Set<string>()
+  const scopeChain: Array<Set<string>> = [new Set()]
+
+  function addToScope(name: string) {
+    scopeChain[0].add(name)
+  }
+
+  function isInScope(name: string): boolean {
+    return scopeChain.some(scope => scope.has(name));
+  }
+
+  function isRightPartOfAssignment(node: Identifier, parent: EsNode | null): boolean {
+    return parent?.type === 'AssignmentPattern' && parent.right === node
+  }
+
+  function extractIdentifiers(pattern: Pattern): string[] {
+    const identifers: string[] = []
+    walk(pattern, {
+      enter(node, parent) {
+        if (node.type === 'Identifier' && !isRightPartOfAssignment(node, parent)) {
+          identifers.push(node.name)
+        }
+      }
+    })
+    return identifers
+  }
+
+  function handleDestructuring(pattern: ObjectPattern | ArrayPattern) {
+    walk(pattern, {
+      enter(node, parent) {
+        if (node.type === 'Identifier' && !isRightPartOfAssignment(node, parent)) {
+          addToScope(node.name)
+        }
+      }
+    });
+  }
+
+  walk(tree, {
+    enter(node: EsNode, parent: EsNode | null) {
+      if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+        scopeChain.unshift(new Set());
+        for (const param of node.params) {
+          extractIdentifiers(param).forEach(addToScope)
+        }
+        if (node.type === 'FunctionExpression' && node.id) {
+          addToScope(node.id.name)
+        }
+      }
+
+      if (node.type === 'ObjectPattern' || node.type === 'ArrayPattern') {
+        handleDestructuring(node);
+      }
+
+      if (node.type === 'VariableDeclaration') {
+        for (const dec of node.declarations) {
+          extractIdentifiers(dec.id).forEach(addToScope)
+        }
+      }
+
+      if (node.type === 'Identifier') {
+        if (
+          // This is an object property key, not a variable reference
+          !(parent?.type === 'Property' && !parent.computed && parent.key === node) &&
+          // This is a member expression property, not a variable reference
+          !(parent?.type === 'MemberExpression' && parent.property === node && !parent.computed) &&
+          !isInScope(node.name)
+        ) {
+          globals.add(node.name);
+        }
+      }
+    },
+
+    leave(node: EsNode) {
+      if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
+        scopeChain.shift()
+      }
+    }
+  })
+
+  return Array.from(globals)
 }

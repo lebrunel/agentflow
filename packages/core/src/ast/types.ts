@@ -1,6 +1,6 @@
-import type { Node, Root, RootContent, Yaml } from 'mdast'
+import type { Node, Root, RootContent } from 'mdast'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
-import type { Workflow } from 'src/workflow2';
+import type { Workflow } from 'src/workflow';
 
 // AST types
 
@@ -28,20 +28,21 @@ export interface WorkflowScope {
 }
 
 export interface WorkflowPhase {
-  actions: WorkflowAction[];
-  execNodes: Array<ActionNode | ExpressionNode>;
+  steps: WorkflowStep[];
+  //execNodes: Array<ActionNode | ExpressionNode>;
 }
 
-export interface WorkflowAction {
-  node: ActionNode;
-  inputNodes: RootContent[];
+export interface WorkflowStep {
+  content: Root;
+  expressions: ExpressionNode[];
+  action?: ActionNode;
   childScope?: WorkflowScope;
 }
 
 export interface WorkflowWalker<T extends Record<string, any>> {
   onScope?: (scope: WorkflowScope, parentCtx: Readonly<T>) => T;
   onPhase?: (phase: WorkflowPhase, context: T) => void;
-  onAction?: (action: WorkflowAction, context: T) => void;
+  onStep?: (action: WorkflowStep, context: T) => void;
 }
 
 // Extending mdast

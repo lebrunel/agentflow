@@ -1,7 +1,7 @@
 import { describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
 import dd from 'ts-dedent'
-import { Workflow } from 'src/workflow2'
+import { Workflow } from 'src/workflow'
 
 describe('Workflow', () => {
   test('meta derived from frontmatter', () => {

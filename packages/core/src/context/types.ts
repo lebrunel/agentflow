@@ -1,5 +1,7 @@
 export type ContextKey = string
 
+export type Context = Record<ContextKey, any>
+
 export type ContextValueMap = Record<ContextKey, ContextValue>
 
 export type ContextValue =

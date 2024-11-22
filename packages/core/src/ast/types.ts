@@ -22,6 +22,8 @@ export interface ExpressionNode extends Node {
 
 // Workflow view types
 
+export type WorkflowNode = WorkflowScope | WorkflowPhase | WorkflowStep
+
 export interface WorkflowScope {
   phases: WorkflowPhase[];
   parentNode?: ActionNode;
@@ -29,7 +31,6 @@ export interface WorkflowScope {
 
 export interface WorkflowPhase {
   steps: WorkflowStep[];
-  //execNodes: Array<ActionNode | ExpressionNode>;
 }
 
 export interface WorkflowStep {

@@ -30,32 +30,6 @@ export class ExecutionWalker {
     const phase = this.findPhase(cursor)
     return phase?.steps[cursor.stepIndex]
   }
-
-  nextCursor(cursor: ExecutionCursor): ExecutionCursor {
-    const scope = this.assert.findScope(cursor)
-
-    if (cursor.stepIndex < scope.phases[cursor.phaseIndex].steps.length - 1) {
-      return ExecutionCursor.move(cursor, [
-        cursor.iteration,
-        cursor.phaseIndex,
-        cursor.stepIndex + 1,
-      ])
-    } else if (cursor.phaseIndex < scope.phases.length - 1) {
-      return ExecutionCursor.move(cursor, [
-        cursor.iteration,
-        cursor.phaseIndex + 1,
-        0,
-      ])
-    } else if (scope.parentNode?.name === 'loop') {
-      return ExecutionCursor.move(cursor, [
-        cursor.iteration + 1,
-        0,
-        0,
-      ])
-    } else {
-      return cursor
-    }
-  }
 }
 
 function createStrictProxy(walker: ExecutionWalker): Strict<ExecutionWalker> {

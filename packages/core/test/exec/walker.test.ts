@@ -94,24 +94,25 @@ describe('ExecutionWalker', () => {
     })
   })
 
-  describe('nextCursor()', () => {
-    test('icrements step if not last step', () => {
-      const next = walker.nextCursor(ExecutionCursor.parse('/0.0.0'))
-      expect(next.toString()).toBe('/0.0.1')
-    })
+  //describe('advanceCursor()', () => {
+  //  test('icrements step if not last step', () => {
+  //    const next = walker.advanceCursor(ExecutionCursor.parse('/0.0.0'))
+  //    expect(next.toString()).toBe('/0.0.1')
+  //  })
 
-    test('icrements phase if not last phase', () => {
-      const next = walker.nextCursor(ExecutionCursor.parse('/0.0.1'))
-      expect(next.toString()).toBe('/0.1.0')
-    })
+  //  test('icrements phase if not last phase', () => {
+  //    const next = walker.advanceCursor(ExecutionCursor.parse('/0.0.1'))
+  //    expect(next.toString()).toBe('/0.1.0')
+  //  })
 
-    test('icrements iteration if last step in loop', () => {
-      const next = walker.nextCursor(ExecutionCursor.parse('/0.1.0/0.0.0'))
-      expect(next.toString()).toBe('/0.1.0/1.0.0')
-    })
+  //  test('icrements iteration if last step in loop', () => {
+  //    const next = walker.advanceCursor(ExecutionCursor.parse('/0.1.0/0.0.0'))
+  //    expect(next.toString()).toBe('/0.1.0/1.0.0')
+  //  })
 
-    test('otherwise returns the same cursor', () => {
-
-    })
-  })
+  //  test.todo('otherwise returns the same cursor', () => {
+  //    // not sure if this should return the same cursor ... ?
+  //    // maybe would be best to raise an error
+  //  })
+  //})
 })

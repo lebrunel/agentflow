@@ -1,4 +1,5 @@
 export * from './compiler'
 export * from './scoped-view'
+export * from './stringifier'
 export * from './types'
 export * from './validations'

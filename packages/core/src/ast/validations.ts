@@ -77,7 +77,7 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
       const contextKeys = new Set<ContextKey>()
 
       // root scope
-      if (typeof scope.parentNode == 'undefined') {
+      if (typeof scope.parentNode === 'undefined') {
         if (workflow.ast.children[0].type === 'yaml') {
           const yaml = workflow.ast.children[0]
           const initialKeys = [

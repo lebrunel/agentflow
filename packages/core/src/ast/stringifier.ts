@@ -4,6 +4,7 @@ import { selectAll } from 'unist-util-select'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkStringify from 'remark-stringify'
+import dd from 'ts-dedent'
 import { toContextValue } from '../context'
 
 import type { Processor } from 'unified'
@@ -56,6 +57,26 @@ export function stringify(root: Root, options: StringifyOptions = {}): string {
   }
 }
 
+export function stringifyContext(ctx: ContextValue): string {
+  switch(ctx.type) {
+    case 'primitive':
+      return String(ctx.value)
+
+    case 'file':
+      return `![${ctx.value.type}](${ctx.value.name})`
+
+    case 'json':
+      return dd`
+      \`\`\`json
+      ${JSON.stringify(ctx.value, null, 2)}
+      \`\`\`
+      `
+
+    default:
+      throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
+  }
+}
+
 export function createStringifier(
   options: StringifyOptions = {}
 ): Processor<Root, undefined, undefined, Root, string> {
@@ -86,6 +107,9 @@ function contextAsNode(ctx: ContextValue): RootContent {
         lang: 'json',
         value: JSON.stringify(ctx.value, null, 2),
       })
+
+    default:
+      throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
   }
 }
 

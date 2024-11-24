@@ -1,12 +1,11 @@
 import { unwrapContext } from '../context'
-import type { Root } from 'mdast'
-import type { ExecutionCursor } from './cursor'
+import { ExecutionCursor, type CursorLocation } from './cursor'
 import type { ActionHelpers } from '../action'
 import type { WorkflowNode } from '../ast'
 import type { Context, ContextValue, ContextValueMap } from '../context'
 
 export class ExecutionState {
-  #state: Map<string, ScopeState[]> = new Map()
+  #state: Map<string, ExecutionScope[]> = new Map()
   #visited: WeakSet<WorkflowNode> = new WeakSet()
   readonly actionLog: ActionResult[] = []
 
@@ -32,24 +31,31 @@ export class ExecutionState {
     })
   }
 
-  *iterateResults(): Generator<StepResult> {
+  getScope(cursor: ExecutionCursor): ExecutionScope {
+    return this.scoped(cursor, scope => scope)
+  }
+
+  *iterateResults(): Generator<[ExecutionCursor, StepResult]> {
     const state = this.#state
-    function* iterateScope(scopes?: ScopeState[]): Generator<StepResult> {
+
+    function* iterate(cursor: ExecutionCursor): Generator<[ExecutionCursor, StepResult]> {
+      const scopes = state.get(cursor.path)
       if (!scopes) return
 
       for (const scope of scopes) {
-        for (const result of scope.results.values()) {
-          yield result
+        for (const [location, result] of scope.results) {
+          const cursorLocation = location.split('.').map(Number) as CursorLocation
+          yield [ExecutionCursor.move(cursor, cursorLocation), result]
 
-          const cursor = result.action?.cursor
-          if (cursor && state.has(cursor.toString())) {
-            yield* iterateScope(state.get(cursor.toString()))
+          const nextCursor = result.action?.cursor
+          if (nextCursor && state.has(nextCursor.toString())) {
+            yield* iterate(ExecutionCursor.push(cursor))
           }
         }
       }
     }
 
-    yield* iterateScope(this.#state.get('/'))
+    yield* iterate(new ExecutionCursor())
   }
 
   pushContext(
@@ -86,6 +92,17 @@ export class ExecutionState {
     }
   }
 
+  rewind(cursor: ExecutionCursor): void {
+    // drop future scopes
+    clearMap(this.#state, cursor.path)
+
+    // drop results from current location
+    const scopes = this.#state.get(cursor.path)
+    if (scopes && scopes[cursor.iteration]) {
+      clearMap(scopes[cursor.iteration].results, cursor.location, true)
+    }
+  }
+
   visit(...nodes: WorkflowNode[]): void {
     for (const node of nodes) {
       this.#visited.add(node)
@@ -96,7 +113,7 @@ export class ExecutionState {
     return this.#visited.has(node)
   }
 
-  private scoped<T>(cursor: ExecutionCursor, callback: (scope: ScopeState) => T): T {
+  private scoped<T>(cursor: ExecutionCursor, callback: (scope: ExecutionScope) => T): T {
     const scopes = this.#state.get(cursor.path)
     const scope = (scopes || [])[cursor.iteration]
     if (!scope) throw new Error(`Scope not found: ${cursor.toString()}`)
@@ -104,16 +121,29 @@ export class ExecutionState {
   }
 }
 
+function clearMap<K, V>(map: Map<K, V>, key: string, fromFrom: boolean = false): boolean {
+  let keyFound = false
+  for (const k of map.keys()) {
+    if (keyFound) {
+      map.delete(k)
+    } else if (k === key) {
+      keyFound = true
+      if (fromFrom) map.delete(k)
+    }
+  }
+  return keyFound
+}
+
 // Types
 
-export interface ScopeState {
+export interface ExecutionScope {
   context: ContextValueMap;
   helpers: ActionHelpers;
   results: Map<string, StepResult>
 }
 
 export interface StepResult {
-  content: Root;
+  content: string;
   action?: ActionResult;
 }
 

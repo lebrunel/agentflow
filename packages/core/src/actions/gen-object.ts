@@ -18,17 +18,21 @@ export default defineAction({
   name: 'gen-object',
   schema,
   helpers: { z },
-  execute: async function(props, { input, results, meta, runtime }) {
+  execute: async function(ctx, props) {
+    const env = ctx.useEnv()
+    const results = ctx.getPrevStepResults()
+
     const messages: CoreMessage[] = []
 
-    for (const res of results) {
-      messages.push(await toCoreMessage('user', res.input))
-      messages.push(await toCoreMessage('assistant', [res.output]))
+    for (const { action, content } of results) {
+      messages.push({ role: 'user', content: content })
+      messages.push(await toCoreMessage('assistant', action!.result))
     }
-    messages.push(await toCoreMessage('user', input))
+
+    messages.push({ role: 'user', content: ctx.content })
 
     const opts = {
-      model: runtime.useLanguageModel(props.model),
+      model: env.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
       schema: props.schema,
@@ -37,10 +41,9 @@ export default defineAction({
       ...props.options
     }
 
-    const { object, usage } = await generateObject(opts)
+    const response = await generateObject(opts)
 
-    meta.usage = usage
-
-    return { type: 'json', value: object as any }
+    ctx.pushResponseMeta('ai', response)
+    return { type: 'json', value: response.object as any }
   }
 })

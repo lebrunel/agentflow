@@ -1,5 +1,6 @@
 import { createNanoEvents } from 'nanoevents'
-import { ExecutionCursor } from './cursor'
+import { pushable } from 'it-pushable'
+import { ExecutionCursor, parseLocation } from './cursor'
 import { evalExpression } from './eval'
 import { ExecutionState } from './state'
 import { ExecutionWalker } from './walker'
@@ -7,10 +8,10 @@ import { stringify, stringifyContext } from '../ast'
 
 import type { Unsubscribe } from 'nanoevents'
 import type { Pushable } from 'it-pushable'
-import type { ActionResult, StepResult } from './state'
+import type { ActionMeta, ActionResult, StepResult } from './state'
 import type { ActionHelpers } from '../action'
 import type { ExpressionNode, WorkflowScope, WorkflowPhase, WorkflowStep } from '../ast'
-import type { ContextKey, ContextValueMap } from '../context'
+import { wrapContext, type Context, type ContextKey, type ContextValueMap } from '../context'
 import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
 
@@ -119,17 +120,74 @@ export class ExecutionController {
     })
 
     let actionPromise: Promise<ActionResult> | undefined
+    let actionStream: Pushable<string> | undefined
+    let actionMeta: ActionMeta | undefined
 
     if (step.action) {
       const actionNode = step.action
+      actionStream = pushable<string>({ objectMode: true })
       actionPromise = new Promise(async resolve => {
-        const ctx = {} // todo
         const action = this.env.useAction(actionNode.name)
 
+        // Build action execution context
+        const ctx: ExecutionContext = {
+          content,
+          getCursor: () => {
+            return this.cursor
+          },
+          pushCursor: () => {
+            this.#cursor = ExecutionCursor.push(this.cursor)
+            return this.cursor
+          },
+          popCursor: () => {
+            this.#cursor = ExecutionCursor.pop(this.cursor)
+            return this.cursor
+          },
+          //getActionResults: () => this.state.getActionResults(this.cursor),
+          getPrevStepResults: () => {
+            return this.state.getPhaseResults(this.cursor)
+          },
+          getScopedActionResults: () => {
+            return this.state.getScopeResults(this.cursor).map(results => {
+              const context: Context = {}
+              for (const { action } of results) {
+                if (action) context[action.contextKey] = action.result
+              }
+              return context
+            })
+          },
+          pushContext: (context) => {
+            this.state.pushContext(this.cursor, wrapContext(context))
+          },
+          pushResponseMeta: (type, data) => {
+            actionMeta = { type, data }
+          },
+          runChildren: async (opts) => {
+            if (!step.childScope) return
+            let shouldStop = false
+            const stop = () => shouldStop = true
+            while(true) {
+              if (opts.beforeEach) opts.beforeEach({ cursor: this.cursor, stop })
+              if (shouldStop) break
+              await this.runNext({ afterStep, runAll })
+              if (opts.afterEach) opts.afterEach({ cursor: this.cursor, stop })
+              if (shouldStop) break
+            }
+          },
+          useEnv: () => {
+            return this.env
+          },
+          useStream: () => {
+            actionStream ||= pushable<string>({ objectMode: true })
+            return actionStream
+          },
+        }
+
         const contextKey: ContextKey = actionNode.attributes.as
-        const $: ActionHelpers = typeof action.helpers === 'function'
+        const $ = toGetters(typeof action.helpers === 'function'
           ? action.helpers(ctx)
           : action.helpers
+        )
 
         const props = Object.entries(actionNode.attributes).reduce((props, [key, val]) => {
           if (isExpression(val)) {
@@ -153,7 +211,8 @@ export class ExecutionController {
           cursor,
           name: action.name,
           contextKey,
-          result
+          result,
+          meta: actionMeta
         })
       })
     }
@@ -317,6 +376,17 @@ function isExpression(val: any): val is ExpressionNode {
   return typeof val === 'object' && val.type === 'expression' && !!val.data
 }
 
+function toGetters(props: Record<string, () => any>): Record<string, any> {
+  return Object.entries(props).reduce((getters, [name, fn]) => {
+    Object.defineProperty(getters, name, {
+      get: () => fn(),
+      enumerable: true,
+      configurable: true,
+    })
+    return getters
+  }, {})
+}
+
 /**
  * Represents the current state of workflow execution.
  */
@@ -338,6 +408,28 @@ export enum ExecutionStatus {
 }
 
 // Types
+
+export interface ExecutionContext {
+  content: string,
+  getCursor: () => ExecutionCursor,
+  pushCursor: () => ExecutionCursor,
+  popCursor: () => ExecutionCursor,
+  getPrevStepResults: () => StepResult[],
+  getScopedActionResults: () => Context[],
+  pushContext: (context: Context) => void
+  pushResponseMeta: (type: string, data: any) => void,
+  runChildren: (opts: {
+    beforeEach?: (opts: RunChildrenCallbackOpts) => void,
+    afterEach?: (opts: RunChildrenCallbackOpts) => void,
+  }) => Promise<void>,
+  useEnv: () => Environment,
+  useStream: () => Pushable<string>,
+}
+
+type RunChildrenCallbackOpts = {
+  cursor: ExecutionCursor,
+  stop: () => void,
+}
 
 /**
  * Events emitted during workflow execution.

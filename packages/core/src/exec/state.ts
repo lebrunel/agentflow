@@ -1,5 +1,5 @@
 import { unwrapContext } from '../context'
-import { ExecutionCursor, type CursorLocation } from './cursor'
+import { ExecutionCursor, parseLocation, type CursorLocation } from './cursor'
 import type { ActionHelpers } from '../action'
 import type { WorkflowNode } from '../ast'
 import type { Context, ContextValue, ContextValueMap } from '../context'
@@ -11,28 +11,41 @@ export class ExecutionState {
 
   getContext(cursor: ExecutionCursor): Context {
     return this.scoped(cursor, scope => {
-      const results: Context = {}
-      for (const { action } of scope.results.values()) {
-        if (action) {
-          results[action.contextKey] = action.result.value
-        }
-      }
       return {
         ...unwrapContext(scope.context),
         ...scope.helpers,
-        ...results,
+        ...extractResults(scope.results.values()),
       }
-    })
-  }
-
-  getResult(cursor: ExecutionCursor): StepResult | undefined {
-    return this.scoped(cursor, scope => {
-      return scope.results.get(cursor.location)
     })
   }
 
   getScope(cursor: ExecutionCursor): ExecutionScope {
     return this.scoped(cursor, scope => scope)
+  }
+
+  getScopeResults(cursor: ExecutionCursor): StepResult[][] {
+    const scopes = this.#state.get(cursor.path) || []
+    return scopes.map(scope => {
+      return Array.from(scope.results.values())
+    })
+  }
+
+  getPhaseResults(cursor: ExecutionCursor): StepResult[] {
+    return this.scoped(cursor, scope => {
+      const results: StepResult[] = []
+      for (const [loc, result] of scope.results) {
+        if (parseLocation(loc).phaseIndex === cursor.phaseIndex) {
+          results.push(result)
+        }
+      }
+      return results
+    })
+  }
+
+  getStepResult(cursor: ExecutionCursor): StepResult | undefined {
+    return this.scoped(cursor, scope => {
+      return scope.results.get(cursor.location)
+    })
   }
 
   *iterateResults(): Generator<[ExecutionCursor, StepResult]> {
@@ -121,6 +134,16 @@ export class ExecutionState {
   }
 }
 
+export function extractResults(steps: Iterable<StepResult>): Context {
+  const results: Context = {}
+  for (const { action } of steps) {
+    if (action) {
+      results[action.contextKey] = action.result.value
+    }
+  }
+  return results
+}
+
 function clearMap<K, V>(map: Map<K, V>, key: string, fromFrom: boolean = false): boolean {
   let keyFound = false
   for (const k of map.keys()) {
@@ -152,5 +175,10 @@ export interface ActionResult {
   name: string;
   contextKey: string;
   result: ContextValue;
-  meta?: { type: string, data: any }
+  meta?: ActionMeta;
+};
+
+export interface ActionMeta<T = any> {
+  type: string;
+  data: T
 }

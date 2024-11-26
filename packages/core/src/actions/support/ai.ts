@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { dedent as dd } from 'ts-dedent'
-import { stringifyContext, type ContextValue } from '../../context'
+import { stringifyContext } from '../../ast'
 
 import type { CoreAssistantMessage, CoreUserMessage } from 'ai'
-
+import type { ContextValue } from '../../context'
 
 export const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.
@@ -52,23 +52,14 @@ export const aiGenerationOptions = z.object({
 
 export async function toCoreMessage(
   role: 'user' | 'assistant',
-  values: ContextValue[],
+  ctx: ContextValue,
 ): Promise<CoreUserMessage | CoreAssistantMessage> {
-  const content = []
-  for (const ctx of values) {
-    if (ctx.type === 'file') {
-      const image = await getDataUrlFromFile(ctx.value)
-      content.push({ type: 'image', image } )
-    } else {
-      content.push({ type: 'text', text: stringifyContext(ctx) })
-    }
-  }
-
-  if (role === 'user') {
-    return { role, content } as CoreUserMessage
+  let content
+  if (ctx.type === 'file') {
+    const image = await getDataUrlFromFile(ctx.value)
+    return { role, content: [{ type: 'image', image }] } as CoreUserMessage
   } else {
-    // For 'assistant', we assume only text content is allowed
-    return { role, content } as CoreAssistantMessage
+    return { role, content: stringifyContext(ctx) }
   }
 }
 

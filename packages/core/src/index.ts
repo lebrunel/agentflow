@@ -6,14 +6,18 @@ export {
   compile,
   compileSync,
   createCompiler,
-  createScope,
-  walkScope,
+  createStringifier,
+  createScopedView,
+  stringify,
+  stringifyContext,
+  walkScopeTree,
   type CompileOptions,
   type ActionNode,
   type ExpressionNode,
+  type StringifyOptions,
   type WorkflowScope,
   type WorkflowPhase,
-  type WorkflowAction,
+  type WorkflowStep,
   type WorkflowWalker,
 } from './ast'
 
@@ -33,7 +37,6 @@ export {
   toContextValue,
   wrapContext,
   unwrapContext,
-  stringifyContext,
   type ContextKey,
   type ContextValue,
   type ContextValueMap,
@@ -41,30 +44,56 @@ export {
 
 export {
   defineConfig,
-  executeWorkflow,
-  evalExpression,
-  evalDependencies,
-  ExecutionController,
-  ExecutionStatus,
-  ExecutionCursor,
-  BaseInput,
-  TextInput,
-  SelectInput,
-  FileInput,
-  ArrayInput,
-  WorkflowInput,
-  WorkflowInputSchema,
-  ExecutionNavigator,
-  Runtime,
-  ExecutionState,
-  type UserConfig,
-  type ActionEvent,
-  type AfterActionCallback,
-  type ExecutionOptions,
-  type ExecutionEvents,
-  type Cursor,
+  Environment,
   type Plugin,
-} from './runtime'
+  type UserConfig,
+} from './env'
+
+export {
+  cursorCompare,
+  evalExpression,
+  getExpressionDependencies,
+  parseLocation,
+  ExecutionController,
+  ExecutionCursor,
+  ExecutionState,
+  ExecutionStatus,
+  ExecutionWalker,
+  type ActionResult,
+  type AfterStepCallback,
+  type CursorLocation,
+  type ExecutionEvents,
+  type ExecutionScope,
+  type StepEvent,
+  type StepResult,
+} from './exec'
+
+//export {
+//  //defineConfig,
+//  executeWorkflow,
+//  evalExpression,
+//  evalDependencies,
+//  ExecutionController,
+//  ExecutionStatus,
+//  ExecutionCursor,
+//  BaseInput,
+//  TextInput,
+//  SelectInput,
+//  FileInput,
+//  ArrayInput,
+//  WorkflowInput,
+//  WorkflowInputSchema,
+//  ExecutionNavigator,
+//  Runtime,
+//  ExecutionState,
+//  //type UserConfig,
+//  type ActionEvent,
+//  type AfterActionCallback,
+//  type ExecutionOptions,
+//  type ExecutionEvents,
+//  type Cursor,
+//  //type Plugin,
+//} from './runtime'
 
 export {
   defineAction,
@@ -82,7 +111,7 @@ export {
 
 export {
   Workflow
-} from './workflow2'
+} from './workflow'
 
 export {
   models,

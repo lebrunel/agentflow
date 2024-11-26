@@ -15,11 +15,23 @@ const schema = z.object({
 export default defineAction({
   name: 'gen-text',
   schema,
-  execute: async function(props, { input, results, meta, runtime, stream }) {
+  execute: async function(ctx, props) {
+    const env = ctx.useEnv()
+    const stream = ctx.useStream()
+    const results = ctx.getPrevStepResults()
+
     const messages: CoreMessage[] = []
+
+    for (const { action, content } of results) {
+      messages.push({ role: 'user', content: content })
+      messages.push(await toCoreMessage('assistant', action!.result))
+    }
+
+    messages.push({ role: 'user', content: ctx.content })
+
     const tools: Record<string, CoreTool> = props.tools
       ? props.tools.reduce((obj, name) => {
-        const tool = runtime.useTool(name)
+        const tool = env.useTool(name)
         return { ...obj, [tool.name]: {
           desciption: tool.description,
           parameters: tool.params,
@@ -28,38 +40,33 @@ export default defineAction({
       }, {})
       : {}
 
-    for (const res of results) {
-      messages.push(await toCoreMessage('user', res.input))
-      messages.push(await toCoreMessage('assistant', [res.output]))
-    }
-    messages.push(await toCoreMessage('user', input))
-
     const opts = {
-      model: runtime.useLanguageModel(props.model),
+      model: env.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
       messages,
       tools,
       ...props.options
     }
 
-    const { text, usage } = props.stream === false
-      ? await generateText(opts)
-      : await new Promise<GenerateTextResult<typeof tools>>(async resolve => {
+    async function streamPromise(): Promise<GenerateTextResult<typeof tools>> {
+      return new Promise(async (resolve) => {
         const { textStream } = await streamText({
           ...opts,
-          onFinish: (result) => resolve(result as GenerateTextResult<typeof tools>)
+          onFinish: (res) => resolve(res as GenerateTextResult<typeof tools>)
         })
 
         for await (const chunk of textStream) {
-          // todo - need a cleaner way to stream - maybe just send events to the controller?
           stream.push(chunk)
         }
-
-
       })
+    }
 
-    meta.usage = usage
+    const response = await (props.stream
+      ? streamPromise()
+      : generateText(opts)
+    )
 
-    return { type: 'primitive', value: text }
+    ctx.pushResponseMeta('ai', response)
+    return { type: 'primitive', value: response.text }
   }
 })

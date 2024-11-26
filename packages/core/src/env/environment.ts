@@ -7,7 +7,13 @@ import type { Action } from '../action'
 import type { Tool } from '../tool'
 import { kebabCase } from 'change-case'
 
-const actions: Action[] = []
+// Default actions
+const actions: Action[] = [
+  condAction,
+  loopAction,
+  genTextAction,
+  genObjectAction,
+]
 
 // Default tools
 const tools: Tool<z.ZodType>[] = []

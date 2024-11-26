@@ -18,7 +18,7 @@ function ctx(key: string, value: string | number): { [key: string]: PrimitiveCon
 
 function mock(cursor: ExecutionCursor, contextKey: string, value: string | number): StepResult {
   return {
-    content: { type: 'root', children: [] },
+    content: 'test',
     action: { cursor, contextKey, name: 'mock', result: { type: 'primitive', value }}
   }
 }
@@ -78,12 +78,12 @@ describe('ExecutionState pushResult()', () => {
     state.pushResult(c0, mock(c0, 'x', 1))
     state.pushResult(c1, mock(c1, 'y', 2))
 
-    const r0 = state.getResult(c0)
+    const r0 = state.getStepResult(c0)
     expect(r0?.action?.cursor).toEqual(c0)
     expect(r0?.action?.contextKey).toEqual('x')
     expect(r0?.action?.result.value).toEqual(1)
 
-    const r1 = state.getResult(c1)
+    const r1 = state.getStepResult(c1)
     expect(r1?.action?.cursor).toEqual(c1)
     expect(r1?.action?.contextKey).toEqual('y')
     expect(r1?.action?.result.value).toEqual(2)

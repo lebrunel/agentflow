@@ -47,6 +47,19 @@ export class ExecutionCursor {
   }
 
   /**
+   * Returns a new cursor truncated to the specified depth.
+   */
+  static trunc(cursor: ExecutionCursor, depth: number): ExecutionCursor {
+    const normalizedDepth = depth < 0 ? cursor.length + depth : depth
+
+    if (normalizedDepth < 0 || normalizedDepth >= cursor.length) {
+      throw new Error(`Invalid index: ${depth}. Cursor length is ${cursor.length}.`)
+    }
+
+    return new ExecutionCursor(cursor.cursor.slice(0, normalizedDepth + 1))
+  }
+
+  /**
    * Parses a cursor path string and creates a new ExecutionCursor instance.
    *
    * The cursor path string should be in the format '/a.b.c/x.y.z',
@@ -70,6 +83,13 @@ export class ExecutionCursor {
 
     return new ExecutionCursor(cursor)
   }
+
+  /**
+   * Returns the length of the cursor (number of levels)
+   */
+   get length(): number {
+     return this.#cursor.length;
+   }
 
   /**
    * Returns a copy of the internal cursor array.

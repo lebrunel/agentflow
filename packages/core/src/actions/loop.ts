@@ -1,5 +1,7 @@
 import { z } from 'zod'
 import { defineAction } from '../action'
+import { unwrapContext } from 'src/context'
+import { ExecutionCursor } from 'src/exec'
 
 export default defineAction({
   name: 'loop',
@@ -8,34 +10,35 @@ export default defineAction({
     provide: z.record(z.string(), z.any()).default({}),
   }),
   helpers: function(ctx) {
+    const cursorDepth = ctx.getCursor().length
+
     return {
-      index: () => ctx.getCursor().iteration,
-      self: () => ctx.getScopedActionResults(),
+      index: () => {
+        const cursor = ExecutionCursor.trunc(ctx.getCursor(), cursorDepth)
+        return cursor.iteration
+      },
+      self: () => ctx.getScopedContext(),
       last: () => {
-        const results = ctx.getScopedActionResults()
-        return results[results.length - 1]
+        const results = ctx.getScopedContext()
+        return results[results.length - 2]
       }
     }
   },
   execute: async function(ctx, props) {
-    ctx.pushCursor()
-
-    await ctx.runChildren({
-      beforeEach({ cursor, stop }) {
+    const results = await ctx.runChildren({
+      beforeStep({ cursor, stop }) {
         // If before any step the cursor is 0 and the break condition is true,
         // we stop the loop. Otherwise we push a new context for this iteration.
         if (cursor.phaseIndex === 0 && cursor.stepIndex === 0) {
           if (props.until) {
             stop()
-          } else if (props.provide) {
+          } else {
             ctx.pushContext(props.provide)
           }
         }
       }
     })
 
-    const value = ctx.getScopedActionResults()
-    ctx.popCursor()
-    return { type: 'json', value }
+    return { type: 'json', value: results }
   }
 })

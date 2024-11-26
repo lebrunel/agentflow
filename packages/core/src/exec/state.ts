@@ -58,11 +58,12 @@ export class ExecutionState {
       for (const scope of scopes) {
         for (const [location, result] of scope.results) {
           const cursorLocation = location.split('.').map(Number) as CursorLocation
-          yield [ExecutionCursor.move(cursor, cursorLocation), result]
+          const currentCursor = ExecutionCursor.move(cursor, cursorLocation)
+          yield [currentCursor, result]
 
           const nextCursor = result.action?.cursor
           if (nextCursor && state.has(nextCursor.toString())) {
-            yield* iterate(ExecutionCursor.push(cursor))
+            yield* iterate(ExecutionCursor.push(currentCursor))
           }
         }
       }

@@ -85,7 +85,10 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
         }
       // child scope
       } else {
+        contextKeys.add('$')
+        contextKeys.add(`$${scope.parentNode.attributes.as}`)
         const provideAttr = scope.parentNode.attributes.provide
+
         if (provideAttr) {
           for (const key of getObjectKeysFromExpression(provideAttr)) {
             validateUniqueness(key, contextKeys, { node: scope.parentNode!, file })
@@ -128,6 +131,7 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
             node: step.action,
             file,
           })
+
           context.contextKeys.add(contextKey)
         }
       }

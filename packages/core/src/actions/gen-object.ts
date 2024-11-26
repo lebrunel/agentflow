@@ -20,7 +20,7 @@ export default defineAction({
   helpers: { z },
   execute: async function(ctx, props) {
     const env = ctx.useEnv()
-    const results = ctx.getPrevStepResults()
+    const results = ctx.getPhaseResults()
 
     const messages: CoreMessage[] = []
 

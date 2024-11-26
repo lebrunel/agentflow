@@ -11,7 +11,7 @@ import type { Pushable } from 'it-pushable'
 import type { ActionMeta, ActionResult, StepResult } from './state'
 import type { ActionHelpers } from '../action'
 import type { ExpressionNode, WorkflowScope, WorkflowPhase, WorkflowStep } from '../ast'
-import { wrapContext, type Context, type ContextKey, type ContextValueMap } from '../context'
+import { unwrapContext, wrapContext, type Context, type ContextKey, type ContextValueMap } from '../context'
 import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
 
@@ -128,6 +128,8 @@ export class ExecutionController {
       actionStream = pushable<string>({ objectMode: true })
       actionPromise = new Promise(async resolve => {
         const action = this.env.useAction(actionNode.name)
+        const contextKey: ContextKey = actionNode.attributes.as
+        let helpers: ActionHelpers | undefined
 
         // Build action execution context
         const ctx: ExecutionContext = {
@@ -135,44 +137,50 @@ export class ExecutionController {
           getCursor: () => {
             return this.cursor
           },
-          pushCursor: () => {
-            this.#cursor = ExecutionCursor.push(this.cursor)
-            return this.cursor
-          },
-          popCursor: () => {
-            this.#cursor = ExecutionCursor.pop(this.cursor)
-            return this.cursor
-          },
-          //getActionResults: () => this.state.getActionResults(this.cursor),
-          getPrevStepResults: () => {
+          getPhaseResults: () => {
             return this.state.getPhaseResults(this.cursor)
           },
-          getScopedActionResults: () => {
+          getScopedContext: () => {
             return this.state.getScopeResults(this.cursor).map(results => {
-              const context: Context = {}
+              const context: ContextValueMap = {}
               for (const { action } of results) {
                 if (action) context[action.contextKey] = action.result
               }
-              return context
+              return unwrapContext(context)
             })
           },
           pushContext: (context) => {
-            this.state.pushContext(this.cursor, wrapContext(context))
+            this.state.pushContext(
+              this.cursor,
+              wrapContext(context || {}),
+              { $: helpers, [`$${contextKey}`]: helpers },
+            )
           },
           pushResponseMeta: (type, data) => {
             actionMeta = { type, data }
           },
           runChildren: async (opts) => {
-            if (!step.childScope) return
+            if (!step.childScope) return []
             let shouldStop = false
             const stop = () => shouldStop = true
-            while(true) {
-              if (opts.beforeEach) opts.beforeEach({ cursor: this.cursor, stop })
+
+            this.#cursor = ExecutionCursor.push(this.cursor)
+            if (opts.beforeAll) opts.beforeAll({ cursor: this.cursor, stop })
+
+            while(!shouldStop) {
+              if (opts.beforeStep) opts.beforeStep({ cursor: this.cursor, stop })
               if (shouldStop) break
               await this.runNext({ afterStep, runAll })
-              if (opts.afterEach) opts.afterEach({ cursor: this.cursor, stop })
+              if (opts.afterStep) opts.afterStep({ cursor: this.cursor, stop })
               if (shouldStop) break
             }
+
+            const results = ctx.getScopedContext()
+
+            if (opts.afterAll) opts.afterAll({ cursor: this.cursor, stop })
+            this.#cursor = ExecutionCursor.pop(this.cursor)
+
+            return results
           },
           useEnv: () => {
             return this.env
@@ -183,8 +191,7 @@ export class ExecutionController {
           },
         }
 
-        const contextKey: ContextKey = actionNode.attributes.as
-        const $ = toGetters(typeof action.helpers === 'function'
+        helpers = toGetters(typeof action.helpers === 'function'
           ? action.helpers(ctx)
           : action.helpers
         )
@@ -194,7 +201,11 @@ export class ExecutionController {
             Object.defineProperty(props, key, {
               get: () => {
                 // todo - wrap this is some kind of cache mechanism
-                return evalExpression(val, { ...context, $, [`$${contextKey}`]: $ })
+                return evalExpression(val, {
+                  ...context,
+                  $: helpers,
+                  [`$${contextKey}`]: helpers
+                })
               },
               enumerable: true,
               configurable: true,
@@ -312,23 +323,29 @@ export class ExecutionController {
     let prevCursor: ExecutionCursor | undefined
 
     for (const [cursor, result] of this.getFinalResults()) {
-      if (prevCursor && (
-        prevCursor.path !== cursor.path ||
-        prevCursor.phaseIndex !== cursor.phaseIndex
-      )) {
-        chunks.push('---')
-      }
-
       const step = this.#walker.findStep(cursor)
-      chunks.push(result.content)
+      const stepChunks: string[] = []
+
+      if (result.content.length) {
+        stepChunks.push(result.content)
+      }
 
       // For steps without a child scope, include the action result directly.
       // Steps with child scopes are skipped as their results will appear in
       // subsequent steps.
       if (result.action?.result !== undefined && !step?.childScope) {
-        chunks.push(stringifyContext(result.action.result))
+        stepChunks.push(stringifyContext(result.action.result))
       }
 
+      if (prevCursor && stepChunks.length  && (
+        prevCursor.path !== cursor.path ||
+        prevCursor.iteration !== cursor.iteration ||
+        prevCursor.phaseIndex !== cursor.phaseIndex
+      )) {
+        stepChunks.unshift('---')
+      }
+
+      chunks.push(...stepChunks)
       prevCursor = cursor
     }
 
@@ -352,7 +369,7 @@ export class ExecutionController {
         cursor.phaseIndex + 1,
         0,
       ])
-    } else if (scope.parentNode?.name === 'loop') {
+    } else if (!!scope.parentNode) {
       this.#cursor = ExecutionCursor.move(cursor, [
         cursor.iteration + 1,
         0,
@@ -376,7 +393,8 @@ function isExpression(val: any): val is ExpressionNode {
   return typeof val === 'object' && val.type === 'expression' && !!val.data
 }
 
-function toGetters(props: Record<string, () => any>): Record<string, any> {
+function toGetters(props?: Record<string, () => any>): Record<string, any> {
+  if (typeof props === 'undefined') return {}
   return Object.entries(props).reduce((getters, [name, fn]) => {
     Object.defineProperty(getters, name, {
       get: () => fn(),
@@ -412,16 +430,16 @@ export enum ExecutionStatus {
 export interface ExecutionContext {
   content: string,
   getCursor: () => ExecutionCursor,
-  pushCursor: () => ExecutionCursor,
-  popCursor: () => ExecutionCursor,
-  getPrevStepResults: () => StepResult[],
-  getScopedActionResults: () => Context[],
-  pushContext: (context: Context) => void
+  getScopedContext: () => Context[],
+  getPhaseResults: () => StepResult[],
+  pushContext: (context?: Context) => void
   pushResponseMeta: (type: string, data: any) => void,
   runChildren: (opts: {
-    beforeEach?: (opts: RunChildrenCallbackOpts) => void,
-    afterEach?: (opts: RunChildrenCallbackOpts) => void,
-  }) => Promise<void>,
+    beforeAll?: (opts: RunChildrenCallbackOpts) => void,
+    beforeStep?: (opts: RunChildrenCallbackOpts) => void,
+    afterStep?: (opts: RunChildrenCallbackOpts) => void,
+    afterAll?: (opts: RunChildrenCallbackOpts) => void,
+  }) => Promise<Context[]>,
   useEnv: () => Environment,
   useStream: () => Pushable<string>,
 }

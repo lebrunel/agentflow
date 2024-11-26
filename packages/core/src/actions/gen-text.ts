@@ -18,7 +18,7 @@ export default defineAction({
   execute: async function(ctx, props) {
     const env = ctx.useEnv()
     const stream = ctx.useStream()
-    const results = ctx.getPrevStepResults()
+    const results = ctx.getPhaseResults()
 
     const messages: CoreMessage[] = []
 

@@ -1,17 +1,17 @@
 import { z } from 'zod'
-import { defineAction, Runtime } from 'src/index'
+import { defineAction, Environment } from 'src/index'
 
 export const mockAction = defineAction({
   name: 'mock',
   schema: z.object({
     value: z.string(),
   }),
-  execute(props) {
+  execute(_ctx, props) {
     return { type: 'primitive', value: props.value }
   }
 })
 
-export const runtime = new Runtime({
+export const env = new Environment({
   actions: [
     mockAction
   ]

@@ -4,11 +4,20 @@ import type { ActionHelpers } from '../action'
 import type { WorkflowNode } from '../ast'
 import type { Context, ContextValue, ContextValueMap } from '../context'
 
+/**
+ * Manages the state of a workflow during secution, managing context, tracking
+ * results and visited node history.
+ */
 export class ExecutionState {
   #state: Map<string, ExecutionScope[]> = new Map()
   #visited: WeakSet<WorkflowNode> = new WeakSet()
   readonly actionLog: ActionResult[] = []
 
+  /**
+   * Returns the state of the current scope at the given cursor location.
+   * Context, helpers and action results from the current scope are flattened
+   * into a single context object.
+   */
   getContext(cursor: ExecutionCursor): Context {
     return this.scoped(cursor, scope => {
       return {
@@ -19,10 +28,18 @@ export class ExecutionState {
     })
   }
 
+  /**
+   * Returns a single execution scope for the given cursor location.
+   */
   getScope(cursor: ExecutionCursor): ExecutionScope {
     return this.scoped(cursor, scope => scope)
   }
 
+  /**
+   * Returns all step results from every scope iteration at the given cursor
+   * path. Returns an array of arrays as each iteration scope contains multiple
+   * step results.
+   */
   getScopeResults(cursor: ExecutionCursor): StepResult[][] {
     const scopes = this.#state.get(cursor.path) || []
     return scopes.map(scope => {
@@ -30,6 +47,11 @@ export class ExecutionState {
     })
   }
 
+  /**
+   * Returns all step results for the specific phase indicated by the cursor
+   * from the current scope. Filters results to only include those matching the
+   * cursor's phaseIndex.
+   */
   getPhaseResults(cursor: ExecutionCursor): StepResult[] {
     return this.scoped(cursor, scope => {
       const results: StepResult[] = []
@@ -42,12 +64,20 @@ export class ExecutionState {
     })
   }
 
+  /**
+   * Returns the result of a specific step based on the given cursor location.
+   */
   getStepResult(cursor: ExecutionCursor): StepResult | undefined {
     return this.scoped(cursor, scope => {
       return scope.results.get(cursor.location)
     })
   }
 
+  /**
+   * Returns a flattened iterator of execution results traversing through all
+   * scopes. Each yielded value contains the cursor location and the
+   * corresponding step result.
+   */
   *iterateResults(): Generator<[ExecutionCursor, StepResult]> {
     const state = this.#state
 
@@ -72,6 +102,11 @@ export class ExecutionState {
     yield* iterate(new ExecutionCursor())
   }
 
+  /**
+   * Adds a new execution scope to the state at the given cursor location. The
+   * new scope contains the provided context for variable storage, action
+   * helpers, and an empty results map for tracking step results.
+   */
   pushContext(
     cursor: ExecutionCursor,
     context: ContextValueMap,
@@ -94,6 +129,12 @@ export class ExecutionState {
     scopes[cursor.iteration] = { context, helpers, results }
   }
 
+  /**
+   * Stores a step result at the cursor location in the current scope. Only one
+   * result can exist per cursor until rewind() clears it. If the result
+   * contains an action, appends it to the action log which persists across
+   * rewinds.
+   */
   pushResult(cursor: ExecutionCursor, result: StepResult): void {
     this.scoped(cursor, scope => {
       if (scope.results.has(cursor.location)) {
@@ -106,6 +147,11 @@ export class ExecutionState {
     }
   }
 
+  /**
+   * Removes execution scopes and step results that occur after the given cursor
+   * location. Rewinds the results back to a previous state keeping. The action
+   * log is kept intact.
+   */
   rewind(cursor: ExecutionCursor): void {
     // drop future scopes
     clearMap(this.#state, cursor.path)
@@ -117,12 +163,19 @@ export class ExecutionState {
     }
   }
 
+  /**
+   * Tracks nodes that have been executed in this workflow run. Used to detect
+   * cycles and avoid re-running completed steps.
+   */
   visit(...nodes: WorkflowNode[]): void {
     for (const node of nodes) {
       this.#visited.add(node)
     }
   }
 
+  /**
+   * Returns whether a given node has been visited during workflow execution.
+   */
   visited(node: WorkflowNode): boolean {
     return this.#visited.has(node)
   }
@@ -135,7 +188,7 @@ export class ExecutionState {
   }
 }
 
-export function extractResults(steps: Iterable<StepResult>): Context {
+function extractResults(steps: Iterable<StepResult>): Context {
   const results: Context = {}
   for (const { action } of steps) {
     if (action) {
@@ -148,29 +201,42 @@ export function extractResults(steps: Iterable<StepResult>): Context {
 function clearMap<K, V>(map: Map<K, V>, key: string, fromFrom: boolean = false): boolean {
   let keyFound = false
   for (const k of map.keys()) {
-    if (keyFound) {
-      map.delete(k)
-    } else if (k === key) {
+    if (k === key) {
       keyFound = true
       if (fromFrom) map.delete(k)
+      continue
     }
+
+    if (keyFound) map.delete(k)
   }
   return keyFound
 }
 
 // Types
 
+/**
+ * Represents a single iteration of a workflow scope during execution. Stores
+ * context, helpers and step results for one specific iteration of a scope.
+ */
 export interface ExecutionScope {
   context: ContextValueMap;
   helpers: ActionHelpers;
   results: Map<string, StepResult>
 }
 
+/**
+ * Represents a single unit of execution, combining content output with an
+ * optional action result.
+ */
 export interface StepResult {
   content: string;
   action?: ActionResult;
 }
 
+/**
+ * Represents the result of executing an action in the workflow including
+ * identifying information and the resulting value to be stored in context.
+ */
 export interface ActionResult {
   cursor: ExecutionCursor;
   name: string;
@@ -179,6 +245,10 @@ export interface ActionResult {
   meta?: ActionMeta;
 };
 
+/**
+ * Optional metadata associated with action results, containing a type identifier
+ * and structured data. Typically used to store raw responses and metadate.
+ */
 export interface ActionMeta<T = any> {
   type: string;
   data: T

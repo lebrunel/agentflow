@@ -28,16 +28,91 @@ describe('ExecutionState', () => {
     expect([...state.iterateResults()]).toBeEmpty()
     expect(state.actionLog).toBeEmpty()
   })
+})
 
-  test('getContext() throws if unknown context', () => {
+describe('ExecutionState getContext()', () => {
+  test('returns unwrapped context and helpers', () => {
+    state.pushContext(ExecutionCursor.parse('/0.0.0'), ctx('a', 1), { $: 'foo' })
+    expect(state.getContext(ExecutionCursor.parse('/0.0.0'))).toEqual({ a: 1, $: 'foo' })
+  })
+
+  test('throws if unknown scope', () => {
     expect(() => {
       state.getContext(ExecutionCursor.parse('/0.0.0'))
     }).toThrow(/scope not found/i)
   })
+})
 
-  test('getContext() returns unwrapped context and helpers', () => {
-    state.pushContext(ExecutionCursor.parse('/0.0.0'), ctx('a', 1), { $: 'foo' })
-    expect(state.getContext(ExecutionCursor.parse('/0.0.0'))).toEqual({ a: 1, $: 'foo' })
+describe('ExecutionState getScope()', () => {
+  test('returns execution scope of the specific iteration', () => {
+    const cursor = ExecutionCursor.parse('/0.0.0')
+    state.pushContext(cursor, {})
+    state.pushResult(cursor, mock(cursor, 'foo', 'bar'))
+    const scope = state.getScope(cursor)
+    expect(scope.results.has('0.0.0')).toBeTrue()
+  })
+
+  test('throws if unknown scope', () => {
+    expect(() => {
+      state.getScope(ExecutionCursor.parse('/0.0.0'))
+    }).toThrow(/scope not found/i)
+  })
+})
+
+describe('ExecutionState getScopeResults()', () => {
+  test('returns all step results from every iteration of the scope', () => {
+    let cursor = ExecutionCursor.parse('/0.0.0')
+    for (const i of [0,1,2]) {
+      cursor = ExecutionCursor.move(cursor, [i,0,0])
+      state.pushContext(cursor, {})
+      state.pushResult(cursor, mock(cursor, 'foo', i))
+      cursor = ExecutionCursor.move(cursor, [i,0,1])
+      state.pushResult(cursor, mock(cursor, 'bar', i))
+      cursor = ExecutionCursor.move(cursor, [i,0,2])
+      state.pushResult(cursor, mock(cursor, 'qux', i))
+    }
+
+    const results = state.getScopeResults(ExecutionCursor.parse('/0.0.0'))
+    expect(results).toHaveLength(3)
+
+    for (const block of results) {
+      expect(block).toHaveLength(3)
+      for (const result of block) {
+        expect(result.content).toBeString()
+        expect(result.action).toBeObject()
+      }
+    }
+  })
+
+  test('wont throw if unknown scope', () => {
+    expect(() => {
+      state.getScopeResults(ExecutionCursor.parse('/0.0.0'))
+    }).not.toThrow()
+  })
+})
+
+describe('ExecutionState getPhaseResults()', () => {
+  test('returns all step results for the given phase', () => {
+    let cursor = ExecutionCursor.parse('/0.0.0')
+    state.pushContext(cursor, {})
+    state.pushResult(cursor, mock(cursor, 'foo', 1))
+    cursor = ExecutionCursor.move(cursor, [0,0,1])
+    state.pushResult(cursor, mock(cursor, 'bar', 2))
+    // move the phase
+    cursor = ExecutionCursor.move(cursor, [0,1,0])
+    state.pushResult(cursor, mock(cursor, 'qux', 3))
+
+    const results = state.getPhaseResults(ExecutionCursor.parse('/0.0.0'))
+    expect(results).toHaveLength(2)
+    expect(results.some(r => r.action!.contextKey === 'foo')).toBeTrue()
+    expect(results.some(r => r.action!.contextKey === 'bar')).toBeTrue()
+    expect(results.some(r => r.action!.contextKey === 'qux')).toBeFalse()
+  })
+
+  test('throws if unknown scope', () => {
+    expect(() => {
+      state.getPhaseResults(ExecutionCursor.parse('/0.0.0'))
+    }).toThrow(/scope not found/i)
   })
 })
 
@@ -96,6 +171,32 @@ describe('ExecutionState pushResult()', () => {
     expect(() => {
       state.pushResult(c0, mock(c0, 'y', 2))
     }).toThrow(/duplicate result/i)
+  })
+})
+
+describe('ExecutionState rewind()', () => {
+  test('clears future scopes from the state', () => {
+    state.pushContext(ExecutionCursor.parse('/0.0.0'), {})
+    state.pushContext(ExecutionCursor.parse('/0.0.0/0.0.0'), {})
+    state.pushContext(ExecutionCursor.parse('/0.0.1/0.0.0'), {})
+    state.pushContext(ExecutionCursor.parse('/0.0.2/0.0.0'), {})
+
+    let cursor = ExecutionCursor.parse('/0.0.2')
+    state.pushResult(cursor, mock(cursor, 'foo', 1))
+
+    cursor = ExecutionCursor.push(cursor)
+    for (const i of [0,1,2]) {
+      cursor = ExecutionCursor.move(cursor, [0,0,i])
+      state.pushResult(cursor, mock(cursor, 'foo', 1))
+    }
+
+    expect([...state.iterateResults()]).toHaveLength(4)
+    expect(state.actionLog).toHaveLength(4)
+
+    state.rewind(ExecutionCursor.parse('/0.0.1'))
+
+    expect([...state.iterateResults()]).toHaveLength(1)
+    expect(state.actionLog).toHaveLength(4)
   })
 })
 

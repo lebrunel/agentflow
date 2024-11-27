@@ -1,5 +1,6 @@
 import { beforeAll, beforeEach, describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
+import { env } from 'test/support/env'
 import { ExecutionCursor, ExecutionState } from 'src/exec'
 import { Workflow } from 'src/workflow'
 
@@ -220,7 +221,7 @@ describe('ExecutionState visit()', () => {
     <Loop as="b" until={$.index === 3}>
       Baz
     </Loop>
-    `)
+    `, { env })
   })
 
   test('collects scopes', () => {

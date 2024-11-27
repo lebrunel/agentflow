@@ -1,12 +1,13 @@
 import { describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
+import { env } from 'test/support/env'
 import { createCompiler, stringify } from 'src/ast'
 import { evalExpression } from 'src/exec'
 
 import type { Root } from 'mdast'
 
 function parse(markdown: string): Root {
-  const proc = createCompiler()
+  const proc = createCompiler({ env })
   return proc.runSync(proc.parse(markdown))
 }
 

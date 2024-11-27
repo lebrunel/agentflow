@@ -1,15 +1,22 @@
-import { describe, expect, test } from 'bun:test'
+import { beforeAll, describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
 import dd from 'ts-dedent'
+import { env } from 'test/support/env'
 import { createCompiler, compile, compileSync } from 'src/ast'
 import { Workflow } from 'src/workflow'
-import type { Paragraph, Yaml } from 'mdast'
-import type { ActionNode, ExpressionNode } from 'src/ast'
+import type { Paragraph, Root, Yaml } from 'mdast'
+import type { ActionNode, ExpressionNode } from 'src'
+import type { Processor } from 'unified'
 
 
 describe('createCompiler()', () => {
+  let proc: Processor<Root, Root, Root, Root, Workflow>
+
+  beforeAll(() => {
+    proc = createCompiler({ env })
+  })
+
   test('returns a unified processer', () => {
-    const proc = createCompiler()
     expect(proc.parse).toBeFunction()
     expect(proc.run).toBeFunction()
     expect(proc.runSync).toBeFunction()
@@ -18,7 +25,6 @@ describe('createCompiler()', () => {
   })
 
   test('parse() parses string raw AST', () => {
-    const proc = createCompiler()
     const ast = proc.parse(dd`
     Hello
 
@@ -30,7 +36,6 @@ describe('createCompiler()', () => {
   })
 
   test('runSync() caputures frontmatter', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(dd`
     ---
     data:
@@ -44,7 +49,6 @@ describe('createCompiler()', () => {
   })
 
   test('runSync() strips comment nodes', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(dd`
     > This is a comment
 
@@ -59,7 +63,6 @@ describe('createCompiler()', () => {
   })
 
   test('runSync() converts mdx flow elements to actions', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(dd`
     Hello
 
@@ -73,13 +76,11 @@ describe('createCompiler()', () => {
 
   test('runSync() throws error on mdx text elements', () => {
     expect(() => {
-      const proc = createCompiler()
       proc.runSync(proc.parse('Hello <Mock as="foo" value="bar" />'))
     }).toThrow(/action must be a block-level/i)
   })
 
   test('runSync() converts mdx flow expressions to expressions', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(dd`
     Hello
 
@@ -91,7 +92,6 @@ describe('createCompiler()', () => {
   })
 
   test('runSync() converts mdx text expressions to expressions', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(`Hello {'world'}`))
     const para = ast.children[0] as Paragraph
     expect(para.children[1].type).toBe('expression')
@@ -100,7 +100,6 @@ describe('createCompiler()', () => {
   })
 
   test('runSync() converts attribute expressions to expressions', () => {
-    const proc = createCompiler()
     const ast = proc.runSync(proc.parse(`<Mock as="foo" value={'world'} />`))
     const attr = (ast.children[0] as ActionNode).attributes.value
     expect(attr.type).toBe('expression')
@@ -110,13 +109,11 @@ describe('createCompiler()', () => {
 
   test('runSync() throws on splat expressions', () => {
     expect(() => {
-      const proc = createCompiler()
       proc.runSync(proc.parse('<Mock as="foo" {...attrs} />'))
     }).toThrow(/unsupported attribute syntax/i)
   })
 
   test('processSync() compile to VFile with workflow', () => {
-    const proc = createCompiler()
     const file = proc.processSync(`Hello {'world'}`)
     expect(file).toBeInstanceOf(VFile)
     expect(file.result).toBeInstanceOf(Workflow)
@@ -124,7 +121,6 @@ describe('createCompiler()', () => {
 
   test('processSync() throws on invalid workflow', () => {
     expect(() => {
-      const proc = createCompiler()
       proc.processSync(dd`
       Hello {name}
 
@@ -136,12 +132,12 @@ describe('createCompiler()', () => {
 
 describe('compile()', () => {
   test('returns an async VFile', () => {
-    expect(compile('Test')).resolves.toBeInstanceOf(VFile)
+    expect(compile('Test', { env })).resolves.toBeInstanceOf(VFile)
   })
 })
 
 describe('compileSync()', () => {
   test('returns a VFile', () => {
-    expect(compileSync('Test')).toBeInstanceOf(VFile)
+    expect(compileSync('Test', { env })).toBeInstanceOf(VFile)
   })
 })

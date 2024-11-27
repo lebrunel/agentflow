@@ -8,6 +8,7 @@ import type { VFile } from 'vfile'
 import type { ExpressionNode } from './types'
 import type { ContextKey } from '../context'
 import type { Workflow } from '../workflow'
+import type { CompileOptions } from './compiler'
 
 
 const AST_WHITELIST: Node['type'][] = [
@@ -65,7 +66,11 @@ const IDENTIFIER_BLACKLIST: string[] = [
   'prototype',
 ]
 
-export function validateWorkflow(workflow: Workflow, file: VFile) {
+export function validateWorkflow(
+  workflow: Workflow,
+  file: VFile,
+  options: CompileOptions,
+) {
   workflow.walk({
     onScope(scope) {
       const contextKeys = new Set<ContextKey>()
@@ -135,20 +140,21 @@ export function validateWorkflow(workflow: Workflow, file: VFile) {
           context.contextKeys.add(contextKey)
         }
       }
-
     },
 
-    // commenting this out as I don't think loops and nodes should require this
-    // maybe this is justa  runtime error
-    //onAction(action) {
-    //  if (!action.inputNodes.length) {
-    //    file.fail(
-    //      'Action has no input context. Actions must have preceding input context.',
-    //      action.node,
-    //      'workflow-parse:missing-input-context'
-    //    )
-    //  }
-    //}
+    onStep(step) {
+      if (step.action) {
+        try {
+          options.env.useAction(step.action.name)
+        } catch(e) {
+          file.fail(
+            `Unknown action '${step.action.name || 'unnamed'}'. Actions must be registered.`,
+            step.action,
+            'workflow-parse:unknown-action'
+          )
+        }
+      }
+    }
   })
 }
 

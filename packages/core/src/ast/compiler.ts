@@ -16,6 +16,7 @@ import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
 import type { Plugin, Processor, Transformer } from 'unified'
 import type { Compatible, VFile } from 'vfile'
 import type { ExpressionNodeType } from './types'
+import { Environment } from '../env'
 
 /**
  * Compiles a workflow asynchronously. This function processes the workflow,
@@ -23,7 +24,7 @@ import type { ExpressionNodeType } from './types'
  */
 export async function compile(
   file: Compatible,
-  options: CompileOptions = {},
+  options: CompileOptions,
 ): Promise<WorkflowFile> {
   return createCompiler(options).process(file)
 }
@@ -34,14 +35,15 @@ export async function compile(
  */
 export function compileSync(
   file: Compatible,
-  options: CompileOptions = {},
+  options: CompileOptions,
 ): WorkflowFile {
   return createCompiler(options).processSync(file)
 }
 
 export function createCompiler(
-  options: CompileOptions = {}
+  options: CompileOptions
 ): Processor<Root, Root, Root, Root, Workflow> {
+
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
@@ -50,7 +52,7 @@ export function createCompiler(
     .use(agentflowCompile, options)
 }
 
-function agentflowFromMdx(options: CompileOptions): Transformer<Root, Root> {
+function agentflowFromMdx(_options: CompileOptions): Transformer<Root, Root> {
   return (tree, file) => {
     visit(tree, (node, i, parent) => {
       // root node, just continue
@@ -114,7 +116,7 @@ const agentflowCompile: Plugin<[CompileOptions], Root, Workflow> = function (
 ) {
   this.compiler = function (tree, file) {
     const workflow = new Workflow(tree as Root, file)
-    validateWorkflow(workflow, file)
+    validateWorkflow(workflow, file, options)
     return workflow
   }
 }
@@ -161,8 +163,10 @@ function parseAttributes(
   return attributes
 }
 
-type WorkflowFile = VFile & { result: Workflow }
+type WorkflowFile = VFile & {
+  result: Workflow,
+}
 
 export interface CompileOptions {
-
+  env: Environment;
 }

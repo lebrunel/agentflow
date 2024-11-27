@@ -2,6 +2,7 @@ import { describe, expect, test } from 'bun:test'
 import { u } from 'unist-builder'
 import { parse } from 'acorn'
 import { VFile } from 'vfile'
+import { env } from 'test/support/env'
 import { compileSync, validateDependency, validateEstree, validateUniqueness } from 'src/ast'
 import dd from 'ts-dedent'
 
@@ -9,8 +10,42 @@ import type { Program } from 'estree-jsx'
 
 describe('validateWorkflow()', () => {
   function validate(src: string) {
-    compileSync(src) // calls validateWorkflow internally
+    compileSync(src, { env }) // calls validateWorkflow internally
   }
+
+  test('accepts workflow with known actions', () => {
+    const src = dd`
+    Hello
+
+    <Mock as="foo" value="test" />
+
+    <Cond as="t1" if={true}>
+      Test 1
+
+      <GenText as="bar" model="gpt-4o" />
+    </Cond>
+
+    <Loop as="t2" until={$.index === 2}>
+      Test 2
+
+      <GenObject as="qux" model="gpt-4o" schema={$.z} />
+    </Loop>
+    `
+
+    expect(() => validate(src)).not.toThrow()
+  })
+
+  test('throws with unknown actions', () => {
+    const src = dd`
+    Hello
+
+    <Mock as="foo" value="test" />
+
+    <Break as="test" />
+    `
+
+    expect(() => validate(src)).toThrow(/unknown action/i)
+  })
 
   test('accepts workflow with unique inputs and action keys', () => {
     const src = dd`

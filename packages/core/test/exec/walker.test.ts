@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
+import { env } from 'test/support/env'
 
 import { ExecutionCursor, ExecutionWalker } from 'src/exec'
 import { Workflow } from 'src/workflow'
@@ -16,7 +17,7 @@ Bar
 <Loop as="b" until={$.index === 3}>
   Baz
 </Loop>
-`)
+`, { env })
 const walker = new ExecutionWalker(workflow)
 
 describe('ExecutionWalker', () => {

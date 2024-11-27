@@ -32,12 +32,12 @@ export class Workflow {
       || 'Untitled'
   }
 
-  static async compile(source: Compatible, options?: CompileOptions): Promise<Workflow> {
+  static async compile(source: Compatible, options: CompileOptions): Promise<Workflow> {
     const file = await compile(source, options)
     return file.result
   }
 
-  static compileSync(source: Compatible, options?: CompileOptions): Workflow {
+  static compileSync(source: Compatible, options: CompileOptions): Workflow {
     const file = compileSync(source, options)
     return file.result
   }

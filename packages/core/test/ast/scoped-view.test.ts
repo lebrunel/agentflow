@@ -1,10 +1,11 @@
 import { describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
+import { env } from 'test/support/env'
 import { createCompiler, createScopedView, walkScopeTree } from 'src/ast'
 import type { WorkflowScope } from 'src/ast'
 
 function tree(src: string): WorkflowScope {
-  const proc = createCompiler()
+  const proc = createCompiler({ env })
   const ast = proc.runSync(proc.parse(src))
   return createScopedView(ast.children)
 }

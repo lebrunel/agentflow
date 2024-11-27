@@ -65,6 +65,8 @@ export {
   type StepResult,
 } from './exec'
 
+export * from './inputs'
+
 export {
   defineTool,
   type Tool,

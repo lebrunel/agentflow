@@ -1,5 +1,6 @@
 import { is } from 'unist-util-is'
 import { walk } from 'estree-walker'
+import { walkScopeTree } from '../ast'
 import { getExpressionDependencies } from '../exec'
 
 import type { Node } from 'mdast'
@@ -8,8 +9,6 @@ import type { VFile } from 'vfile'
 import type { ExpressionNode } from './types'
 import type { ContextKey } from '../context'
 import type { Workflow } from '../workflow'
-import type { CompileOptions } from './compiler'
-
 
 const AST_WHITELIST: Node['type'][] = [
   'Program',
@@ -69,9 +68,8 @@ const IDENTIFIER_BLACKLIST: string[] = [
 export function validateWorkflow(
   workflow: Workflow,
   file: VFile,
-  options: CompileOptions,
 ) {
-  workflow.walk({
+  walkScopeTree(workflow.view, {
     onScope(scope) {
       const contextKeys = new Set<ContextKey>()
 
@@ -145,7 +143,7 @@ export function validateWorkflow(
     onStep(step) {
       if (step.action) {
         try {
-          options.env.useAction(step.action.name)
+          workflow.env.useAction(step.action.name)
         } catch(e) {
           file.fail(
             `Unknown action '${step.action.name || 'unnamed'}'. Actions must be registered.`,

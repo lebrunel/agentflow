@@ -19,7 +19,6 @@ export {
   stringify,
   stringifyContext,
   walkScopeTree,
-  type CompileOptions,
   type ActionNode,
   type ExpressionNode,
   type StringifyOptions,
@@ -74,7 +73,10 @@ export {
 } from './tool'
 
 export {
-  Workflow
+  Workflow,
+  type InputResolver,
+  type WorkflowMetadata,
+  type WorkflowValidator,
 } from './workflow'
 
 export {

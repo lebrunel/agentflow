@@ -7,7 +7,7 @@ import type { Workflow } from 'src/index'
 
 describe('<Cond />', () => {
   function compile(src: string): Workflow {
-    const file = compileSync(src, { env })
+    const file = compileSync(src, env)
     return file.result
   }
 
@@ -23,8 +23,7 @@ describe('<Cond />', () => {
     </Cond>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {}, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test\n\n---\n\nTrue$/)
@@ -51,8 +50,7 @@ describe('<Cond />', () => {
     </Cond>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {}, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test\n\n---\n\nA\n\naaa\n\nB\n\nbbb\n\n---\n\nC\n\nccc$/)
@@ -72,10 +70,7 @@ describe('<Cond />', () => {
     </Cond>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {
-      c: {type: 'primitive', value: 'ccc'}
-    }, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test\n\n---\n\naaa:bbb:ccc$/)

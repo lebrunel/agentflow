@@ -7,7 +7,7 @@ import type { Workflow } from 'src/index'
 
 describe('<Loop />', () => {
   function compile(src: string): Workflow {
-    const file = compileSync(src, { env })
+    const file = compileSync(src, env)
     return file.result
   }
 
@@ -20,8 +20,7 @@ describe('<Loop />', () => {
     </Loop>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {}, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test(\n\n---\n\nLoop \d){3}$/)
@@ -48,8 +47,7 @@ describe('<Loop />', () => {
     </Loop>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {}, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test(\n\n---\n\nA\n\naaa\n\nB\n\nbbb\n\n---\n\nC\n\nccc){3}$/)
@@ -71,10 +69,7 @@ describe('<Loop />', () => {
     </Loop>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {
-      all: { type: 'json', value: ['a', 'b', 'c'] }
-    }, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test(\n\n---\n\nT \d [abc]\n\n[abc]){3}$/)
@@ -96,10 +91,7 @@ describe('<Loop />', () => {
     </Loop>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {
-      all: { type: 'json', value: ['a', 'b', 'c'] }
-    }, env)
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(/^Test\n\n---\n\nL undefined\n\n[abc](\n\n---\n\nL [ab]\n\n[abc]){2}$/)
@@ -116,11 +108,7 @@ describe('<Loop />', () => {
     </Loop>
     `
     const workflow = compile(src)
-
-    const ctrl = new ExecutionController(workflow, {
-      all: { type: 'json', value: ['a', 'b', 'c'] }
-    }, env)
-
+    const ctrl = workflow.createExecution()
     await ctrl.runAll()
 
     expect(ctrl.getFinalOutput()).toMatch(new RegExp([

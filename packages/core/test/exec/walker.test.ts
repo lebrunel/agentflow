@@ -17,7 +17,7 @@ Bar
 <Loop as="b" until={$.index === 3}>
   Baz
 </Loop>
-`, { env })
+`, env)
 const walker = new ExecutionWalker(workflow)
 
 describe('ExecutionWalker', () => {

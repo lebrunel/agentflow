@@ -14,7 +14,7 @@ describe('Workflow', () => {
     ---
 
     Hello world
-    `, { env })
+    `, env)
     expect(workflow.meta).toEqual({ title: 'Foo bar', data: { foo: 'bar' }})
   })
 
@@ -25,12 +25,12 @@ describe('Workflow', () => {
     ---
 
     # Bar
-    `, { env })
+    `, env)
     expect(workflow.title).toBe('Foo')
   })
 
   test('title derived from first title', () => {
-    const workflow = Workflow.compileSync('# Bar', { env })
+    const workflow = Workflow.compileSync('# Bar', env)
     expect(workflow.title).toBe('Bar')
   })
 
@@ -38,20 +38,20 @@ describe('Workflow', () => {
     const workflow = Workflow.compileSync(new VFile({
       path: '/path/to/example.md',
       value: 'Foo bar',
-    }), { env })
+    }), env)
     expect(workflow.title).toBe('example.md')
   })
 
   test('title default', () => {
-    const workflow = Workflow.compileSync('Foo bar', { env })
+    const workflow = Workflow.compileSync('Foo bar', env)
     expect(workflow.title).toBe('Untitled')
   })
 })
 
 test('Workflow.compile() asyncronously compiles to a workflow', () => {
-  expect(Workflow.compile('Test', { env })).resolves.toBeInstanceOf(Workflow)
+  expect(Workflow.compile('Test', env)).resolves.toBeInstanceOf(Workflow)
 })
 
 test('Workflow.compileSync() compiles to a workflow', () => {
-  expect(Workflow.compileSync('Test', { env })).toBeInstanceOf(Workflow)
+  expect(Workflow.compileSync('Test', env)).toBeInstanceOf(Workflow)
 })

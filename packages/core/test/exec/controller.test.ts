@@ -32,7 +32,7 @@ A final thing
 
 Testing the suffix: {a1}
 `
-const file = compileSync(src, { env })
+const file = compileSync(src, env)
 const workflow = file.result
 
 describe('ExecutionController', () => {
@@ -40,7 +40,7 @@ describe('ExecutionController', () => {
 
   beforeEach(() => {
     const context: ContextValueMap = { foo: { type: 'primitive', value: 'bar' } }
-    ctrl = new ExecutionController(workflow, context, env)
+    ctrl = new ExecutionController(workflow, context)
   })
 
   test('initializes with correct initial state', () => {

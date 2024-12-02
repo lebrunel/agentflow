@@ -1,11 +1,15 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
-import type { LanguageModel, Provider } from 'ai'
-import type { z } from 'zod'
+import { kebabCase } from 'change-case'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
+
+import type { LanguageModel, Provider } from 'ai'
+import type { VFile } from 'vfile'
+import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
+import type { ContextValueMap } from '../context'
 import type { Tool } from '../tool'
-import { kebabCase } from 'change-case'
+import type { Workflow, WorkflowValidator, InputResolver } from '../workflow'
 
 // Default actions
 const actions: Action[] = [
@@ -20,34 +24,39 @@ const tools: Tool<z.ZodType>[] = []
 
 export class Environment {
   private actions: ActionRegistry = defaultRegistry(actions)
+  private input?: InputResolver
   private tools: ToolRegistry = defaultRegistry(tools)
   private providers: Provider = createProviderRegistry({})
+  private validations: WorkflowValidator[] = []
 
   constructor(config: UserConfig = {}) {
     // Register user actions
-    if (config.actions?.length) {
-      for (const action of config.actions) {
-        this.registerAction(kebabCase(action.name), action)
-      }
-    }
+    config.actions?.forEach(action => {
+      this.registerAction(kebabCase(action.name), action)
+    })
+
+    // Apply input Resolver
+    this.input = config.input
 
     // Register user tools
-    if (config.tools?.length) {
-      for (const tool of config.tools) {
-        this.registerTool(tool.name, tool)
-      }
-    }
+    config.tools?.forEach(tool => {
+      this.registerTool(tool.name, tool)
+    })
 
     // Set default or user providers
     if (config.providers) {
       this.providers = createProviderRegistry(config.providers)
     }
 
-    if (config.plugins?.length) {
-      for (const plugin of config.plugins) {
-        plugin(this)
-      }
-    }
+    // Append user validators
+    config.validators?.forEach(validator => {
+      this.validations.push(validator)
+    })
+
+    // Apply plugins
+    config.plugins?.forEach(plugin => {
+      plugin(this)
+    })
   }
 
   hasAction(name: string): boolean {
@@ -58,10 +67,16 @@ export class Environment {
     return !!this.tools[name]
   }
 
+  resolveInput(workflow: Workflow): ContextValueMap {
+    return typeof this.input === 'function'
+      ? this.input(workflow.meta)
+      : {}
+  }
+
   registerAction(action: Action): void
   registerAction(name: string, action: Action): void
   registerAction(nameOrAction: string | Action, maybeAction?: Action): void {
-    const [name, action] = handleParams<Action>(nameOrAction, maybeAction)
+    const [name, action] = normalizeParams<Action>(nameOrAction, maybeAction)
     if (this.hasAction(name)) {
       throw new Error(`Action already registered: ${name}`)
     }
@@ -72,7 +87,7 @@ export class Environment {
   registerTool(tool: Tool<z.ZodType>): void
   registerTool(name: string, tool: Tool): void
   registerTool(nameOrTool: string | Tool, maybeTool?: Tool): void {
-    const [name, tool] = handleParams<Tool>(nameOrTool, maybeTool)
+    const [name, tool] = normalizeParams<Tool>(nameOrTool, maybeTool)
     if (this.hasTool(name)) {
       throw new Error(`Tool already registered: ${name}`)
     }
@@ -97,6 +112,12 @@ export class Environment {
   useLanguageModel(id: string): LanguageModel {
     return this.providers.languageModel(id)
   }
+
+  validate(workflow: Workflow, file: VFile): void {
+    for (const validator of this.validations) {
+      validator(workflow, file)
+    }
+  }
 }
 
 function defaultRegistry<T extends { name: string }>(items: T[]): Record<string, T> {
@@ -107,7 +128,7 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
 
 // Helpers
 
-function handleParams<T extends { name: string }>(
+function normalizeParams<T extends { name: string }>(
   nameOrItem: string | T,
   item?: T,
 ): [name: string, item: T] {

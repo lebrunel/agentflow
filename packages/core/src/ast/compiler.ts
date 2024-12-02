@@ -16,7 +16,7 @@ import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
 import type { Plugin, Processor, Transformer } from 'unified'
 import type { Compatible, VFile } from 'vfile'
 import type { ExpressionNodeType } from './types'
-import { Environment } from '../env'
+import type { Environment } from '../env'
 
 /**
  * Compiles a workflow asynchronously. This function processes the workflow,
@@ -24,9 +24,9 @@ import { Environment } from '../env'
  */
 export async function compile(
   file: Compatible,
-  options: CompileOptions,
+  env: Environment,
 ): Promise<WorkflowFile> {
-  return createCompiler(options).process(file)
+  return createCompiler(env).process(file)
 }
 
 /**
@@ -35,24 +35,24 @@ export async function compile(
  */
 export function compileSync(
   file: Compatible,
-  options: CompileOptions,
+  env: Environment,
 ): WorkflowFile {
-  return createCompiler(options).processSync(file)
+  return createCompiler(env).processSync(file)
 }
 
 export function createCompiler(
-  options: CompileOptions
+  env: Environment
 ): Processor<Root, Root, Root, Root, Workflow> {
 
   return unified()
     .use(remarkParse)
     .use(remarkFrontmatter, ['yaml'])
     .use(remarkMdx)
-    .use(agentflowFromMdx, options)
-    .use(agentflowCompile, options)
+    .use(agentflowFromMdx, env)
+    .use(agentflowCompile, env)
 }
 
-function agentflowFromMdx(_options: CompileOptions): Transformer<Root, Root> {
+function agentflowFromMdx(_env: Environment): Transformer<Root, Root> {
   return (tree, file) => {
     visit(tree, (node, i, parent) => {
       // root node, just continue
@@ -110,13 +110,14 @@ function agentflowFromMdx(_options: CompileOptions): Transformer<Root, Root> {
   }
 }
 
-const agentflowCompile: Plugin<[CompileOptions], Root, Workflow> = function (
+const agentflowCompile: Plugin<[Environment], Root, Workflow> = function (
   this: Processor,
-  options: CompileOptions,
+  env: Environment,
 ) {
   this.compiler = function (tree, file) {
-    const workflow = new Workflow(tree as Root, file)
-    validateWorkflow(workflow, file, options)
+    const workflow = new Workflow(tree as Root, env, file.basename)
+    validateWorkflow(workflow, file)
+    env.validate(workflow, file)
     return workflow
   }
 }
@@ -163,10 +164,8 @@ function parseAttributes(
   return attributes
 }
 
+// Type
+
 type WorkflowFile = VFile & {
   result: Workflow,
-}
-
-export interface CompileOptions {
-  env: Environment;
 }

@@ -10,7 +10,7 @@ import type { Program } from 'estree-jsx'
 
 describe('validateWorkflow()', () => {
   function validate(src: string) {
-    compileSync(src, { env }) // calls validateWorkflow internally
+    compileSync(src, env) // calls validateWorkflow internally
   }
 
   test('accepts workflow with known actions', () => {

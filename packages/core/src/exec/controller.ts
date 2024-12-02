@@ -1,17 +1,18 @@
 import { createNanoEvents } from 'nanoevents'
 import { pushable } from 'it-pushable'
-import { ExecutionCursor, parseLocation } from './cursor'
+import { ExecutionCursor } from './cursor'
 import { evalExpression } from './eval'
 import { ExecutionState } from './state'
 import { ExecutionWalker } from './walker'
 import { stringify, stringifyContext } from '../ast'
+import { unwrapContext, wrapContext } from '../context'
 
 import type { Unsubscribe } from 'nanoevents'
 import type { Pushable } from 'it-pushable'
 import type { ActionMeta, ActionResult, StepResult } from './state'
 import type { ActionHelpers } from '../action'
 import type { ExpressionNode, WorkflowScope, WorkflowPhase, WorkflowStep } from '../ast'
-import { unwrapContext, wrapContext, type Context, type ContextKey, type ContextValueMap } from '../context'
+import type { Context, ContextKey, ContextValueMap } from '../context'
 import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
 
@@ -26,13 +27,16 @@ export class ExecutionController {
   constructor(
     readonly workflow: Workflow,
     input: ContextValueMap,
-    readonly env: Environment
   ) {
     this.#walker = new ExecutionWalker(workflow)
     this.state.pushContext(this.cursor, {
-      ...workflow.meta.data,
+      ...wrapContext(workflow.meta.data || {}),
       ...input,
     })
+  }
+
+  get env(): Environment {
+    return this.workflow.env
   }
 
   get cursor(): ExecutionCursor {

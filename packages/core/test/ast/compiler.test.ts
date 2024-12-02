@@ -13,7 +13,7 @@ describe('createCompiler()', () => {
   let proc: Processor<Root, Root, Root, Root, Workflow>
 
   beforeAll(() => {
-    proc = createCompiler({ env })
+    proc = createCompiler(env)
   })
 
   test('returns a unified processer', () => {
@@ -132,12 +132,12 @@ describe('createCompiler()', () => {
 
 describe('compile()', () => {
   test('returns an async VFile', () => {
-    expect(compile('Test', { env })).resolves.toBeInstanceOf(VFile)
+    expect(compile('Test', env)).resolves.toBeInstanceOf(VFile)
   })
 })
 
 describe('compileSync()', () => {
   test('returns a VFile', () => {
-    expect(compileSync('Test', { env })).toBeInstanceOf(VFile)
+    expect(compileSync('Test', env)).toBeInstanceOf(VFile)
   })
 })

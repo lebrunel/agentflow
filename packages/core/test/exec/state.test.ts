@@ -221,7 +221,7 @@ describe('ExecutionState visit()', () => {
     <Loop as="b" until={$.index === 3}>
       Baz
     </Loop>
-    `, { env })
+    `, env)
   })
 
   test('collects scopes', () => {

@@ -23,20 +23,66 @@ const actions: Action[] = [
 const tools: Tool<z.ZodType>[] = []
 
 export class Environment {
-  private actions: ActionRegistry = defaultRegistry(actions)
-  private input?: InputResolver
-  private tools: ToolRegistry = defaultRegistry(tools)
-  private providers: Provider = createProviderRegistry({})
-  private validations: WorkflowValidator[] = []
+  private actions: ActionRegistry
+  private inputResolver?: InputResolver
+  private tools: ToolRegistry
+  private providers: Provider
+  private validations: WorkflowValidator[]
 
   constructor(config: UserConfig = {}) {
-    // Register user actions
+    const builder = new EnvironmentBuilder(config)
+    this.actions = builder.actions
+    this.inputResolver = builder.inputResolver
+    this.tools = builder.tools
+    this.providers = builder.providers
+    this.validations = builder.validations
+  }
+
+  resolveInput(workflow: Workflow): ContextValueMap {
+    return typeof this.inputResolver === 'function'
+      ? this.inputResolver(workflow.meta)
+      : {}
+  }
+
+  useAction(name: string): Action {
+    if (!this.actions[name]) {
+      throw new Error(`Action not found: ${name}`)
+    }
+    return this.actions[name]
+  }
+
+  useTool(name: string): Tool<z.ZodType> {
+    if (!this.tools[name]) {
+      throw new Error(`Tool not found: ${name}`)
+    }
+    return this.tools[name]
+  }
+
+  useLanguageModel(id: string): LanguageModel {
+    return this.providers.languageModel(id)
+  }
+
+  validate(workflow: Workflow, file: VFile): void {
+    for (const validator of this.validations) {
+      validator(workflow, file)
+    }
+  }
+}
+
+export class EnvironmentBuilder {
+  actions: ActionRegistry = defaultRegistry(actions)
+  inputResolver?: InputResolver
+  tools: ToolRegistry = defaultRegistry(tools)
+  providers: Provider = createProviderRegistry({})
+  validations: WorkflowValidator[] = []
+
+  constructor(config: UserConfig = {}) {
     config.actions?.forEach(action => {
-      this.registerAction(kebabCase(action.name), action)
+      this.registerAction(action.name, action)
     })
 
     // Apply input Resolver
-    this.input = config.input
+    this.inputResolver = config.input
 
     // Register user tools
     config.tools?.forEach(tool => {
@@ -59,25 +105,11 @@ export class Environment {
     })
   }
 
-  hasAction(name: string): boolean {
-    return !!this.actions[name]
-  }
-
-  hasTool(name: string): boolean {
-    return !!this.tools[name]
-  }
-
-  resolveInput(workflow: Workflow): ContextValueMap {
-    return typeof this.input === 'function'
-      ? this.input(workflow.meta)
-      : {}
-  }
-
   registerAction(action: Action): void
   registerAction(name: string, action: Action): void
   registerAction(nameOrAction: string | Action, maybeAction?: Action): void {
-    const [name, action] = normalizeParams<Action>(nameOrAction, maybeAction)
-    if (this.hasAction(name)) {
+    const [name, action] = normalizeParams<Action>(nameOrAction, maybeAction, kebabCase)
+    if (!!this.actions[name]) {
       throw new Error(`Action already registered: ${name}`)
     }
 
@@ -88,35 +120,11 @@ export class Environment {
   registerTool(name: string, tool: Tool): void
   registerTool(nameOrTool: string | Tool, maybeTool?: Tool): void {
     const [name, tool] = normalizeParams<Tool>(nameOrTool, maybeTool)
-    if (this.hasTool(name)) {
+    if (!!this.tools[name]) {
       throw new Error(`Tool already registered: ${name}`)
     }
 
     this.tools[name] = tool!
-  }
-
-  useAction(name: string): Action {
-    if (!this.hasAction(name)) {
-      throw new Error(`Action not found: ${name}`)
-    }
-    return this.actions[name]
-  }
-
-  useTool(name: string): Tool<z.ZodType> {
-    if (!this.hasTool(name)) {
-      throw new Error(`Tool not found: ${name}`)
-    }
-    return this.tools[name]
-  }
-
-  useLanguageModel(id: string): LanguageModel {
-    return this.providers.languageModel(id)
-  }
-
-  validate(workflow: Workflow, file: VFile): void {
-    for (const validator of this.validations) {
-      validator(workflow, file)
-    }
   }
 }
 
@@ -131,12 +139,13 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
 function normalizeParams<T extends { name: string }>(
   nameOrItem: string | T,
   item?: T,
+  format: (key: string) => string = (key) => key
 ): [name: string, item: T] {
   let name: string
   if (typeof nameOrItem === 'string') {
-    name = nameOrItem
+    name = format(nameOrItem)
   } else {
-    name = nameOrItem.name
+    name = format(nameOrItem.name)
     item = nameOrItem
   }
 
@@ -146,7 +155,7 @@ function normalizeParams<T extends { name: string }>(
 
 // Types
 
-export type Plugin = (env: Environment) => void
+export type Plugin = (env: EnvironmentBuilder) => void
 
 type ActionRegistry = Record<string, Action>
 type ToolRegistry = Record<string, Tool<z.ZodType>>

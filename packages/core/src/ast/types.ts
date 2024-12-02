@@ -1,6 +1,7 @@
 import type { Node, Root, RootContent } from 'mdast'
 import type { MdxJsxExpressionAttributeData } from 'mdast-util-mdx-jsx'
-import type { Workflow } from 'src/workflow';
+import type { VFile } from 'vfile'
+import type { Workflow } from '../workflow'
 
 // AST types
 
@@ -45,6 +46,8 @@ export interface WorkflowWalker<T extends Record<string, any>> {
   onPhase?: (phase: WorkflowPhase, context: T) => void;
   onStep?: (action: WorkflowStep, context: T) => void;
 }
+
+export type WorkflowValidator = (workflow: Workflow, file: VFile) => void
 
 // Extending mdast
 

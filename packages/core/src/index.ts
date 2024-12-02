@@ -25,6 +25,7 @@ export {
   type WorkflowScope,
   type WorkflowPhase,
   type WorkflowStep,
+  type WorkflowValidator,
   type WorkflowWalker,
 } from './ast'
 
@@ -74,9 +75,6 @@ export {
 
 export {
   Workflow,
-  type InputResolver,
-  type WorkflowMetadata,
-  type WorkflowValidator,
 } from './workflow'
 
 export {

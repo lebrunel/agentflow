@@ -7,9 +7,10 @@ import type { VFile } from 'vfile'
 import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
+import type { WorkflowValidator } from '../ast'
 import type { ContextValueMap } from '../context'
 import type { Tool } from '../tool'
-import type { Workflow, WorkflowValidator, InputResolver } from '../workflow'
+import type { Workflow, WorkflowMetadata } from '../workflow'
 
 // Default actions
 const actions: Action[] = [
@@ -24,7 +25,6 @@ const tools: Tool<z.ZodType>[] = []
 
 export class Environment {
   private actions: ActionRegistry
-  private inputResolver?: InputResolver
   private tools: ToolRegistry
   private providers: Provider
   private validations: WorkflowValidator[]
@@ -32,16 +32,9 @@ export class Environment {
   constructor(config: UserConfig = {}) {
     const builder = new EnvironmentBuilder(config)
     this.actions = builder.actions
-    this.inputResolver = builder.inputResolver
     this.tools = builder.tools
     this.providers = builder.providers
     this.validations = builder.validations
-  }
-
-  resolveInput(workflow: Workflow): ContextValueMap {
-    return typeof this.inputResolver === 'function'
-      ? this.inputResolver(workflow.meta)
-      : {}
   }
 
   useAction(name: string): Action {
@@ -71,7 +64,6 @@ export class Environment {
 
 export class EnvironmentBuilder {
   actions: ActionRegistry = defaultRegistry(actions)
-  inputResolver?: InputResolver
   tools: ToolRegistry = defaultRegistry(tools)
   providers: Provider = createProviderRegistry({})
   validations: WorkflowValidator[] = []
@@ -80,9 +72,6 @@ export class EnvironmentBuilder {
     config.actions?.forEach(action => {
       this.registerAction(action.name, action)
     })
-
-    // Apply input Resolver
-    this.inputResolver = config.input
 
     // Register user tools
     config.tools?.forEach(tool => {

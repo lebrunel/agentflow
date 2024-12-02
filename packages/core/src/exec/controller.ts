@@ -24,10 +24,7 @@ export class ExecutionController {
 
   readonly state = new ExecutionState()
 
-  constructor(
-    readonly workflow: Workflow,
-    input: ContextValueMap,
-  ) {
+  constructor(readonly workflow: Workflow, input: ContextValueMap = {}) {
     this.#walker = new ExecutionWalker(workflow)
     this.state.pushContext(this.cursor, {
       ...wrapContext(workflow.meta.data || {}),

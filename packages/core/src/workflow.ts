@@ -4,24 +4,28 @@ import { compile, compileSync, createScopedView, validateWorkflow } from './ast'
 import { ExecutionController } from './exec'
 
 import type { Root } from 'mdast'
-import type { Compatible, VFile } from 'vfile'
+import type { Compatible } from 'vfile'
 import type { WorkflowScope } from './ast'
 import type { ContextValueMap } from './context'
 import type { Environment } from './env'
 
 export class Workflow {
+  readonly ast: Root
+  readonly env: Environment
   readonly meta: WorkflowMetadata
   readonly title: string
   readonly view: WorkflowScope
 
-  constructor(readonly ast: Root, readonly env: Environment, basename?: string) {
-    this.view = createScopedView(ast.children)
+  constructor(root: Root, env: Environment, basename?: string) {
+    this.ast = root
+    this.env = env
+    this.view = createScopedView(root.children)
 
-    const yaml = ast.children[0].type === 'yaml'
-      ? ast.children[0]
+    const yaml = root.children[0].type === 'yaml'
+      ? root.children[0]
       : undefined
 
-    const firstNode = ast.children[yaml ? 1 : 0]
+    const firstNode = root.children[yaml ? 1 : 0]
     const titleNode = is(firstNode, 'heading')
       ? firstNode
       : undefined
@@ -43,13 +47,7 @@ export class Workflow {
     return file.result
   }
 
-  createExecution(input?: InputResolver | ContextValueMap): ExecutionController {
-    if (typeof input === 'function') {
-      input = input(this.meta)
-    } else if (typeof input === 'undefined') {
-      input = this.env.resolveInput(this)
-    }
-
+  createExecution(input?: ContextValueMap): ExecutionController {
     return new ExecutionController(this, input)
   }
 
@@ -58,7 +56,3 @@ export class Workflow {
 // Types
 
 export type WorkflowMetadata = Record<string, any>
-
-export type InputResolver = (meta: WorkflowMetadata) => ContextValueMap
-
-export type WorkflowValidator = (workflow: Workflow, file: VFile) => void

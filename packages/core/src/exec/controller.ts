@@ -229,9 +229,9 @@ export class ExecutionController {
     }
 
     this.#events.emit('step', step, {
-      action: actionPromise,
       content,
-      // stream
+      action: actionPromise,
+      stream: actionStream,
     }, cursor)
 
     const result: StepResult = {
@@ -474,7 +474,7 @@ export interface ExecutionEvents {
 
 export type StepEvent = Omit<StepResult, 'action'> & {
   action?: Promise<ActionResult>;
-  //stream: Pushable<string>;
+  stream?: Pushable<string>;
 }
 
 /**

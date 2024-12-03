@@ -52,22 +52,27 @@ export const aiGenerationOptions = z.object({
 
 export async function toCoreMessage(
   role: 'user' | 'assistant',
-  ctx: ContextValue,
+  context: ContextValue | ContextValue[],
 ): Promise<CoreUserMessage | CoreAssistantMessage> {
-  let content
-  if (ctx.type === 'file') {
-    const image = await getDataUrlFromFile(ctx.value)
-    return { role, content: [{ type: 'image', image }] } as CoreUserMessage
-  } else {
-    return { role, content: stringifyContext(ctx) }
+  if (!Array.isArray(context)) return toCoreMessage(role, [context])
+  const content = []
+
+  for (const ctx of context) {
+    if (ctx.type === 'file') {
+      const image = await getDataUrlFromFile(ctx.value)
+      content.push({ type: 'image', image })
+    } else {
+      const text = stringifyContext(ctx)
+      content.push({ type: 'text', text })
+    }
   }
+
+  return { role, content } as CoreUserMessage | CoreAssistantMessage
 }
 
-function getDataUrlFromFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+async function getDataUrlFromFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  const base64 = btoa(bytes.reduce((data, byte) => data + String.fromCharCode(byte), '' as string))
+  return `data:${file.type};base64,${base64}`
 }

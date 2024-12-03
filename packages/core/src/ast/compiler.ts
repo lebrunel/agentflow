@@ -2,6 +2,7 @@ import { unified } from 'unified'
 import { u } from 'unist-builder'
 import { is } from 'unist-util-is'
 import { visit, CONTINUE, SKIP } from 'unist-util-visit'
+import { z } from 'zod'
 import { camelCase, kebabCase } from 'change-case'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
@@ -52,7 +53,7 @@ export function createCompiler(
     .use(agentflowCompile, env)
 }
 
-function agentflowFromMdx(_env: Environment): Transformer<Root, Root> {
+function agentflowFromMdx(env: Environment): Transformer<Root, Root> {
   return (tree, file) => {
     visit(tree, (node, i, parent) => {
       // root node, just continue
@@ -74,18 +75,38 @@ function agentflowFromMdx(_env: Environment): Transformer<Root, Root> {
       if (is(node, 'mdxJsxFlowElement')) {
         const { children, position } = node
         const name = kebabCase(node.name || '')
-        const attributes = parseAttributes(node, file)
+        const attr = parseAttributes(node, file)
 
-        // todo - attach actual action from options.runtime
+        try {
+          const action = env.useAction(name)
+          const attributes = action.parse(attr)
 
-        parent!.children[i] = u('action', {
-          name,
-          children,
-          attributes,
-          position,
-        })
+          parent!.children[i] = u('action', {
+            name,
+            children,
+            attributes,
+            position,
+          })
 
-        return CONTINUE
+          return CONTINUE
+
+        } catch(e) {
+          if (e instanceof z.ZodError) {
+            for (const issue of e.issues) {
+              file.fail(
+                `Invalid action attributes at /${issue.path.join('.')}. ${issue.message}`,
+                node,
+                'workflow-parse:invalid-action-attributes'
+              )
+            }
+          } else {
+            file.fail(
+              `Unknown action '${name || 'unnamed'}'. Actions must be registered.`,
+              node,
+              'workflow-parse:unknown-action'
+            )
+          }
+        }
       }
 
       if (is(node, 'mdxJsxTextElement')) {

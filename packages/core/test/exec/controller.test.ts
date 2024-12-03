@@ -161,7 +161,7 @@ describe('ExecutionController', () => {
 
     for (const [cursor, result] of results) {
       expect(cursor).toBeInstanceOf(ExecutionCursor)
-      expect(result.content).toBeString()
+      expect(result.content).toBeArray()
 
       if (prevCursor) {
         expect(cursor.gt(prevCursor)).toBeTrue()

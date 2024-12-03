@@ -229,7 +229,8 @@ export interface ExecutionScope {
  * optional action result.
  */
 export interface StepResult {
-  content: string;
+  //content: string;
+  content: ContextValue[];
   action?: ActionResult;
 }
 

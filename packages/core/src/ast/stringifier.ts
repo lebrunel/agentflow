@@ -4,7 +4,6 @@ import { selectAll } from 'unist-util-select'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkStringify from 'remark-stringify'
-import dd from 'ts-dedent'
 import { toContextValue } from '../context'
 
 import type { Processor } from 'unified'
@@ -12,6 +11,55 @@ import type { Root, RootContent } from 'mdast'
 import type { Options } from 'remark-stringify'
 import type { ExpressionNode } from '../ast'
 import type { ContextValue } from '../context'
+
+export function contextify(root: Root, options: StringifyOptions = {}): ContextValue[] {
+  const proc = createStringifier(options)
+  const output: ContextValue[] = []
+
+  if (typeof options.evaluate === 'function') {
+    for (const node of root.children) {
+      const expressions = selectAll('expression', node) as ExpressionNode[]
+      const extras: ContextValue[] = []
+      let value = proc.stringify(u('root', [node])).trim()
+
+      if (expressions.length) {
+        for (const expression of expressions) {
+          const str = expression.value
+          const result = toContextValue(options.evaluate(expression))
+          value = result.type === 'primitive'
+            ? value.replace(`{${str}}`, String(result.value))
+            : value.replace(`{${str}}`, '')
+
+          if (result.type !== 'primitive') {
+            extras.push(result)
+          }
+        }
+      }
+
+      output.push({ type: 'primitive', value }, ...extras)
+    }
+  } else {
+    const value = proc.stringify(root)
+    output.push({ type: 'primitive', value })
+  }
+
+  // Normalize output so adjacent primitive chunks are joinred togther
+  return output.reduce((normalized, chunk, i) => {
+    const prev = normalized[normalized.length - 1]
+
+    // If both previous and current chunks are text, combine them
+    // Otherwise, add the current chunk as a new element
+    if (prev && prev.type === 'primitive' && chunk.type === 'primitive') {
+      if (chunk.value !== '') {
+        prev.value = prev.value + '\n\n' + chunk.value
+      }
+    } else {
+      normalized.push(chunk)
+    }
+
+    return normalized
+  }, [] as ContextValue[])
+}
 
 /**
  * Converts AST to string, evaluating expressions when an eval function is
@@ -26,7 +74,7 @@ export function stringify(root: Root, options: StringifyOptions = {}): string {
     const children: RootContent[] = []
 
     for (const node of root.children) {
-      const expressions = selectAll('expression', root) as ExpressionNode[]
+      const expressions = selectAll('expression', node) as ExpressionNode[]
       const extraChildren: RootContent[] = []
 
       if (expressions.length) {
@@ -57,25 +105,11 @@ export function stringify(root: Root, options: StringifyOptions = {}): string {
   }
 }
 
-export function stringifyContext(ctx: ContextValue): string {
-  switch(ctx.type) {
-    case 'primitive':
-      return String(ctx.value)
-
-    case 'file':
-      return `![${ctx.value.type}](${ctx.value.name})`
-
-    case 'json':
-      return dd`
-      \`\`\`json
-      ${JSON.stringify(ctx.value, null, 2)}
-      \`\`\`
-      `
-
-    default:
-      throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
-  }
+export function stringifyContext(context: ContextValue | ContextValue[]): string {
+  if (Array.isArray(context)) return context.map(stringifyContext).join('\n\n')
+  return contextAsString(context)
 }
+
 
 export function createStringifier(
   options: StringifyOptions = {}
@@ -99,7 +133,10 @@ function contextAsNode(ctx: ContextValue): RootContent {
 
     case 'file':
       return u('paragraph', [
-        u('text', `![${ctx.value.type}](${ctx.value.name})`)
+        u('image', {
+          alt: ctx.value.type,
+          url: ctx.value.name,
+        })
       ])
 
     case 'json':
@@ -107,6 +144,22 @@ function contextAsNode(ctx: ContextValue): RootContent {
         lang: 'json',
         value: JSON.stringify(ctx.value, null, 2),
       })
+
+    default:
+      throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)
+  }
+}
+
+function contextAsString(ctx: ContextValue): string {
+  switch(ctx.type) {
+    case 'primitive':
+      return String(ctx.value)
+
+    case 'file':
+      return `![${ctx.value.type}](${ctx.value.name})`
+
+    case 'json':
+      return `\`\`\`json\n${JSON.stringify(ctx.value, null, 2)}\n\`\`\``
 
     default:
       throw new Error(`Unrecognised context type: ${JSON.stringify(ctx)}`)

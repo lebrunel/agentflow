@@ -23,11 +23,11 @@ export default defineAction({
     const messages: CoreMessage[] = []
 
     for (const { action, content } of results) {
-      messages.push({ role: 'user', content: content })
+      messages.push(await toCoreMessage('user', content))
       messages.push(await toCoreMessage('assistant', action!.result))
     }
 
-    messages.push({ role: 'user', content: ctx.content })
+    messages.push(await toCoreMessage('user', ctx.content))
 
     const tools: Record<string, CoreTool> = props.tools
       ? props.tools.reduce((obj, name) => {
@@ -61,9 +61,9 @@ export default defineAction({
       })
     }
 
-    const response = await (props.stream
-      ? streamPromise()
-      : generateText(opts)
+    const response = await (props.stream === false
+      ? generateText(opts)
+      : streamPromise()
     )
 
     ctx.pushResponseMeta('ai', response)

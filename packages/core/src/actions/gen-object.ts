@@ -25,11 +25,11 @@ export default defineAction({
     const messages: CoreMessage[] = []
 
     for (const { action, content } of results) {
-      messages.push({ role: 'user', content: content })
+      messages.push(await toCoreMessage('user', content))
       messages.push(await toCoreMessage('assistant', action!.result))
     }
 
-    messages.push({ role: 'user', content: ctx.content })
+    messages.push(await toCoreMessage('user', ctx.content))
 
     const opts = {
       model: env.useLanguageModel(props.model),

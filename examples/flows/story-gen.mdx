@@ -1,0 +1,28 @@
+---
+input:
+  theme:
+    message: 'Please enter a theme for a story:'
+    type: text
+---
+
+Intro
+
+<Loop
+  as="characters"
+  until={$.index === 3}
+  provide={{ theme }}>
+
+  Create a character for a story with the theme: {theme}
+
+  Write a concise character card that includes name, gender, age and character traits.
+
+  <GenText as="card" model="ollama:llama3.1" />
+</Loop>
+
+Write a short and concise story with the theme, {theme} and incorporate the following characters into the story:
+
+{characters.map(c => c.card).join('\n\n')}
+
+Note: Use the provided tool to save the story to a file called "story.txt".
+
+<GenText as="story" model="ollama:llama3.1" tools={['write_files']} />

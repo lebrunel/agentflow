@@ -3,7 +3,7 @@ import { basename, join } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import fg from 'fast-glob'
-import { compileSync, Runtime } from '@agentflow/core'
+import { Workflow, Environment } from '@agentflow/core'
 
 import { resolveConfig } from '../config'
 
@@ -18,7 +18,7 @@ cmd
 async function listWorkflows() {
   const cwd = process.cwd()
   const config = await resolveConfig(cwd)
-  const runtime = new Runtime(config)
+  const env = new Environment(config)
   const flowsPath = join(cwd, config.paths.flows, '*.{md,mdx}')
 
   // Collect workflows into rows
@@ -26,9 +26,8 @@ async function listWorkflows() {
   for (const path of fg.globSync(flowsPath)) {
     try {
       const id = basename(path).replace(/\.mdx?$/, '')
-      const data = readFileSync(path, { encoding: 'utf8' })
-      const file = compileSync(data, { runtime })
-      const workflow = file.result
+      const src = readFileSync(path, { encoding: 'utf8' })
+      const workflow = Workflow.compileSync(src, env)
       rows.push({ id, title: workflow.title })
     } catch(e) {
       console.error(`Invalid workflow: ${basename(path).replace(/\.mdx?$/, '')}`)

@@ -65,8 +65,6 @@ export {
   type StepResult,
 } from './exec'
 
-export * from './inputs'
-
 export {
   defineTool,
   type Tool,
@@ -75,10 +73,11 @@ export {
 
 export {
   Workflow,
+  type WorkflowMetadata,
 } from './workflow'
 
-export {
-  models,
-  type CostCalculator,
-  type ModelSpec,
-} from './ai'
+//export {
+//  models,
+//  type CostCalculator,
+//  type ModelSpec,
+//} from './ai'

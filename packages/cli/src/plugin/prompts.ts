@@ -4,40 +4,9 @@ import { lookup } from 'mime-types'
 import { createPrompt, isEnterKey, usePrefix, useState, useKeypress } from '@inquirer/core'
 import { input, editor, select } from '@inquirer/prompts'
 import pc from 'picocolors'
-import type {
-  ContextValue,
-  ContextValueMap,
-  TextInput,
-  SelectInput,
-  ArrayInput,
-  FileInput,
-  WorkflowInputSchema
-} from '@agentflow/core'
 
-export async function promptInputs(inputSchema: WorkflowInputSchema): Promise<ContextValueMap> {
-  const context: ContextValueMap = {}
-
-  for (const [name, schema] of Object.entries(inputSchema)) {
-    switch (schema.type) {
-      case 'text':
-        context[name] = await promptText(name, schema)
-        break
-      case 'select':
-        context[name] = await promptSelect(name, schema)
-        break
-      case 'file':
-        context[name] = await promptFile(name, schema)
-        break
-      case 'array':
-        context[name] = await promptArray(name, schema)
-        break
-      default:
-        throw new Error(`Unrecognised input type: ${JSON.stringify(schema)}`)
-    }
-  }
-
-  return context
-}
+import type { ContextValue } from '@agentflow/core'
+import type { TextInput, SelectInput, ArrayInput, FileInput } from './inputs'
 
 export async function promptText(name: string, schema: TextInput): Promise<ContextValue> {
   const message = schema.message || `Enter ${name}`

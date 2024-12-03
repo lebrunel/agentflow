@@ -5,7 +5,7 @@ import { createCompiler, createScopedView, walkScopeTree } from 'src/ast'
 import type { WorkflowScope } from 'src/ast'
 
 function tree(src: string): WorkflowScope {
-  const proc = createCompiler({ env })
+  const proc = createCompiler(env)
   const ast = proc.runSync(proc.parse(src))
   return createScopedView(ast.children)
 }

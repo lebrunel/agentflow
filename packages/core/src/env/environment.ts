@@ -8,7 +8,6 @@ import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
 import type { WorkflowValidator } from '../ast'
-import type { ContextValueMap } from '../context'
 import type { Tool } from '../tool'
 import type { Workflow, WorkflowMetadata } from '../workflow'
 
@@ -27,14 +26,14 @@ export class Environment {
   private actions: ActionRegistry
   private tools: ToolRegistry
   private providers: Provider
-  private validations: WorkflowValidator[]
+  private validators: WorkflowValidator[]
 
   constructor(config: UserConfig = {}) {
     const builder = new EnvironmentBuilder(config)
     this.actions = builder.actions
     this.tools = builder.tools
     this.providers = builder.providers
-    this.validations = builder.validations
+    this.validators = builder.validators
   }
 
   useAction(name: string): Action {
@@ -56,7 +55,7 @@ export class Environment {
   }
 
   validate(workflow: Workflow, file: VFile): void {
-    for (const validator of this.validations) {
+    for (const validator of this.validators) {
       validator(workflow, file)
     }
   }
@@ -66,7 +65,7 @@ export class EnvironmentBuilder {
   actions: ActionRegistry = defaultRegistry(actions)
   tools: ToolRegistry = defaultRegistry(tools)
   providers: Provider = createProviderRegistry({})
-  validations: WorkflowValidator[] = []
+  validators: WorkflowValidator[] = []
 
   constructor(config: UserConfig = {}) {
     config.actions?.forEach(action => {
@@ -85,7 +84,7 @@ export class EnvironmentBuilder {
 
     // Append user validators
     config.validators?.forEach(validator => {
-      this.validations.push(validator)
+      this.validators.push(validator)
     })
 
     // Apply plugins

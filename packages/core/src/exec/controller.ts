@@ -4,7 +4,7 @@ import { ExecutionCursor } from './cursor'
 import { evalExpression } from './eval'
 import { ExecutionState } from './state'
 import { ExecutionWalker } from './walker'
-import { stringify, stringifyContext } from '../ast'
+import { contextify, stringify, stringifyContext } from '../ast'
 import { unwrapContext, wrapContext } from '../context'
 
 import type { Unsubscribe } from 'nanoevents'
@@ -12,7 +12,7 @@ import type { Pushable } from 'it-pushable'
 import type { ActionMeta, ActionResult, StepResult } from './state'
 import type { ActionHelpers } from '../action'
 import type { ExpressionNode, WorkflowScope, WorkflowPhase, WorkflowStep } from '../ast'
-import type { Context, ContextKey, ContextValueMap } from '../context'
+import type { Context, ContextKey, ContextValue, ContextValueMap } from '../context'
 import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
 
@@ -116,7 +116,7 @@ export class ExecutionController {
     this.state.visit(scope, phase, step)
 
     const context = this.state.getContext(cursor)
-    const content = stringify(step.content, {
+    const content = contextify(step.content, {
       evaluate: (node) => evalExpression(node, context)
     })
 
@@ -127,114 +127,117 @@ export class ExecutionController {
     if (step.action) {
       const actionNode = step.action
       actionStream = pushable<string>({ objectMode: true })
-      actionPromise = new Promise(async resolve => {
-        const action = this.env.useAction(actionNode.name)
-        const contextKey: ContextKey = actionNode.attributes.as
-        let helpers: ActionHelpers | undefined
+      actionPromise = new Promise(resolve => {
+        queueMicrotask(async () => {
+          const action = this.env.useAction(actionNode.name)
+          const contextKey: ContextKey = actionNode.attributes.as
+          let helpers: ActionHelpers | undefined
 
-        // Build action execution context
-        const ctx: ExecutionContext = {
-          content,
-          getCursor: () => {
-            return this.cursor
-          },
-          getPhaseResults: () => {
-            return this.state.getPhaseResults(this.cursor)
-          },
-          getScopedContext: () => {
-            return this.state.getScopeResults(this.cursor).map(results => {
-              const context: ContextValueMap = {}
-              for (const { action } of results) {
-                if (action) context[action.contextKey] = action.result
+          // Build action execution context
+          const ctx: ExecutionContext = {
+            content,
+            getCursor: () => {
+              return this.cursor
+            },
+            getPhaseResults: () => {
+              return this.state.getPhaseResults(this.cursor)
+            },
+            getScopedContext: () => {
+              return this.state.getScopeResults(this.cursor).map(results => {
+                const context: ContextValueMap = {}
+                for (const { action } of results) {
+                  if (action) context[action.contextKey] = action.result
+                }
+                return unwrapContext(context)
+              })
+            },
+            pushContext: (context) => {
+              this.state.pushContext(
+                this.cursor,
+                wrapContext(context || {}),
+                { $: helpers, [`$${contextKey}`]: helpers },
+              )
+            },
+            pushResponseMeta: (type, data) => {
+              actionMeta = { type, data }
+            },
+            runChildren: async (opts) => {
+              if (!step.childScope) return []
+              let shouldStop = false
+              const stop = () => shouldStop = true
+
+              this.#cursor = ExecutionCursor.push(this.cursor)
+              if (opts.beforeAll) opts.beforeAll({ cursor: this.cursor, stop })
+
+              while(!shouldStop) {
+                if (opts.beforeStep) opts.beforeStep({ cursor: this.cursor, stop })
+                if (shouldStop) break
+                await this.runNext({ afterStep, runAll })
+                if (opts.afterStep) opts.afterStep({ cursor: this.cursor, stop })
+                if (shouldStop) break
               }
-              return unwrapContext(context)
-            })
-          },
-          pushContext: (context) => {
-            this.state.pushContext(
-              this.cursor,
-              wrapContext(context || {}),
-              { $: helpers, [`$${contextKey}`]: helpers },
-            )
-          },
-          pushResponseMeta: (type, data) => {
-            actionMeta = { type, data }
-          },
-          runChildren: async (opts) => {
-            if (!step.childScope) return []
-            let shouldStop = false
-            const stop = () => shouldStop = true
 
-            this.#cursor = ExecutionCursor.push(this.cursor)
-            if (opts.beforeAll) opts.beforeAll({ cursor: this.cursor, stop })
+              const results = ctx.getScopedContext()
 
-            while(!shouldStop) {
-              if (opts.beforeStep) opts.beforeStep({ cursor: this.cursor, stop })
-              if (shouldStop) break
-              await this.runNext({ afterStep, runAll })
-              if (opts.afterStep) opts.afterStep({ cursor: this.cursor, stop })
-              if (shouldStop) break
-            }
+              if (opts.afterAll) opts.afterAll({ cursor: this.cursor, stop })
+              this.#cursor = ExecutionCursor.pop(this.cursor)
 
-            const results = ctx.getScopedContext()
-
-            if (opts.afterAll) opts.afterAll({ cursor: this.cursor, stop })
-            this.#cursor = ExecutionCursor.pop(this.cursor)
-
-            return results
-          },
-          useEnv: () => {
-            return this.env
-          },
-          useStream: () => {
-            actionStream ||= pushable<string>({ objectMode: true })
-            return actionStream
-          },
-        }
-
-        helpers = toGetters(typeof action.helpers === 'function'
-          ? action.helpers(ctx)
-          : action.helpers
-        )
-
-        const props = Object.entries(actionNode.attributes).reduce((props, [key, val]) => {
-          if (isExpression(val)) {
-            Object.defineProperty(props, key, {
-              get: () => {
-                // todo - wrap this is some kind of cache mechanism
-                return evalExpression(val, {
-                  ...context,
-                  $: helpers,
-                  [`$${contextKey}`]: helpers
-                })
-              },
-              enumerable: true,
-              configurable: true,
-            })
-          } else {
-            props[key] = val
+              return results
+            },
+            useEnv: () => {
+              return this.env
+            },
+            useStream: () => {
+              return actionStream!
+            },
           }
-          return props
-        }, {} as any)
 
-        const result = await action.execute(ctx, props)
+          helpers = toGetters(typeof action.helpers === 'function'
+            ? action.helpers(ctx)
+            : action.helpers
+          )
 
-        resolve({
-          cursor,
-          name: action.name,
-          contextKey,
-          result,
-          meta: actionMeta
+          const props = Object.entries(actionNode.attributes).reduce((props, [key, val]) => {
+            if (isExpression(val)) {
+              Object.defineProperty(props, key, {
+                get: () => {
+                  // todo - wrap this is some kind of cache mechanism
+                  return evalExpression(val, {
+                    ...context,
+                    $: helpers,
+                    [`$${contextKey}`]: helpers
+                  })
+                },
+                enumerable: true,
+                configurable: true,
+              })
+            } else {
+              props[key] = val
+            }
+            return props
+          }, {} as any)
+
+          const result = await action.execute(ctx, props)
+
+          resolve({
+            cursor,
+            name: action.name,
+            contextKey,
+            result,
+            meta: actionMeta
+          })
         })
       })
     }
 
+    // This is fired before the actionPromise starts
     this.#events.emit('step', step, {
-      content,
       action: actionPromise,
+      content,
       stream: actionStream,
     }, cursor)
 
+    // Here we await for the actionPromise to resolve
     const result: StepResult = {
       action: await actionPromise,
       content,
@@ -328,7 +331,7 @@ export class ExecutionController {
       const stepChunks: string[] = []
 
       if (result.content.length) {
-        stepChunks.push(result.content)
+        stepChunks.push(stringifyContext(result.content))
       }
 
       // For steps without a child scope, include the action result directly.
@@ -398,7 +401,7 @@ function toGetters(props?: Record<string, () => any>): Record<string, any> {
   if (typeof props === 'undefined') return {}
   return Object.entries(props).reduce((getters, [name, fn]) => {
     Object.defineProperty(getters, name, {
-      get: () => fn(),
+      get: () => typeof fn === 'function' ? fn() : fn,
       enumerable: true,
       configurable: true,
     })
@@ -429,7 +432,7 @@ export enum ExecutionStatus {
 // Types
 
 export interface ExecutionContext {
-  content: string,
+  content: ContextValue[],
   getCursor: () => ExecutionCursor,
   getScopedContext: () => Context[],
   getPhaseResults: () => StepResult[],

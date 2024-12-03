@@ -52,7 +52,7 @@ export class ExecutionCursor {
   static trunc(cursor: ExecutionCursor, depth: number): ExecutionCursor {
     const normalizedDepth = depth < 0 ? cursor.length + depth : depth
 
-    if (normalizedDepth < 0 || normalizedDepth >= cursor.length) {
+    if (normalizedDepth < 0 || normalizedDepth > cursor.length) {
       throw new Error(`Invalid index: ${depth}. Cursor length is ${cursor.length}.`)
     }
 

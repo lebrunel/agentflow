@@ -1,12 +1,11 @@
 import { z } from 'zod'
 import { defineAction } from '../action'
-import { unwrapContext } from 'src/context'
-import { ExecutionCursor } from 'src/exec'
+import { ExecutionCursor } from '../exec'
 
 export default defineAction({
   name: 'loop',
   schema: z.object({
-    until: z.boolean(),
+    until: z.coerce.boolean(),
     provide: z.record(z.string(), z.any()).default({}),
   }),
   helpers: function(ctx) {

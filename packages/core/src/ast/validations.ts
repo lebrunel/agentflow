@@ -92,8 +92,8 @@ export function validateWorkflow(
         contextKeys.add(`$${scope.parentNode.attributes.as}`)
         const provideAttr = scope.parentNode.attributes.provide
 
-        if (provideAttr) {
-          for (const key of getObjectKeysFromExpression(provideAttr)) {
+        if (is(provideAttr, 'expression')) {
+          for (const key of getObjectKeysFromExpression(provideAttr as ExpressionNode)) {
             validateUniqueness(key, contextKeys, { node: scope.parentNode!, file })
             contextKeys.add(key)
           }
@@ -139,20 +139,6 @@ export function validateWorkflow(
         }
       }
     },
-
-    onStep(step) {
-      if (step.action) {
-        try {
-          workflow.env.useAction(step.action.name)
-        } catch(e) {
-          file.fail(
-            `Unknown action '${step.action.name || 'unnamed'}'. Actions must be registered.`,
-            step.action,
-            'workflow-parse:unknown-action'
-          )
-        }
-      }
-    }
   })
 }
 

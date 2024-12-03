@@ -30,6 +30,8 @@ export function evalExpression<T = any>(
     })
   } catch(e) {
     // todo catch timeouts
+    console.log('~~')
+    console.log(e)
     return Symbol.for('fail') as any
   }
 }

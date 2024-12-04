@@ -25,7 +25,7 @@ Intro
 
   <GenText
     as="prompt"
-    model="anthropic:claude-3-5-sonnet-20240620" />
+    model="anthropic:claude-3-5-haiku-20241022" />
 
   ---
 
@@ -42,7 +42,7 @@ Intro
 
   <GenText
     as="result"
-    model="anthropic:claude-3-5-sonnet-20240620" />
+    model="anthropic:claude-3-5-haiku-20241022" />
 
   ---
 
@@ -55,10 +55,10 @@ Intro
 
   <GenObject
     as="status"
-    model="anthropic:claude-3-5-sonnet-20240620"
+    model="anthropic:claude-3-5-haiku-20241022"
     schema={
-      z.object({
-        isComplete: z.boolean().describe('Whether the objective is fully achieved')
+      $.z.object({
+        isComplete: $.z.boolean().describe('Whether the objective is fully achieved')
       })
     } />
 
@@ -75,7 +75,7 @@ Please review and refine the sub-task results into a cohesive final output. Add 
 
 <GenText
   as="final"
-  model="anthropic:claude-3-5-sonnet-20240620"
+  model="anthropic:claude-3-5-haiku-20241022"
   tools={
     ['write_files']
   } />

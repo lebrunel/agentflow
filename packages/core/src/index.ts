@@ -3,22 +3,37 @@ import TextDecoderStream from 'polyfill-text-decoder-stream'
 global.TextDecoderStream = TextDecoderStream
 
 export {
+  defineAction,
+  type Action,
+  type ActionOptions,
+} from './action'
+
+export * as actions from './actions'
+
+export {
   compile,
   compileSync,
-  createProcessor,
-  type CompileOptions,
-  type WorkflowNode,
-  type PhaseNode,
+  createCompiler,
+  createStringifier,
+  createScopedView,
+  stringify,
+  stringifyContext,
+  walkScopeTree,
   type ActionNode,
   type ExpressionNode,
-} from './compiler'
+  type StringifyOptions,
+  type WorkflowScope,
+  type WorkflowPhase,
+  type WorkflowStep,
+  type WorkflowValidator,
+  type WorkflowWalker,
+} from './ast'
 
 export {
   fromContextValue,
   toContextValue,
   wrapContext,
   unwrapContext,
-  stringifyContext,
   type ContextKey,
   type ContextValue,
   type ContextValueMap,
@@ -26,38 +41,29 @@ export {
 
 export {
   defineConfig,
-  executeWorkflow,
-  evalExpression,
-  evalDependencies,
-  ExecutionController,
-  ExecutionStatus,
-  ExecutionCursor,
-  BaseInput,
-  TextInput,
-  SelectInput,
-  FileInput,
-  ArrayInput,
-  WorkflowInput,
-  WorkflowInputSchema,
-  ExecutionNavigator,
-  Runtime,
-  ExecutionState,
-  type UserConfig,
-  type ActionEvent,
-  type AfterActionCallback,
-  type ExecutionOptions,
-  type ExecutionEvents,
-  type Cursor,
+  Environment,
   type Plugin,
-} from './runtime'
+  type UserConfig,
+} from './env'
 
 export {
-  defineAction,
-  type Action,
-  type ActionOptions,
-} from './action'
-
-export * as actions from './actions'
+  cursorCompare,
+  evalExpression,
+  getExpressionDependencies,
+  parseLocation,
+  ExecutionController,
+  ExecutionCursor,
+  ExecutionState,
+  ExecutionStatus,
+  ExecutionWalker,
+  type ActionResult,
+  type AfterStepCallback,
+  type CursorLocation,
+  type ExecutionEvents,
+  type ExecutionScope,
+  type StepEvent,
+  type StepResult,
+} from './exec'
 
 export {
   defineTool,
@@ -67,12 +73,11 @@ export {
 
 export {
   Workflow,
-  type WorkflowPhase,
-  type WorkflowAction,
+  type WorkflowMetadata,
 } from './workflow'
 
-export {
-  models,
-  type CostCalculator,
-  type ModelSpec,
-} from './ai'
+//export {
+//  models,
+//  type CostCalculator,
+//  type ModelSpec,
+//} from './ai'

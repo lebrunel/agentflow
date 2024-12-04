@@ -72,7 +72,8 @@ async function setup(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
 
 // Map src names to target names
 const renameFiles: Record<string, string> = {
-  _gitignore: '.gitignore'
+  _env: '.env',
+  _gitignore: '.gitignore',
 }
 
 function createDir(dir: string, overWrite?: boolean) {

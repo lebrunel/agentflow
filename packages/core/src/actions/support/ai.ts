@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { dedent as dd } from 'ts-dedent'
-import { stringifyContext, type ContextValue } from '../../context'
+import { stringifyContext } from '../../ast'
 
 import type { CoreAssistantMessage, CoreUserMessage } from 'ai'
-
+import type { ContextValue } from '../../context'
 
 export const SYSTEM_PROMPT = dd`
 You are an AI-powered interpreter for a markdown-based workflow system. Your primary function is to execute and respond to individual actions within a workflow phase.
@@ -52,31 +52,27 @@ export const aiGenerationOptions = z.object({
 
 export async function toCoreMessage(
   role: 'user' | 'assistant',
-  values: ContextValue[],
+  context: ContextValue | ContextValue[],
 ): Promise<CoreUserMessage | CoreAssistantMessage> {
+  if (!Array.isArray(context)) return toCoreMessage(role, [context])
   const content = []
-  for (const ctx of values) {
+
+  for (const ctx of context) {
     if (ctx.type === 'file') {
       const image = await getDataUrlFromFile(ctx.value)
-      content.push({ type: 'image', image } )
+      content.push({ type: 'image', image })
     } else {
-      content.push({ type: 'text', text: stringifyContext(ctx) })
+      const text = stringifyContext(ctx)
+      content.push({ type: 'text', text })
     }
   }
 
-  if (role === 'user') {
-    return { role, content } as CoreUserMessage
-  } else {
-    // For 'assistant', we assume only text content is allowed
-    return { role, content } as CoreAssistantMessage
-  }
+  return { role, content } as CoreUserMessage | CoreAssistantMessage
 }
 
-function getDataUrlFromFile(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => resolve(reader.result as string)
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
+async function getDataUrlFromFile(file: File): Promise<string> {
+  const buffer = await file.arrayBuffer()
+  const bytes = new Uint8Array(buffer)
+  const base64 = btoa(bytes.reduce((data, byte) => data + String.fromCharCode(byte), '' as string))
+  return `data:${file.type};base64,${base64}`
 }

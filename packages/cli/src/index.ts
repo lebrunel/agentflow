@@ -29,9 +29,15 @@ cli
   .addCommand(list)
   .addCommand(exec)
 
+process.on('SIGINT', () => {
+  console.log('\nReceived SIGINT. Exiting gracefully...')
+  process.exit(0)
+})
+
 try {
   await cli.parseAsync()
 } catch(e: any) {
   console.log(pc.bgRed('Error'), e.message)
   console.log(e)
+  process.exit(1)
 }

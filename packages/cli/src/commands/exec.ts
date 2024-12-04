@@ -1,16 +1,14 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs'
-import { basename, dirname, extname, join } from 'node:path'
+import { basename, extname, join } from 'node:path'
 import { Command } from 'commander'
 import pc from 'picocolors'
 import { dedent as dd } from 'ts-dedent'
 import { stringify as stringifyYaml } from 'yaml'
-import { compileSync, executeWorkflow, Runtime } from '@agentflow/core'
-import { createFileSystemTools } from '@agentflow/tools'
-import type { UserConfig } from '@agentflow/core'
+import { Workflow, Environment } from '@agentflow/core'
 
 import { resolveConfig } from '../config'
-import { promptInputs } from '../prompts'
-import type { CostCalculator } from '@agentflow/core'
+import { createExecutionPlugin, resolveInputs } from '../plugin'
+
 
 const cmd = new Command()
   .name('exec')
@@ -22,64 +20,61 @@ const cmd = new Command()
 async function execWorkflow(name: string) {
   const cwd = process.cwd()
   const now = new Date()
+
   const config = await resolveConfig(cwd)
-  const runtime = new Runtime(config as UserConfig)
   const flowName = basename(name, extname(name))
   const outputPath = buildOutputPath(config.paths.outputs, flowName, now)
 
-  const fileSystem = createFileSystemTools(join(outputPath, 'files'))
-  runtime.registerTool(fileSystem.write_files)
+  config.plugins ||= []
+  config.plugins.push(createExecutionPlugin({ outputPath }))
 
-  let flowPath: string | undefined
-  for (const ext of ['md', 'mdx']) {
-    const possiblePath = join(cwd, config.paths.flows, `${flowName}.${ext}`)
-    if (existsSync(possiblePath)) {
-      flowPath = possiblePath
-      break
-    }
-  }
-
-  if (!flowPath) {
-    throw new Error(`Workflow file not found for: ${name}`);
-  }
-
-  const flowStr = readFileSync(flowPath, { encoding: 'utf8' })
-
-  const file = compileSync(flowStr, { runtime })
-  // todo - check for error messages on file
-  const workflow = file.result
+  const env = new Environment(config)
+  const path = findPath(join(cwd, config.paths.flows), flowName)
+  const src = readFileSync(path, { encoding: 'utf8' })
+  const workflow = Workflow.compileSync(src, env)
 
   console.log(`🚀 ${pc.bold(workflow.title)}`)
   console.log()
-  //console.log(workflow.description)
-  //console.log()
 
-  const context = await promptInputs(workflow.inputSchema)
+  const context = await resolveInputs(workflow.meta)
   console.log()
-  const ctrl = executeWorkflow(workflow, context, runtime)
+  const ctrl = workflow.createExecution(context)
 
-  ctrl.on('action', async ({ action, stream, input, output }, cursor) => {
-    console.log(pc.dim('[['), pc.yellow(cursor.toString()), pc.blue(action.name), pc.green(action.contextKey), pc.dim(']]'))
+  ctrl.on('step', async (step, event, cursor) => {
+    const chunks: string[] = [pc.yellow(cursor.toString())]
+    if (step.action) {
+      const chunk = pc.blue(step.action.name) + pc.dim('@') + pc.green(step.action.attributes.as)
+      chunks.push(chunk)
+    }
+
+    console.log(pc.dim('[['), chunks.join(' '), pc.dim(']]'))
     console.log()
-    console.log(pc.dim(input))
-    console.log()
 
-    let isStreaming = false
-
-    output.then((result) => {
-      if (isStreaming) {
-        process.stdout.write('\n')
-      } else {
-        console.log(result)
-      }
-      // either way, end the stream
-      stream.end()
+    if (event.content) {
+      console.log(pc.dim(event.content))
       console.log()
-    })
+    }
 
-    for await (const chunk of stream) {
-      isStreaming = true
-      process.stdout.write(chunk)
+    if (!step.action?.children.length) {
+      let isStreaming = false
+
+      event.action?.then((result) => {
+        if (isStreaming) {
+          process.stdout.write('\n')
+        } else {
+          console.log(result.result.value)
+        }
+        // either way, end the stream
+        event.stream?.end()
+        console.log()
+      })
+
+      if (event.stream) {
+        for await (const chunk of event.stream) {
+          isStreaming = true
+          process.stdout.write(chunk)
+        }
+      }
     }
   })
 
@@ -87,38 +82,52 @@ async function execWorkflow(name: string) {
     console.error(err)
   })
 
-  return new Promise<void>(resolve => {
-    ctrl.on('complete', (result) => {
-      const calculator = ctrl.getCostEstimate()
-      displayUsageCost(calculator)
-      mkdirSync(outputPath, { recursive: true })
-      writeFileSync(
-        join(outputPath, 'output.md'),
-        appendFrontmatter(result, {
-          title: workflow.title,
-          created: now.toString(),
-          usage: calculator.data
-        }),
-        { encoding: 'utf8' }
-      )
-      resolve()
-    })
+  ctrl.on('complete', (result) => {
+    const usage = ctrl.state.actionLog.reduce((data, log) => {
+      if (log.meta?.type === 'ai') {
+        data.inputTokens += log.meta.data.usage.promptTokens
+        data.outputTokens += log.meta.data.usage.completionTokens
+      }
+      return data
+    }, { inputTokens: 0, outputTokens: 0 })
+
+    displayTokenUsage(usage)
+    mkdirSync(outputPath, { recursive: true })
+    writeFileSync(
+      join(outputPath, 'output.md'),
+      appendFrontmatter(result, {
+        title: workflow.title,
+        created: now.toString(),
+        usage,
+      }),
+      { encoding: 'utf8' }
+    )
   })
+
+  return ctrl.runAll()
 }
 
-function displayUsageCost(calculator: CostCalculator) {
+function findPath(baseDir: string, name: string): string {
+  const path = ['md', 'mdx']
+    .map(ext => join(baseDir, `${name}.${ext}`))
+    .find(existsSync)
+
+  if (!path) {
+    throw new Error(`Workflow file not found for: ${name}`);
+  }
+
+  return path
+}
+
+function displayTokenUsage(usage: { inputTokens: number, outputTokens: number }) {
   const maxWidth = Math.min(80, process.stdout.columns || 80)
-  const formatCost = (cost: number) => (cost/100).toFixed(4)
 
   console.log(pc.dim('-'.repeat(maxWidth)))
   console.log()
-  console.log(pc.dim(pc.italic(`Costs are estimated and will not be 100% accurate.`)))
-  console.log(pc.dim(pc.italic(`Refer to your AI provider for actual costs.`)))
+  console.log(pc.dim(pc.italic(`Token usage. Refer to your AI provider for costs.`)))
   console.log()
-  console.log(pc.dim('Input cost'), '  ', pc.dim('$'), formatCost(calculator.inputCost), ' ', pc.dim(`${calculator.inputTokens} tks`))
-  console.log(pc.dim('Output cost'), ' ', pc.dim('$'), formatCost(calculator.outputCost), ' ', pc.dim(`${calculator.outputTokens} tks`))
-  console.log(pc.dim('-'.repeat(22)))
-  console.log(pc.dim(pc.bold('Total')), '       ', pc.dim(pc.bold('$')), pc.bold(formatCost(calculator.totalCost)))
+  console.log(pc.dim('Input tokens'), '  ', usage.inputTokens, pc.dim('tks'))
+  console.log(pc.dim('Output tokens'), ' ', usage.outputTokens, pc.dim('tks'))
   console.log()
 }
 

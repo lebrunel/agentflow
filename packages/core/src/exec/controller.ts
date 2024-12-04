@@ -4,7 +4,7 @@ import { ExecutionCursor } from './cursor'
 import { evalExpression } from './eval'
 import { ExecutionState } from './state'
 import { ExecutionWalker } from './walker'
-import { contextify, stringify, stringifyContext } from '../ast'
+import { contextify, stringifyContext } from '../ast'
 import { unwrapContext, wrapContext } from '../context'
 
 import type { Unsubscribe } from 'nanoevents'
@@ -122,10 +122,10 @@ export class ExecutionController {
 
     let actionPromise: Promise<ActionResult> | undefined
     let actionStream: Pushable<string> | undefined
-    let actionMeta: ActionMeta | undefined
 
     if (step.action) {
       const actionNode = step.action
+      let actionMeta: ActionMeta | undefined
       actionStream = pushable<string>({ objectMode: true })
       actionPromise = new Promise(resolve => {
         queueMicrotask(async () => {
@@ -224,7 +224,7 @@ export class ExecutionController {
             name: action.name,
             contextKey,
             result,
-            meta: actionMeta
+            meta: actionMeta,
           })
         })
       })
@@ -233,11 +233,12 @@ export class ExecutionController {
     // This is fired before the actionPromise starts
     this.#events.emit('step', step, {
       action: actionPromise,
-      content,
+      content: stringifyContext(content),
       stream: actionStream,
     }, cursor)
 
-    // Here we await for the actionPromise to resolve
+    // Here we wait for the actionPromise to resolve,
+    // and remove the stream to ensure it is not stored in state
     const result: StepResult = {
       action: await actionPromise,
       content,
@@ -476,7 +477,8 @@ export interface ExecutionEvents {
   'rewind': (cursor: ExecutionCursor) => void;
 }
 
-export type StepEvent = Omit<StepResult, 'action'> & {
+export interface StepEvent {
+  content: string;
   action?: Promise<ActionResult>;
   stream?: Pushable<string>;
 }

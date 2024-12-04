@@ -4,7 +4,7 @@ import { Command } from 'commander'
 import pc from 'picocolors'
 import { dedent as dd } from 'ts-dedent'
 import { stringify as stringifyYaml } from 'yaml'
-import { Workflow, Environment, stringifyContext } from '@agentflow/core'
+import { Workflow, Environment } from '@agentflow/core'
 
 import { resolveConfig } from '../config'
 import { createExecutionPlugin, resolveInputs } from '../plugin'
@@ -51,7 +51,7 @@ async function execWorkflow(name: string) {
     console.log()
 
     if (event.content) {
-      console.log(pc.dim(stringifyContext(event.content)))
+      console.log(pc.dim(event.content))
       console.log()
     }
 
@@ -70,7 +70,6 @@ async function execWorkflow(name: string) {
       })
 
       if (event.stream) {
-        isStreaming = true
         for await (const chunk of event.stream) {
           isStreaming = true
           process.stdout.write(chunk)

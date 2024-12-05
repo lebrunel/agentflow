@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { generateText, streamText } from 'ai'
+import { aiGenerationOptions, toCoreMessage, toCoreTool, SYSTEM_PROMPT } from'./support/ai'
 import { defineAction } from '../action'
-import { aiGenerationOptions, toCoreMessage, SYSTEM_PROMPT } from'./support/ai'
 
-import type { CoreMessage, CoreTool, GenerateTextResult, LanguageModelUsage, StreamTextResult } from 'ai'
+import type { CoreMessage, CoreTool, GenerateTextResult } from 'ai'
 
 const schema = z.object({
   model: z.string(),
@@ -29,16 +29,11 @@ export default defineAction({
 
     messages.push(await toCoreMessage('user', ctx.content))
 
-    const tools: Record<string, CoreTool> = props.tools
-      ? props.tools.reduce((obj, name) => {
-        const tool = env.useTool(name)
-        return { ...obj, [tool.name]: {
-          desciption: tool.description,
-          parameters: tool.params,
-          execute: tool.invoke
-        } }
-      }, {})
-      : {}
+    const tools: Record<string, CoreTool> = props.tools?.reduce((obj, name) => {
+      const tool = env.useTool(name)
+      obj[tool.name] = toCoreTool(tool)
+      return obj
+    }, {} as Record<string, CoreTool>) || {}
 
     const opts = {
       model: env.useLanguageModel(props.model),

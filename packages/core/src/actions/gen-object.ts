@@ -1,9 +1,9 @@
 import { z } from 'zod'
 import { generateObject } from 'ai'
+import { aiGenerationOptions, toCoreMessage, toCoreTool, SYSTEM_PROMPT } from'./support/ai'
 import { defineAction } from '../action'
-import { aiGenerationOptions, toCoreMessage, SYSTEM_PROMPT } from'./support/ai'
 
-import type { CoreMessage } from 'ai'
+import type { CoreMessage, CoreTool } from 'ai'
 
 const schema = z.object({
   model: z.string(),
@@ -31,6 +31,12 @@ export default defineAction({
 
     messages.push(await toCoreMessage('user', ctx.content))
 
+    const tools: Record<string, CoreTool> = props.tools?.reduce((obj, name) => {
+      const tool = env.useTool(name)
+      obj[tool.name] = toCoreTool(tool)
+      return obj
+    }, {} as Record<string, CoreTool>) || {}
+
     const opts = {
       model: env.useLanguageModel(props.model),
       system: SYSTEM_PROMPT,
@@ -38,6 +44,7 @@ export default defineAction({
       schema: props.schema,
       schemaName: props.schemaName,
       schemaDeschemaDescription: props.schemaDescription,
+      tools,
       ...props.options
     }
 

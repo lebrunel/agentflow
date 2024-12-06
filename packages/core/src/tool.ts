@@ -1,22 +1,24 @@
 import { z } from 'zod'
-import { type CoreTool} from 'ai'
+import type { CoreTool, ToolExecutionOptions } from 'ai'
 
 export function defineTool<T extends z.ZodType>(options: Tool<T>): Tool<T>
 export function defineTool<T extends z.ZodType>(name: string, options: CoreTool<T>): Tool<T>
 export function defineTool<T extends z.ZodType>(nameOrOpts: Tool<T> | string, tool?: CoreTool<T> ): Tool<T> {
   if (typeof nameOrOpts === 'string') {
     if (
-      typeof tool !== 'object' ||
-      !['description', 'parameters', 'execute'].every(key => key in tool)
+      typeof tool === 'object' &&
+      tool?.type !== 'provider-defined' &&
+      ['description', 'parameters', 'execute'].every(key => key in tool)
     ) {
+      const { description, parameters, execute } = tool
+      return {
+        name: nameOrOpts,
+        description: description!,
+        params: parameters,
+        invoke: execute!
+      }
+    } else {
       throw new Error('Invalid CoreTool type: ${tool}')
-    }
-    const { description, parameters, execute } = tool
-    return {
-      name: nameOrOpts,
-      description: description!,
-      params: parameters,
-      invoke: execute!
     }
   } else {
     return { ...nameOrOpts }
@@ -38,4 +40,4 @@ export type ToolOptions<T extends z.ZodType> = Tool<T> | (CoreTool<T> & {
 
 export type ToolName = string
 
-export type ToolFn<T> = (input: T) => PromiseLike<any>
+export type ToolFn<T> = (input: T, options: ToolExecutionOptions) => PromiseLike<any>

@@ -43,11 +43,11 @@ export default defineAction({
       ...props.options
     }
 
-    async function streamPromise(): Promise<GenerateTextResult<typeof tools>> {
+    async function streamPromise(): Promise<GenerateTextResult<typeof tools, unknown>> {
       return new Promise(async (resolve) => {
-        const { textStream } = await streamText({
+        const { textStream } = streamText({
           ...opts,
-          onFinish: (res) => resolve(res as GenerateTextResult<typeof tools>)
+          onFinish: (res) => resolve(res as GenerateTextResult<typeof tools, unknown>)
         })
 
         for await (const chunk of textStream) {

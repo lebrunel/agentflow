@@ -27,7 +27,7 @@
   "types": "./dist/index.d.ts",
   "unpkg": "./dist/index.min.js",
   "dependencies": {
-    "ai": "^3.4.3",
+    "ai": "^4.0.12",
     "change-case": "^5.4.4",
     "estree-walker": "^3.0.3",
     "it-pushable": "^3.2.3",

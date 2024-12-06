@@ -47,7 +47,7 @@ export default defineConfig({
           items: [
             { text: 'CLI', link: '/guide/cli' },
             { text: 'Configuration', link: '/guide/configuration' },
-            { text: 'JavaScript SDK', link: '/guide/javascript-sdk' },
+            { text: 'JavaScript API', link: '/guide/javascript-api' },
           ]
         },
         /*

@@ -11,24 +11,28 @@ AgentFlow is a low-code framework for creating and executing AI-powered workflow
 - 🔀 **Full logical control** - Create complex workflows with loops and conditional branching, just like traditional programming but in plain English.
 - 🛠️ **Extend with ease** - Add custom actions and tools using JavaScript to tailor AgentFlow to your specific needs.
 
+> [!WARNING]
+> AgentFlow is in early development. While it's ready for experimentation and early adoption, the API may change as we continue to improve the framework. Always refer to the [documentation](https://agentflow.2point0.ai) for the latest updates.
+
 ## Table of contents
 
-- [Install](#install)
-- [Usage](#usage)
+- [Quick start](#quick-start)
+- [JavaScript API](#javascript-api)
 - [Documentation](#documentation)
 - [License](#license)
 
-## Install
+## Quick start
 
 TODO
 
-## Usage
+## JavaScript API
 
 TODO
+
 
 ## Documentation
 
-TODO
+For more detailed guides, examples and API documentation, visit [agentflow.2point0.ai](https://agentflow.2point0.ai).
 
 ## License
 

@@ -1,6 +1,7 @@
 import { readFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { Command } from 'commander'
+import { dedent as dd } from 'ts-dedent'
 import pc from 'picocolors'
 import dotenv from 'dotenv'
 
@@ -14,17 +15,21 @@ dotenv.config({ path: resolve(cwd, '.env') })
 const pkgPath = resolve(__dirname, '../package.json')
 
 const pkg = JSON.parse(readFileSync(pkgPath, { encoding: 'utf8' }))
-const cli = new Command('ada')
+const cli = new Command()
 
-const bannerText = `${pc.bold('AgentFlow')}
-  ${pc.dim('version:')} ${pc.green(pkg.version)}\n`
+function banner() {
+  console.log(dd`
+  ${pc.bold('Agentflow')}
+    ${pc.dim('version:')} ${pc.green(pkg.version)}
+  `)
+  console.log()
+}
 
 cli
-  .name('aflow')
-  .description('AgentFlow')
+  .name('agentflow')
+  .alias('aflow')
   .version(pkg.version)
-  .addHelpText('before', bannerText)
-  .hook('preAction', () => console.log(bannerText))
+  .hook('preAction', banner)
   .addCommand(init)
   .addCommand(list)
   .addCommand(exec)

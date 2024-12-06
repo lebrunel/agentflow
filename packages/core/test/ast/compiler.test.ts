@@ -8,6 +8,13 @@ import type { Paragraph, Root, Yaml } from 'mdast'
 import type { ActionNode, ExpressionNode } from 'src'
 import type { Processor } from 'unified'
 
+function isWorkflowVFile(val: any): val is VFile {
+  return val
+    && typeof val === 'object'
+    && ['basename', 'dirname', 'extname', 'path'].every(key => key in val)
+    && val.result instanceof Workflow
+}
+
 
 describe('createCompiler()', () => {
   let proc: Processor<Root, Root, Root, Root, Workflow>
@@ -115,8 +122,7 @@ describe('createCompiler()', () => {
 
   test('processSync() compile to VFile with workflow', () => {
     const file = proc.processSync(`Hello {'world'}`)
-    expect(file).toBeInstanceOf(VFile)
-    expect(file.result).toBeInstanceOf(Workflow)
+    expect(file).toSatisfy(isWorkflowVFile)
   })
 
   test('processSync() throws on invalid workflow', () => {
@@ -131,13 +137,15 @@ describe('createCompiler()', () => {
 })
 
 describe('compile()', () => {
-  test('returns an async VFile', () => {
-    expect(compile('Test', env)).resolves.toBeInstanceOf(VFile)
+  test('returns an async VFile', async () => {
+    const result = compile('Test', env)
+    expect(result).toBeInstanceOf(Promise)
+    expect(await result).toSatisfy(isWorkflowVFile)
   })
 })
 
 describe('compileSync()', () => {
   test('returns a VFile', () => {
-    expect(compileSync('Test', env)).toBeInstanceOf(VFile)
+    expect(compileSync('Test', env)).toSatisfy(isWorkflowVFile)
   })
 })

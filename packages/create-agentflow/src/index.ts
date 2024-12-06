@@ -1,55 +1,47 @@
 import fs from 'node:fs'
 import { join, relative, resolve } from 'node:path'
 import { confirm, input } from '@inquirer/prompts'
-import minimist from 'minimist'
 import pc from 'picocolors'
 
-const defaultDir = 'agentflow-project'
-const defaultTmp = 'default'
+const DEFAULT_PROJECT_NAME = 'agentflow-project'
+const TEMPLATES_DIRNAME = resolve(__dirname, '..', 'templates')
 
-async function setup(cwd: string, argv: minimist.ParsedArgs): Promise<void> {
-  const argDir = argv._[0]?.trim()
-  const templateDir = resolve(__dirname, '..', 'templates', argv.template)
+export async function createAgentflow(
+  { cwd, path, template }: CreateAgentflowOptions,
+): Promise<void> {
+  const defaultName = path && path !== '.' ? path : DEFAULT_PROJECT_NAME
+  const templateDir = resolve(TEMPLATES_DIRNAME, template)
 
   if (!fs.existsSync(templateDir)) {
-    console.error(pc.red('✖') + ` Template not found: ${argv.template}`)
-    return
+    exit(`Template not found: ${template}`)
   }
 
-  let projectName: string
-  let targetDir: string
+  const projectName = await input({
+    message: 'Project name:',
+    default: defaultName,
+    required: true,
+    validate(name) {
+      if (!/^[a-z0-9_\-]+$/.test(name)) {
+        return 'Project name can consist of lowercase letters, numbers, underscore and dashes only.'
+      }
+      return true
+    }
+  })
+
+  const targetDir = join(cwd, path || projectName)
   let overWrite: boolean
 
-  try {
-    projectName = await input({
-      message: 'Project name:',
-      default: argDir && argDir !== '.' ? argDir : defaultDir,
-      required: true,
-      validate(name) {
-        if (!/^[a-z0-9_\-]+$/.test(name)) {
-          return 'Project name can consist of lowercase letters, numbers, underscore and dashes only.'
-        }
-        return true
-      }
+  if (fs.existsSync(targetDir)) {
+    const overWrite = await confirm({
+      message: `${
+        targetDir === '.' ? 'Current directory' : 'Target directory'
+      } is not empty. Remove existing files and continue?`,
+      default: false,
     })
 
-    targetDir = join(cwd, argDir || projectName)
-
-    if (fs.existsSync(targetDir)) {
-      overWrite = await confirm({
-        message: `${
-          targetDir === '.' ? 'Current directory' : 'Target directory'
-        } is not empty. Remove existing files and continue?`,
-        default: false,
-      })
-
-      if (!overWrite) {
-        throw new Error(`${pc.red('✖')} Operation cancelled`)
-      }
+    if (!overWrite) {
+      exit('Operation cancelled')
     }
-  } catch(e: unknown) {
-    console.error((e as Error).message)
-    return
   }
 
   console.log(`\nScaffolding project in: ${pc.bold(targetDir)}`)
@@ -112,12 +104,15 @@ function createPackage(src: string, dest: string, projectName: string) {
   fs.writeFileSync(join(dest, 'package.json'), JSON.stringify(pkg, null, 2))
 }
 
-const argv = minimist(process.argv.slice(2), {
-  string: ['_'],
-  alias:    { template: 't' },
-  default:  { template: defaultTmp },
-})
+function exit(message: string): never {
+  console.error(`${pc.red('✖')} ${message}`)
+  process.exit()
+}
 
-setup(process.cwd(), argv).catch((e) => {
-  console.error(e)
-})
+// Types
+
+export interface CreateAgentflowOptions {
+  cwd: string;
+  path?: string;
+  template: string;
+}

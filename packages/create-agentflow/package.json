@@ -14,6 +14,12 @@
     "dist/**/*"
   ],
   "bin": "index.js",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
   "scripts": {
     "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
     "build:tsc": "tsc --p tsconfig.build.json"

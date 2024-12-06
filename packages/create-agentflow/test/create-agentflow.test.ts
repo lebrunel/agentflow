@@ -5,7 +5,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import fg from 'fast-glob'
 
-const cliPath = resolve(__dirname, '..', 'src', 'index.ts')
+const cliPath = resolve(__dirname, '..', 'src', 'create-agentflow.ts')
 let tmpDir: string
 
 beforeAll(() => {

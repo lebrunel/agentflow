@@ -1,34 +1,18 @@
 {
   "name": "@agentflow/core",
   "version": "0.1.0",
+  "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
+  "license": "Apache-2.0",
+  "scripts": {
+    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
+    "build:tsc": "tsc --p tsconfig.build.json"
+  },
+  "type": "module",
+  "homepage": "https://github.com/lebrunel/agentflow",
   "repository": {
     "type": "git",
     "url": "https://github.com/lebrunel/agentflow",
     "directory": "packages/core"
-  },
-  "dependencies": {
-    "ai": "^3.4.3",
-    "change-case": "^5.4.4",
-    "estree-walker": "^3.0.3",
-    "it-pushable": "^3.2.3",
-    "mdast-util-mdx-jsx": "^3.1.2",
-    "mdast-util-to-string": "^4.0.0",
-    "nanoevents": "^9.0.0",
-    "polyfill-text-decoder-stream": "^0.0.9",
-    "remark-frontmatter": "^5.0.0",
-    "remark-mdx": "^3.0.1",
-    "remark-parse": "^11.0.0",
-    "remark-stringify": "^11.0.0",
-    "ts-dedent": "^2.2.0",
-    "unified": "^11.0.5",
-    "unist-builder": "^4.0.0",
-    "unist-util-map": "^4.0.0",
-    "unist-util-select": "^5.1.0",
-    "unist-util-visit": "^5.0.0",
-    "unist-util-visit-parents": "^6.0.1",
-    "vfile": "^6.0.2",
-    "yaml": "^2.5.0",
-    "zod": "^3.23.8"
   },
   "exports": {
     ".": {
@@ -36,18 +20,32 @@
       "types": "./dist/index.d.ts"
     }
   },
-  "browser": "./dist/index.min.js",
-  "description": "AgentFlow compiler and execution engine, enabling AI-powered workflows and automations using Markdown and natural language.",
   "files": [
     "dist/**/*"
   ],
-  "homepage": "https://github.com/lebrunel/agentflow",
-  "license": "Apache-2.0",
-  "scripts": {
-    "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
-    "build:tsc": "tsc --p tsconfig.build.json"
-  },
-  "type": "module",
+  "browser": "./dist/index.min.js",
   "types": "./dist/index.d.ts",
-  "unpkg": "./dist/index.min.js"
+  "unpkg": "./dist/index.min.js",
+  "dependencies": {
+    "ai": "^3.4.3",
+    "change-case": "^5.4.4",
+    "estree-walker": "^3.0.3",
+    "it-pushable": "^3.2.3",
+    "mdast-util-mdx-jsx": "^3.1.3",
+    "mdast-util-to-string": "^4.0.0",
+    "nanoevents": "^9.1.0",
+    "polyfill-text-decoder-stream": "^0.0.9",
+    "remark-frontmatter": "^5.0.0",
+    "remark-mdx": "^3.1.0",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "ts-dedent": "^2.2.0",
+    "unified": "^11.0.5",
+    "unist-builder": "^4.0.0",
+    "unist-util-select": "^5.1.0",
+    "unist-util-visit": "^5.0.0",
+    "vfile": "^6.0.3",
+    "yaml": "^2.6.1",
+    "zod": "^3.23.8"
+  }
 }

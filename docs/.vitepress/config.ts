@@ -7,7 +7,8 @@ export default defineConfig({
   description: 'Agentflow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language.',
 
   head: [
-    ['link', { rel: 'icon', href: '/images/logo.webp' }]
+    ['link', { rel: 'icon', href: '/images/logo.webp' }],
+    ['script', { src: 'https://plausible.io/js/script.js', defer: '', 'data-domain': 'agentflow.2point0.ai' }],
   ],
 
   // https://vitepress.dev/reference/default-theme-config

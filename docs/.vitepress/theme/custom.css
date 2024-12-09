@@ -24,7 +24,7 @@
   .VPHero .image img {
     max-height: 350px;
   }
-  .VPHero .image-container[data-v-72cc4481] {
+  .VPHero .image-container {
     margin: 0 0 0 auto;
     display: block;
     transform: none;

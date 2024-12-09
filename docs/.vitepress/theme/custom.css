@@ -1,9 +1,36 @@
-:root {
-  --vp-home-hero-image-background-image:
-    radial-gradient(ellipse 100% 50% at center, transparent 33%, var(--vp-c-bg) 220px),
-    conic-gradient(from 45deg, #FFD850, #FF36F3, #8E5FFF, #FFD850);
-  --vp-home-hero-image-filter: blur(32px);
+.VPHero .main {
+  order: 1;
 }
+
+.VPHero .image {
+  margin: 56px 0 0;
+  order: 2;
+}
+
+.VPHero .image-container {
+  width: auto;
+  height: auto;
+  max-width: 640px;
+}
+
+@media (min-width: 960px) {
+  .VPHero .image {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin: 0;
+  }
+  .VPHero .image img {
+    max-height: 350px;
+  }
+  .VPHero .image-container[data-v-72cc4481] {
+    margin: 0 0 0 auto;
+    display: block;
+    transform: none;
+  }
+}
+
 
 .VPButton.medium {
   border-radius: 6px !important;

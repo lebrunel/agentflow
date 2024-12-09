@@ -3,12 +3,11 @@
 layout: home
 
 hero:
-  name: "Agentflow"
-  text: AI agents & workflows with natural language
-  tagline: Craft intelligent AI agents and powerful workflows as easily as writing a story
+  name: Agentflow
+  text: Powerfully simple AI agent framework
+  tagline: Create and execute AI agents and workflows using natural language and Markdown
   image:
-    light: '/images/home.svg'
-    dark: '/images/home-dark.svg'
+    src: '/images/x.webp'
     alt: 'Agentflow'
   actions:
     - theme: brand

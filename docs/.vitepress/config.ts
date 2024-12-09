@@ -4,7 +4,7 @@ import { defineConfig } from 'vitepress'
 export default defineConfig({
   title: 'Agentflow',
   titleTemplate: ':title ⋮ Agentflow',
-  description: 'Agentflow is a low-code framework for creating and executing AI-powered workflows using Markdown and natural language.',
+  description: 'Powerfully simple AI agent framework.',
 
   head: [
     ['link', { rel: 'icon', href: '/images/logo.webp' }],

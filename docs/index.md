@@ -24,7 +24,7 @@ features:
     link: /guide/workflow-structure
     linkText: Learn about workflows
   - title: AI-powered generation
-    details: Generate text and structured data in your workflows using advance AI models.
+    details: Generate text and structured data in your workflows using advanced AI models.
     icon: 🤖
     link: /guide/ai-generations
     linkText: Explore AI generations

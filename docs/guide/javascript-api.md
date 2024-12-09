@@ -35,7 +35,9 @@ A `Workflow` instance represents a parsed and validated workflow definition. It 
 import { Environment, Workflow } from '@agentflow/core'
 
 const env = new Environment({
-  // config options
+  providers: {
+    // configure AI providers
+  }
 })
 
 const markdown = `

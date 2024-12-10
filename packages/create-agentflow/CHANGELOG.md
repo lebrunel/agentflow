@@ -1,5 +1,11 @@
 # create-agentflow
 
+## 0.1.1
+
+### Patch Changes
+
+- 688e97d: Fix broken release
+
 ## 0.1.0
 
 ### Minor Changes

@@ -1,6 +1,6 @@
 {
   "name": "@agentflow/cli",
-  "version": "0.2.0",
+  "version": "0.2.8",
   "description": "Command-line interface for AgentFlow, providing essential tools to create, manage, and execute AI-powered workflows.",
   "license": "Apache-2.0",
   "type": "module",
@@ -15,19 +15,19 @@
     "dist/**/*"
   ],
   "bin": {
-    "aflow": "./bin/cli.sh",
-    "agentflow": "./bin/cli.sh"
+    "aflow": "./bin/cli.js",
+    "agentflow": "./bin/cli.js"
   },
   "scripts": {
     "build": "rm -rf dist/* && bun run build:tsc && bun run build.ts",
     "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {
-    "@agentflow/core": "workspace:*",
-    "@agentflow/tools": "workspace:*",
+    "@agentflow/core": "workspace:^0.2.8",
+    "@agentflow/tools": "workspace:^0.1.9",
     "@inquirer/prompts": "^7.1.0",
     "commander": "^12.1.0",
-    "create-agentflow": "workspace:*",
+    "create-agentflow": "workspace:^0.1.9",
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.2",
     "mime-types": "^2.1.35",

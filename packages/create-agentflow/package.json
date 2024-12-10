@@ -1,6 +1,6 @@
 {
   "name": "create-agentflow",
-  "version": "0.1.1",
+  "version": "0.1.9",
   "description": "The recommended way to quickly set up and bootstrap AgentFlow projects.",
   "license": "Apache-2.0",
   "type": "module",
@@ -11,9 +11,12 @@
     "directory": "packages/create-agentflow"
   },
   "files": [
-    "dist/**/*"
+    "dist/**/*",
+    "index.js"
   ],
-  "bin": "index.js",
+  "bin": {
+    "create-agentflow": "index.js"
+  },
   "exports": {
     ".": {
       "import": "./dist/index.js",

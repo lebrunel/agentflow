@@ -1,5 +1,53 @@
 # @agentflow/core
 
+## 0.2.8
+
+### Patch Changes
+
+- Bymp
+
+## 0.2.7
+
+### Patch Changes
+
+- Force bump
+
+## 0.2.6
+
+### Patch Changes
+
+- Force bump
+
+## 0.2.5
+
+### Patch Changes
+
+- Bump
+
+## 0.2.4
+
+### Patch Changes
+
+- Force
+
+## 0.2.3
+
+### Patch Changes
+
+- Force bump
+
+## 0.2.2
+
+### Patch Changes
+
+- Force bump
+
+## 0.2.1
+
+### Patch Changes
+
+- Force patch
+
 ## 0.2.0
 
 ### Minor Changes

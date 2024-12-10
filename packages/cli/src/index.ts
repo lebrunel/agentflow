@@ -33,6 +33,8 @@ cli
   .addCommand(init)
   .addCommand(list)
   .addCommand(exec)
+  .showHelpAfterError()
+  .action(() => cli.help()) // default command
 
 process.on('SIGINT', () => {
   console.log('\nReceived SIGINT. Exiting gracefully...')
@@ -41,6 +43,7 @@ process.on('SIGINT', () => {
 
 try {
   await cli.parseAsync()
+  process.exit(0)
 } catch(e: any) {
   console.log(pc.bgRed('Error'), e.message)
   console.log(e)

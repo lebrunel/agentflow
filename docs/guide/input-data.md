@@ -1,3 +1,7 @@
+---
+description: Learn how to handle input data in Agentflow workflows - define static data and capture user inputs with various input types for flexible workflow execution. Learn Agentflow's data handling.
+---
+
 # Input data
 
 Workflows usually involve processing some input data to generate an output. Agentflow provides two mechanisms to input data to a workflow's initial state.

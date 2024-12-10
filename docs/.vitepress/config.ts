@@ -1,15 +1,37 @@
-import { defineConfig } from 'vitepress'
+import { defineConfig, type HeadConfig } from 'vitepress'
 
 // https://vitepress.dev/reference/site-config
 export default defineConfig({
   title: 'Agentflow',
   titleTemplate: ':title ⋮ Agentflow',
   description: 'Powerfully simple AI agent framework.',
+  lang: 'en-GB',
 
   head: [
     ['link', { rel: 'icon', href: '/images/logo.webp' }],
     ['script', { src: 'https://plausible.io/js/script.js', defer: '', 'data-domain': 'agentflow.2point0.ai' }],
   ],
+
+  transformHead: ({ page, pageData, siteData }) => {
+    const head: HeadConfig[] = []
+    const isHome = page === 'index.md'
+    const hasImage = !!pageData.frontmatter.image
+    const baseUrl = 'https://agentflow.2point0.ai'
+    const pageUrl = baseUrl + '/' + page.replace(/\.md$/, '.html').replace(/index\.html$/, '')
+    const imageUrl = hasImage ? baseUrl + pageData.frontmatter.image : undefined
+
+    head.push(['meta', { property: 'og:type', content: isHome ? 'website' : 'article' }])
+    head.push(['meta', { property: 'og:title', content: pageData.title }])
+    head.push(['meta', { property: 'og:description', content: pageData.description }])
+    if (imageUrl) head.push(['meta', { property: 'og:image', content: imageUrl }])
+    head.push(['meta', { property: 'twitter:card', content: hasImage ? 'summary_large_image' : 'summary' }])
+    head.push(['meta', { property: 'twitter:url', content: pageUrl }])
+    head.push(['meta', { property: 'twitter:title', content: pageData.title }])
+    head.push(['meta', { property: 'twitter:description', content: pageData.description }])
+    if (imageUrl) head.push(['meta', { property: 'twitter:image', content: imageUrl }])
+
+    return head
+  },
 
   // https://vitepress.dev/reference/default-theme-config
   themeConfig: {

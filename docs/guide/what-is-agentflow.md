@@ -1,3 +1,7 @@
+---
+description: Agentflow is a low-code framework for building AI workflows using natural language and Markdown. Create and execute AI agents without complex programming.
+---
+
 # What is Agentflow?
 
 Agentflow is a low-code framework for creating and executing AI-powered workflows using natural language and Markdown. It makes the process of creating AI agents and automations as simple as expressing yourself in your own native language, all without sacrificing flexibility or power.

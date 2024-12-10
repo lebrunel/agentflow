@@ -1,4 +1,5 @@
 ---
+description: Learn how to use Agentflow's command line interface. Install, create, list, and run workflows via simple CLI commands.
 outline: [2,3]
 ---
 

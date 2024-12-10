@@ -1,3 +1,7 @@
+---
+description: Learn how to use Agentflow's control flow features including loops and conditional branching. Master the Loop and Cond actions for advanced workflow control.
+---
+
 # Control flow
 
 Agentflow is built on the idea of programming with natural language. Prompting and AI generations will only get you so far - to be a true programming language some form of control flow is needed. Agentflow supports looping and conditional branching through the `<Loop />` and `<Cond />` actions.

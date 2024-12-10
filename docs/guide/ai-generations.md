@@ -1,3 +1,7 @@
+---
+description: Learn how to generate text and structured data with AI models in Agentflow. Covers text generation, object generation, and configuring AI providers like OpenAI and Anthropic.
+---
+
 # AI generations
 
 At its heart, Agentflow is a tool to leverage advanced AI models to generate outputs as part of your workflows. Agentflow provides actions for generating text and structured data, and can be equipped with tools that bring external web services or local files and databases directly into your workflows.

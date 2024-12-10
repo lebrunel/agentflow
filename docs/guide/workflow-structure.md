@@ -1,3 +1,7 @@
+---
+description: Learn how to structure Agentflow workflows using Markdown, including phases, actions, and expressions for building AI-powered automation. Documentation and syntax guide.
+---
+
 # Workflow structure
 
 A workflow is a plain text document, representing an overall process or goal. A workflow is formatted using Markdown (with a few syntactical extras), which inherently gives the workflow a structure, organised into three levels:

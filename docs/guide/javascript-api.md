@@ -1,4 +1,5 @@
 ---
+description: Learn how to programmatically parse and execute AI workflows using Agentflow's JavaScript API, with step-by-step control and real-time event monitoring.
 outline: [2,3]
 ---
 

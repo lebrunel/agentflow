@@ -1,5 +1,8 @@
 ---
 # https://vitepress.dev/reference/default-theme-home-page
+title: Agentflow
+description: Powerfully simple AI agent framework.
+image: /images/agentflow-banner.webp
 layout: home
 
 hero:

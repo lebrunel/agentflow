@@ -1,4 +1,5 @@
 ---
+description: Learn how to configure Agentflow projects. Set up AI providers, custom actions, tools, and plugins for your workflows.
 outline: [2,3]
 ---
 

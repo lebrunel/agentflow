@@ -1,3 +1,7 @@
+---
+description: Learn how to create, configure, and run AI workflows with Agentflow. Step-by-step guide for setting up your first project and workflow using the command line interface.
+---
+
 # Getting started
 
 To use Agentflow, you don't need to be a professional programmer or know any programming languages. But you should be happy working in the command line, and it helps to be able to *think* a little like a programmer - to have a curious and analytical mind, and enjoy solving problems.

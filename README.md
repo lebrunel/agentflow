@@ -1,5 +1,7 @@
 # Agentflow
 
+![Agentflow](https://github.com/lebrunel/agentflow/raw/master/media/agentflow-banner.webp)
+
 ![GitHub License](https://img.shields.io/github/license/lebrunel/agentflow?style=flat-square)
 ![Build Status](https://img.shields.io/github/actions/workflow/status/lebrunel/agentflow/bun.yml?style=flat-square)
 

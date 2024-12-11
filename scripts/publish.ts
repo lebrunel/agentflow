@@ -5,8 +5,8 @@ import semver from 'semver'
 info('Publishing packages')
 
 const packages = await loadLocalPackages()
-  .then(sortPackagesByDependencies)
-  .then(compareRemotePackages)
+  .then(topologicalSort)
+  .then(compareWithRemote)
 
 for (const { name, pkg, published } of packages) {
   info(name, (published
@@ -60,7 +60,7 @@ async function loadLocalPackages(): Promise<PackageInfo[]> {
   )
 }
 
-async function compareRemotePackages(pkgs: PackageInfo[]): Promise<PackageInfo[]> {
+async function compareWithRemote(pkgs: PackageInfo[]): Promise<PackageInfo[]> {
   return Promise.all<PackageInfo>(
     pkgs.map(pkgInfo => {
       info('npm info', pkgInfo.name)
@@ -78,7 +78,8 @@ async function compareRemotePackages(pkgs: PackageInfo[]): Promise<PackageInfo[]
   )
 }
 
-function sortPackagesByDependencies(packages: PackageInfo[]): PackageInfo[] {
+// topological sort for package dependencies
+function topologicalSort(packages: PackageInfo[]): PackageInfo[] {
   // Create a map of package names to their full package objects
   const packageMap = new Map<string, PackageInfo>();
   packages.forEach(pkg => packageMap.set(pkg.name, pkg));
@@ -158,26 +159,3 @@ interface PackageJson {
   dependencies?: { [key: string]: string };
   devDependencies?: { [key: string]: string };
 }
-
-// 🦋  info npm info @agentflow/cli
-// 🦋  info npm info @agentflow/core
-// 🦋  info npm info create-agentflow
-// 🦋  info npm info @agentflow/tools
-// 🦋  info @agentflow/cli is being published because our local version (0.2.4) has not been published on npm
-// 🦋  info @agentflow/core is being published because our local version (0.2.4) has not been published on npm
-// 🦋  info create-agentflow is being published because our local version (0.1.5) has not been published on npm
-// 🦋  info @agentflow/tools is being published because our local version (0.1.5) has not been published on npm
-// 🦋  info Publishing "@agentflow/cli" at "0.2.4"
-// 🦋  info Publishing "@agentflow/core" at "0.2.4"
-// 🦋  info Publishing "create-agentflow" at "0.1.5"
-// 🦋  info Publishing "@agentflow/tools" at "0.1.5"
-// 🦋  success packages published successfully:
-// 🦋  @agentflow/cli@0.2.4
-// 🦋  @agentflow/core@0.2.4
-// 🦋  create-agentflow@0.1.5
-// 🦋  @agentflow/tools@0.1.5
-// 🦋  Creating git tags...
-// 🦋  New tag:  @agentflow/cli@0.2.4
-// 🦋  New tag:  @agentflow/core@0.2.4
-// 🦋  New tag:  create-agentflow@0.1.5
-// 🦋  New tag:  @agentflow/tools@0.1.5

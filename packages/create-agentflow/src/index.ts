@@ -59,6 +59,10 @@ export async function createAgentflow(
     console.log(`  ${pc.dim('❯')} cd ${relative(cwd, targetDir)}`)
   }
   console.log(`  ${pc.dim('❯')} ${pkgManager === 'yarn' ? 'yarn' : `${ pkgManager } i`}`)
+
+  console.log(`\n✨ ${pc.bold("Don't forget!")} Before running workflows:\n`)
+  console.log('  - Configure AI providers in agentflow.config.js')
+  console.log('  - Add your API keys to .env')
   console.log()
 }
 

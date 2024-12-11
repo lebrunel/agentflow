@@ -10,7 +10,7 @@ The Agentflow CLI is the easiest way to work with Agentflow projects. It provide
 ## Installation
 
 > [!NOTE] 🎓 Info
-> If you created your project using `npm create agentflow`, the CLI is already installed locally as a project dependency. You can run it using your package manager (e.g., `npm run aflow [command]` or `yarn aflow [command]`).
+> If you created your project using `npm create agentflow`, the CLI is already installed locally as a project dependency. You can run it using your package manager (e.g., `npx aflow [command]` or `yarn aflow [command]`).
 >
 > The examples in this documentation use the globally installed CLI (`aflow [command]`) for brevity, but both approaches work identically.
 

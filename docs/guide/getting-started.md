@@ -59,6 +59,11 @@ my-agents/
 └── package.json
 ```
 
+Before you can run workflows, you'll need to:
+
+- Configure your AI providers in `agentflow.config.js`
+- Add your API keys to the `.env` file
+
 ## Command line interface
 
 In a project where `Agentflow` is installed, you can use the `aflow` binary to create, manage and execute workflows in your project. Use the `aflow help` command to see a list of available commands.
@@ -95,11 +100,3 @@ export default defineConfig({
 ```
 
 Learn more about the [configuring Agentflow](/guide/configuration).
-
-## Your first workflow
-
-#todo
-
-- using cli to generate workflow
-- writing workflow (link to structure)
-- using cli to execute workflow

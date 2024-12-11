@@ -45,7 +45,7 @@ This will scaffold a new project with all the necessary dependencies and configu
 ```sh
 # Using NPM
 cd my-agents && npm install
-npm run aflow help
+npx aflow help
 
 # Using Yarn
 cd my-agents && yarn

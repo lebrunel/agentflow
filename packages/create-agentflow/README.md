@@ -39,9 +39,15 @@ bun create agentflow my-project
   npm install
   ```
 
+4. Configure your project:
+
+  - Add your AI provider settings in `agentflow.config.js`
+  - Set up your API keys in the `.env` file
+
 The starter kit creates a project with:
 
-- Pre-configured environment
+- Basic project structure
+- Configuration file templates
 - Example workflows
 - Local CLI installation
 - All necessary dependencies

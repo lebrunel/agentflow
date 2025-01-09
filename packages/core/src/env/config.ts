@@ -18,6 +18,7 @@ export function defineConfig(config: UserConfig | (() => UserConfig)): UserConfi
 export interface UserConfig {
   actions?: Action[];
   tools?: Tool<z.ZodType>[];
+  prompts?: Record<string, string> | (() => Record<string, string>);
   providers?: Record<string, Provider>;
   plugins?: Plugin[];
   validators?: WorkflowValidator[];

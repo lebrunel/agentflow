@@ -1,6 +1,6 @@
 {
   "name": "@agentflow/cli",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "Command-line interface for AgentFlow, providing essential tools to create, manage, and execute AI-powered workflows.",
   "license": "Apache-2.0",
   "type": "module",
@@ -23,8 +23,8 @@
     "build:tsc": "tsc --p tsconfig.build.json"
   },
   "dependencies": {
-    "@agentflow/core": "workspace:^0.3.0",
-    "@agentflow/tools": "workspace:^0.3.0",
+    "@agentflow/core": "workspace:^0.4.0",
+    "@agentflow/tools": "workspace:^0.3.1",
     "@inquirer/prompts": "^7.1.0",
     "commander": "^12.1.0",
     "create-agentflow": "workspace:^0.3.0",

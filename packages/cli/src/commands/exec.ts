@@ -23,13 +23,13 @@ async function execWorkflow(name: string) {
 
   const config = await resolveConfig(cwd)
   const flowName = basename(name, extname(name))
-  const outputPath = buildOutputPath(config.paths.outputs, flowName, now)
+  const outputPath = buildOutputPath(flowName, now)
 
   config.plugins ||= []
   config.plugins.push(createExecutionPlugin({ outputPath }))
 
   const env = new Environment(config)
-  const path = findPath(join(cwd, config.paths.flows), flowName)
+  const path = findPath(join(cwd, 'flows'), flowName)
   const src = readFileSync(path, { encoding: 'utf8' })
   const workflow = Workflow.compileSync(src, env)
 
@@ -141,11 +141,11 @@ function appendFrontmatter(body: string, data: any) {
   `
 }
 
-function buildOutputPath(baseDir: string, workflowName: string, now: Date): string {
+function buildOutputPath(workflowName: string, now: Date): string {
   const dateStr = now.toISOString().slice(2, 10).replace(/-/g, '')
   const daySecs = (now.getHours() * 3600) + (now.getMinutes() * 60) + now.getSeconds()
   const dayStr = daySecs.toString().padStart(5, '0')
-  return join(baseDir, dateStr, `${dayStr}-${workflowName}`)
+  return join('outputs', dateStr, `${dayStr}-${workflowName}`)
 }
 
 export default cmd

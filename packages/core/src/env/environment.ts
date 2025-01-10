@@ -1,6 +1,6 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import { kebabCase } from 'change-case'
-import { extname, normalize } from 'path-browserify'
+import nPath from 'path-browserify'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
 import { Prompt } from '../prompt'
 
@@ -48,8 +48,8 @@ export class Environment {
   }
 
   usePrompt(path: string): Prompt {
-    path = normalize(path)
-    if (extname(path) !== '.mdx') path += '.mdx'
+    path = nPath.normalize(path)
+    if (nPath.extname(path) !== '.mdx') path += '.mdx'
     if (!this.prompts[path]) {
       throw new Error(`Prompt not found: ${path}`)
     }
@@ -147,7 +147,7 @@ function createPromptRegistry(
 ): PromptRegistry {
   const proc = createPromptProcessor(env)
   return Object.entries(prompts).reduce((obj, [path, value]) => {
-    const key = normalize(path)
+    const key = nPath.normalize(path)
     obj[key] = new Prompt(key, value, proc)
     return obj
   }, {} as PromptRegistry)

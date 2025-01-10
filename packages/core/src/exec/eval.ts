@@ -3,6 +3,7 @@ import { walk } from 'estree-walker'
 
 import type { ExpressionNode } from '../ast'
 import type { Context } from '../context'
+import type { Environment } from '../env'
 import type {
   Identifier,
   Node as EsNode,
@@ -12,21 +13,39 @@ import type {
   ArrayPattern
 } from 'estree-jsx'
 
-/**
- * Evaluates an expression synchronously using the provided context, returning
- * the result of the expression.
- */
-export function evalExpression<T = any>(
-  expression: ExpressionNode,
-  context: Context,
-): T {
+export function createSealedEvaluator(env: Environment, context: Context = {}) {
+  const ctx = createEvalContext(env, context)
+  return <T = any>(expression: ExpressionNode): T => {
+    return evalExpression<T>(expression, ctx)
+  }
+}
+
+export function createDynamicEvaluator(env: Environment) {
+  return <T = any>(expression: ExpressionNode, context: Context = {}): T => {
+    const ctx = createEvalContext(env, context)
+    return evalExpression<T>(expression, ctx)
+  }
+}
+
+function createEvalContext(env: Environment, context: Context = {}): vm.Context {
+  function include(path: string): string {
+    const prompt = env.usePrompt(path)
+    prompt.process()
+    return prompt.toString()
+  }
+
+  return vm.createContext({ ...context, include }, {
+    codeGeneration: { strings: false, wasm: false },
+    microtaskMode: 'afterEvaluate',
+  })
+}
+
+function evalExpression<T = any>(expression: ExpressionNode, context: vm.Context): T {
   try {
     const script = new vm.Script(`(${expression.value.trim()})`)
-    return script.runInNewContext(context, {
+    return script.runInContext(context, {
       timeout: 50,
       breakOnSigint: true,
-      contextCodeGeneration: { strings: false, wasm: false },
-      microtaskMode: 'afterEvaluate',
     })
   } catch(e) {
     // todo catch timeouts

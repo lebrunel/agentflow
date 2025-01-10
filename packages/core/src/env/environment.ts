@@ -1,14 +1,15 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import { kebabCase } from 'change-case'
-import unixify from 'unixify'
+import { extname, normalize } from 'path-browserify'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
+import { Prompt } from '../prompt'
 
 import type { LanguageModel, Provider } from 'ai'
 import type { VFile } from 'vfile'
 import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
-import type { WorkflowValidator } from '../ast'
+import { createPromptProcessor, type WorkflowValidator } from '../ast'
 import type { Tool } from '../tool'
 import type { Workflow } from '../workflow'
 
@@ -34,7 +35,7 @@ export class Environment {
     const builder = new EnvironmentBuilder(config)
     this.actions = builder.actions
     this.tools = builder.tools
-    this.prompts = builder.prompts
+    this.prompts = createPromptRegistry(builder.prompts, this)
     this.providers = builder.providers
     this.validators = builder.validators
   }
@@ -46,8 +47,9 @@ export class Environment {
     return this.actions[name]
   }
 
-  usePrompt(path: string): string {
-    path = unixify(path)
+  usePrompt(path: string): Prompt {
+    path = normalize(path)
+    if (extname(path) !== '.mdx') path += '.mdx'
     if (!this.prompts[path]) {
       throw new Error(`Prompt not found: ${path}`)
     }
@@ -75,7 +77,7 @@ export class Environment {
 export class EnvironmentBuilder {
   actions: ActionRegistry = defaultRegistry(actions)
   tools: ToolRegistry = defaultRegistry(tools)
-  prompts: PromptRegistry = {}
+  prompts: Record<string, string>
   providers: Provider = createProviderRegistry({})
   validators: WorkflowValidator[] = []
 
@@ -89,9 +91,10 @@ export class EnvironmentBuilder {
       this.registerTool(tool.name, tool)
     })
 
-    if (config.prompts) {
-      this.prompts = createPromptRegistry(config.prompts)
-    }
+    // Set prompts as object
+    this.prompts = typeof config.prompts === 'function'
+      ? config.prompts()
+      : (config.prompts || {})
 
     // Set default or user providers
     if (config.providers) {
@@ -139,11 +142,13 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
 }
 
 function createPromptRegistry(
-  prompts: PromptRegistry | (() => PromptRegistry) = {}
+  prompts: Record<string, string>,
+  env: Environment,
 ): PromptRegistry {
-  prompts = typeof prompts === 'function' ? prompts() : prompts
+  const proc = createPromptProcessor(env)
   return Object.entries(prompts).reduce((obj, [path, value]) => {
-    obj[unixify(path)] = value
+    const key = normalize(path)
+    obj[key] = new Prompt(key, value, proc)
     return obj
   }, {} as PromptRegistry)
 }
@@ -172,5 +177,5 @@ function normalizeParams<T extends { name: string }>(
 export type Plugin = (env: EnvironmentBuilder) => void
 
 type ActionRegistry = Record<string, Action>
-type PromptRegistry = Record<string, string>
-type ToolRegistry = Record<string, Tool<z.ZodType>>
+type PromptRegistry = Record<string, Prompt>
+type ToolRegistry = Record<string, Tool>

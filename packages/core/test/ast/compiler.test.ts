@@ -1,12 +1,13 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
 import dd from 'ts-dedent'
-import { env } from 'test/support/env'
+import { env, createEnv} from 'test/support/env'
 import { createCompiler, compile, compileSync } from 'src/ast'
 import { Workflow } from 'src/workflow'
+import type { Processor } from 'unified'
 import type { Paragraph, Root, Yaml } from 'mdast'
 import type { ActionNode, ExpressionNode } from 'src'
-import type { Processor } from 'unified'
+import { selectAll } from 'unist-util-select'
 
 function isWorkflowVFile(val: any): val is VFile {
   return val
@@ -148,4 +149,111 @@ describe('compileSync()', () => {
   test('returns a VFile', () => {
     expect(compileSync('Test', env)).toSatisfy(isWorkflowVFile)
   })
+})
+
+describe('compiling with Prompts', () => {
+  test('compiles with simple valid includes', () => {
+    const env = createEnv({
+      prompts: {
+        'foo.mdx': 'Foo',
+        'bar.mdx': 'Bar',
+      }
+    })
+
+    const src = dd`
+    Hello:
+
+    {include('foo.mdx')} {include('bar.mdx')}
+    `
+
+    const file = compileSync(src, env)
+    const workflow = file.result
+    expect(workflow.ast.children).toHaveLength(2)
+    expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
+  })
+
+  test('compiles with or without include extension', () => {
+    const env = createEnv({
+      prompts: {
+        'foo.mdx': 'Foo',
+        'bar.mdx': 'Bar',
+      }
+    })
+
+    const src = dd`
+    Hello:
+
+    {include('foo')} {include('bar')}
+    `
+
+    const file = compileSync(src, env)
+    const workflow = file.result
+    expect(workflow.ast.children).toHaveLength(2)
+    expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
+  })
+
+  test('compiles with multiple of same includes', () => {
+    const env = createEnv({
+      prompts: {
+        'foo.mdx': 'Foo',
+      }
+    })
+
+    const src = dd`
+    Hello:
+
+    {include('foo.mdx')} {include('foo.mdx')}
+    `
+
+    const file = compileSync(src, env)
+    const workflow = file.result
+    expect(workflow.ast.children).toHaveLength(2)
+    expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
+  })
+
+  test('compiles with chain of valid includes', () => {
+    const env = createEnv({
+      prompts: {
+        'foo.mdx': `{include('bar.mdx')}`,
+        'bar.mdx': 'Bar',
+      }
+    })
+
+    const src = dd`
+    Hello:
+
+    {include('foo.mdx')}
+    `
+
+    const file = compileSync(src, env)
+    const workflow = file.result
+    expect(workflow.ast.children).toHaveLength(2)
+    expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(1)
+  })
+
+  test('throws error if include not found', () => {
+    const src = dd`
+    Hello:
+
+    {include('foo.mdx')}
+    `
+    expect(() => compileSync(src, env)).toThrow(/prompt not found/i)
+  })
+
+  test('throws error if circular import', () => {
+    const env = createEnv({
+      prompts: {
+        'foo.mdx': `{include('bar.mdx')}\n`,
+        'bar.mdx': `{include('foo.mdx')}\n`,
+      }
+    })
+
+    const src = dd`
+    Hello:
+
+    {include('foo.mdx')}
+    `
+    expect(() => compileSync(src, env)).toThrow(/circular dependency/i)
+  })
+
 })

@@ -48,7 +48,6 @@ export {
 
 export {
   cursorCompare,
-  evalExpression,
   getExpressionDependencies,
   parseLocation,
   ExecutionController,
@@ -64,6 +63,10 @@ export {
   type StepEvent,
   type StepResult,
 } from './exec'
+
+export {
+  Prompt
+} from './prompt'
 
 export {
   defineTool,

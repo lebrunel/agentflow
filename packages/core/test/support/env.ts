@@ -1,5 +1,6 @@
 import { z } from 'zod'
 import { defineAction, Environment } from 'src/index'
+import type { UserConfig } from 'src/index'
 
 export const mockAction = defineAction({
   name: 'mock',
@@ -16,3 +17,10 @@ export const env = new Environment({
     mockAction
   ]
 })
+
+export function createEnv(config: UserConfig): Environment {
+  return new Environment({
+    ...config,
+    actions: [...new Set([mockAction, ...(config.actions || [])])],
+  })
+}

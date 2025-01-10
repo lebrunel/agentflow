@@ -1,5 +1,6 @@
 import { is } from 'unist-util-is'
 import { walk } from 'estree-walker'
+import { VFileMessage } from 'vfile-message'
 import { walkScopeTree } from '../ast'
 import { getExpressionDependencies } from '../exec'
 
@@ -8,6 +9,7 @@ import type { Program, Property } from 'estree-jsx'
 import type { VFile } from 'vfile'
 import type { ExpressionNode } from './types'
 import type { ContextKey } from '../context'
+import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
 
 const AST_WHITELIST: Node['type'][] = [
@@ -151,7 +153,8 @@ export function validateDependency(
     namespace?: string,
   }
 ) {
-  const helperNames = !!namespace ? ['$', `$${namespace}`] : ['$']
+  const helperNames = ['include', '$']
+  if (!!namespace) helperNames.push(`$${namespace}`)
 
   if (
     !contextKeys.has(key) &&
@@ -165,7 +168,11 @@ export function validateDependency(
   }
 }
 
-export function validateEstree(program: Program, file: VFile) {
+export function validateEstree(
+  program: Program,
+  file: VFile,
+  env: Environment,
+) {
   for (const stmt of program.body) {
     if (stmt.type !== 'ExpressionStatement') {
       file.fail(
@@ -203,6 +210,34 @@ export function validateEstree(program: Program, file: VFile) {
           node,
           'workflow-parse:async-function-not-allowed'
         )
+      }
+
+      // If it's an include statement we try processing
+      // It can only fail with not found or circular reference
+      if (
+        node.type === 'CallExpression' &&
+        node.callee.type === 'Identifier' &&
+        node.callee.name === 'include' &&
+        node.arguments.length >= 1
+      ) {
+        // todo - actually just fail here if arg is not a string literal
+        try {
+          const arg = node.arguments[0]
+          if (arg.type !== 'Literal' || typeof arg.value !== 'string') {
+            throw new Error('include() argument must be a string literal')
+          }
+          const prompt = env.usePrompt(arg.value)
+          prompt.process()
+        } catch(e) {
+          // If it's already a VFileMessage, let it bubble up
+          if (e instanceof VFileMessage) throw e
+
+          file.fail(
+            (e as Error).message,
+            node,
+            'workflow-parse:todo'
+          )
+        }
       }
     }
   })

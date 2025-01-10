@@ -69,4 +69,8 @@ declare module 'unified' {
   interface CompileResultMap {
     workflow: Workflow;
   }
+
+  interface Data {
+    promptStack?: string[];
+  }
 }

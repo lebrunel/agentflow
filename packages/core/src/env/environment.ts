@@ -1,15 +1,17 @@
 import { experimental_createProviderRegistry as createProviderRegistry } from 'ai'
 import { kebabCase } from 'change-case'
+import nPath from 'path-browserify'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
+import { Prompt } from '../prompt'
 
 import type { LanguageModel, Provider } from 'ai'
 import type { VFile } from 'vfile'
 import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
-import type { WorkflowValidator } from '../ast'
+import { createPromptProcessor, type WorkflowValidator } from '../ast'
 import type { Tool } from '../tool'
-import type { Workflow, WorkflowMetadata } from '../workflow'
+import type { Workflow } from '../workflow'
 
 // Default actions
 const actions: Action[] = [
@@ -24,14 +26,16 @@ const tools: Tool<z.ZodType>[] = []
 
 export class Environment {
   private actions: ActionRegistry
-  private tools: ToolRegistry
+  private prompts: PromptRegistry
   private providers: Provider
+  private tools: ToolRegistry
   private validators: WorkflowValidator[]
 
   constructor(config: UserConfig = {}) {
     const builder = new EnvironmentBuilder(config)
     this.actions = builder.actions
     this.tools = builder.tools
+    this.prompts = createPromptRegistry(builder.prompts, this)
     this.providers = builder.providers
     this.validators = builder.validators
   }
@@ -41,6 +45,15 @@ export class Environment {
       throw new Error(`Action not found: ${name}`)
     }
     return this.actions[name]
+  }
+
+  usePrompt(path: string): Prompt {
+    path = nPath.normalize(path)
+    if (nPath.extname(path) !== '.mdx') path += '.mdx'
+    if (!this.prompts[path]) {
+      throw new Error(`Prompt not found: ${path}`)
+    }
+    return this.prompts[path]
   }
 
   useTool(name: string): Tool<z.ZodType> {
@@ -64,6 +77,7 @@ export class Environment {
 export class EnvironmentBuilder {
   actions: ActionRegistry = defaultRegistry(actions)
   tools: ToolRegistry = defaultRegistry(tools)
+  prompts: Record<string, string>
   providers: Provider = createProviderRegistry({})
   validators: WorkflowValidator[] = []
 
@@ -76,6 +90,11 @@ export class EnvironmentBuilder {
     config.tools?.forEach(tool => {
       this.registerTool(tool.name, tool)
     })
+
+    // Set prompts as object
+    this.prompts = typeof config.prompts === 'function'
+      ? config.prompts()
+      : (config.prompts || {})
 
     // Set default or user providers
     if (config.providers) {
@@ -122,6 +141,18 @@ function defaultRegistry<T extends { name: string }>(items: T[]): Record<string,
   }, {})
 }
 
+function createPromptRegistry(
+  prompts: Record<string, string>,
+  env: Environment,
+): PromptRegistry {
+  const proc = createPromptProcessor(env)
+  return Object.entries(prompts).reduce((obj, [path, value]) => {
+    const key = nPath.normalize(path)
+    obj[key] = new Prompt(key, value, proc)
+    return obj
+  }, {} as PromptRegistry)
+}
+
 // Helpers
 
 function normalizeParams<T extends { name: string }>(
@@ -146,4 +177,5 @@ function normalizeParams<T extends { name: string }>(
 export type Plugin = (env: EnvironmentBuilder) => void
 
 type ActionRegistry = Record<string, Action>
-type ToolRegistry = Record<string, Tool<z.ZodType>>
+type PromptRegistry = Record<string, Prompt>
+type ToolRegistry = Record<string, Tool>

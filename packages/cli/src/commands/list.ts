@@ -19,7 +19,7 @@ async function listWorkflows() {
   const cwd = process.cwd()
   const config = await resolveConfig(cwd)
   const env = new Environment(config)
-  const flowsPath = join(cwd, config.paths.flows, '*.{md,mdx}')
+  const flowsPath = join(cwd, 'flows', '*.{md,mdx}')
 
   // Collect workflows into rows
   const rows: {id: string, title: string}[] = []

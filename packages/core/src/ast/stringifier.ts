@@ -2,6 +2,7 @@ import { unified } from 'unified'
 import { u } from 'unist-builder'
 import { selectAll } from 'unist-util-select'
 import remarkParse from 'remark-parse'
+import remarkMdx from 'remark-mdx'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkStringify from 'remark-stringify'
 import { toContextValue } from '../context'
@@ -121,6 +122,7 @@ export function createStringifier(
   return unified()
     .use(remarkFrontmatter, ['yaml'])
     .use(remarkParse)
+    .use(remarkMdx)
     .use(remarkStringify, options)
 }
 

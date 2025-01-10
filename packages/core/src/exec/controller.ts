@@ -1,7 +1,7 @@
 import { createNanoEvents } from 'nanoevents'
 import { pushable } from 'it-pushable'
 import { ExecutionCursor } from './cursor'
-import { evalExpression } from './eval'
+import { createDynamicEvaluator } from './eval'
 import { ExecutionState } from './state'
 import { ExecutionWalker } from './walker'
 import { contextify, stringifyContext } from '../ast'
@@ -115,6 +115,7 @@ export class ExecutionController {
 
     this.state.visit(scope, phase, step)
 
+    const evalExpression = createDynamicEvaluator(this.env)
     const context = this.state.getContext(cursor)
     const content = contextify(step.content, {
       evaluate: (node) => evalExpression(node, context)

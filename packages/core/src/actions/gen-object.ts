@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { generateObject } from 'ai'
-import { aiGenerationOptions, toCoreMessage, toCoreTool, SYSTEM_PROMPT } from'./support/ai'
+import { aiGenerationOptions, createSystemPrompt, toCoreMessage, toCoreTool } from'./support/ai'
 import { defineAction } from '../action'
 
 import type { CoreMessage, CoreTool } from 'ai'
 
 const schema = z.object({
   model: z.string(),
+  role: z.string().optional(),
   schema: z.instanceof(z.ZodType),
   schemaName: z.string().optional(),
   schemaDescription: z.string().optional(),
@@ -39,7 +40,7 @@ export default defineAction({
 
     const opts = {
       model: env.useLanguageModel(props.model),
-      system: SYSTEM_PROMPT,
+      system: createSystemPrompt(props.role),
       messages,
       schema: props.schema,
       schemaName: props.schemaName,

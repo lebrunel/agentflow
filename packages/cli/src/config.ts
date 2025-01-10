@@ -1,11 +1,13 @@
-import { existsSync } from 'node:fs'
-import { resolve } from 'node:path'
+import { existsSync, readFileSync } from 'node:fs'
+import { relative, resolve } from 'node:path'
+import merge from 'deepmerge'
+import fg from 'fast-glob'
 import type { UserConfig } from '@agentflow/core'
 
 const CONFIG_FILE_BASE_NAME = 'agentflow.config'
 const CONFIG_FILE_EXTS = ['js', 'mjs', 'ts']
 
-export async function resolveConfig(baseDir: string): Promise<ResolvedConfig> {
+export async function resolveConfig(baseDir: string): Promise<UserConfig> {
   let userConfig: UserConfig = {}
   let configPath: string | undefined
 
@@ -19,16 +21,14 @@ export async function resolveConfig(baseDir: string): Promise<ResolvedConfig> {
     }
   }
 
-  return {
-    ...userConfig,
-    paths: { flows: 'flows', outputs: 'outputs' }
+  const prompts = () => {
+    const promptsDir = resolve(baseDir, 'prompts')
+    return fg.sync(resolve(promptsDir, '**/*.mdx')).reduce((obj, path) => {
+      const relativePath = relative(promptsDir, path)
+      obj[relativePath] = readFileSync(path, { encoding: 'utf8' })
+      return obj
+    }, {} as Record<string, string>)
   }
-}
 
-
-export interface ResolvedConfig extends UserConfig {
-  paths: {
-    flows: string,
-    outputs: string,
-  }
+  return merge<UserConfig>({ prompts }, userConfig)
 }

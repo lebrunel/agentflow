@@ -1,12 +1,13 @@
 import { z } from 'zod'
 import { generateText, streamText } from 'ai'
-import { aiGenerationOptions, toCoreMessage, toCoreTool, SYSTEM_PROMPT } from'./support/ai'
+import { aiGenerationOptions, createSystemPrompt, toCoreMessage, toCoreTool } from'./support/ai'
 import { defineAction } from '../action'
 
 import type { CoreMessage, CoreTool, GenerateTextResult } from 'ai'
 
 const schema = z.object({
   model: z.string(),
+  role: z.string().optional(),
   stream: z.boolean().optional(),
   tools: z.array(z.string()).optional(),
   options: aiGenerationOptions.default({})
@@ -37,7 +38,7 @@ export default defineAction({
 
     const opts = {
       model: env.useLanguageModel(props.model),
-      system: SYSTEM_PROMPT,
+      system: createSystemPrompt(props.role),
       messages,
       tools,
       ...props.options

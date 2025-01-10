@@ -25,9 +25,10 @@ The `<GenText />` action takes all the context immediately prior to the action (
 | --------- | --------- | ----------- | -------- |
 | as        | `string`  | Unique variable name. | ✅ |
 | model     | `string`  | AI provider and model name. [See AI providers](#ai-providers). | ✅ |
+| role      | `string`  | Optional instruction to guide the AI model's role or persona. | |
 | tools     | `array`   | An array of tools the LLM can use . [See using tools](#using-tools). | |
 | stream    | `boolean` | Whether to stream the response. *Defaults true* | |
-| options   | `object`  | LLM generation options. Docs TODO. | |
+| options   | `object`  | LLM generation options. [See generation options](#generation-options). | |
 
 The result of the generation will be stored in the workflow's state as a text type using the name given in the `as` attribute. The value can then be referenced using that name in subsequent expressions.
 
@@ -60,13 +61,14 @@ The `<GenObject />` action works the same way as `<GenText />` in that it uses t
 | ----------------- | --------- | ----------- | -------- |
 | as                | `string`  | Unique variable name. | ✅ |
 | model             | `string`  | AI provider and model name. [See AI providers](#ai-providers). | ✅ |
+| role              | `string`  | Optional instruction to guide the AI model's role or persona. | |
 | output            | `string`  | One of `object`, `array`, `enum` or `no-schema`. *Defaults `object`* | |
 | enum              | `array`   | Array of possible values to generate when output is `enum`. | ✅ * |
 | schema            | `ZodType` | Zod schema that describes the shape of the object to generate. | ✅ * |
 | schemaName        | `string`  | Optional name of the output for additional LLM guidance. | |
 | schemaDescription | `string`  | Optional description of the output for additional LLM guidance. | |
-| tools             | `array`   | An array of tools the LLM can use . [See using tools](#using-tools). | |
-| options           | `object`  | LLM generation options. Docs TODO. | |
+| tools             | `array`   | An array of tools the LLM can use. [See using tools](#using-tools). | |
+| options           | `object`  | LLM generation options. [See generation options](#generation-options). | |
 
 ::: info ℹ️ Output types *
 When the `output` type is `object` or `array` then the `schema` attribute is required. When the `output` type is `enum` then a list of possible values is required in the `enum` attribute.
@@ -160,6 +162,38 @@ Write the outline of a short survival novel set in a cyberpunk dystopian world.
   as="outline"
   model="together:meta-llama/Meta-Llama-3.1-405B-Instruct-Turbo" />
 ```
+
+## Generation options
+
+Both `<GenText />` and `<GenObject />` actions accept an `options` attribute for fine-tuning the AI model's generation behavior. These options allow you to control various aspects of the generation process, from creativity to response length.
+
+| Option           | Type       | Description |
+| ---------------- | ---------- | ----------- |
+| temperature      | `number`   | Controls randomness in the output. Lower values (0.0) make responses more focused and deterministic, while higher values (1.0) make them more creative and diverse. *Defaults 0.5* |
+| maxTokens        | `number`   | Sets the maximum length of the generated response in tokens. Useful for controlling response length and costs. |
+| seed             | `number`   | A fixed random seed for reproducible outputs. The same seed will generate similar responses for identical inputs. |
+| stop             | `string[]` | Sequence(s) that will cause the model to stop generating further tokens. |
+| topP             | `number`   | Controls diversity via nucleus sampling. Lower values (e.g., 0.1) make the output more focused on likely tokens. |
+| topK             | `number`   | Limits the cumulative probability of tokens considered for each generation step. |
+| presencePenalty  | `number`   | Reduces repetition by penalizing tokens based on their presence in the text (-1.0 to 1.0). |
+| frequencyPenalty | `number`   | Reduces repetition by penalizing tokens based on their frequency in the text (-1.0 to 1.0). |
+
+Example usage:
+
+```mdx
+<GenText
+  as="creative_story"
+  model="openai:gpt-4"
+  options={{
+    temperature: 0.8,
+    maxTokens: 500,
+    presencePenalty: 0.2
+  }} />
+```
+
+::: info ℹ️ Note
+Not all AI providers support every option. Consult your provider's documentation for specific supported parameters.
+:::
 
 ## Using tools
 

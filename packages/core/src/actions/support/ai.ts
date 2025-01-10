@@ -11,10 +11,7 @@ export const aiGenerationOptions = z.object({
   maxTokens: z.number().gt(0).optional(),
   temperature: z.number().min(0).max(1).default(0.5),
   seed: z.number().optional(),
-  stop: z.union([
-    z.string().transform(val => val.split(',').map(v => v.trim())),
-    z.array(z.string()),
-  ]).optional(),
+  stop: z.array(z.string()).optional(),
   topP: z.number().min(0).max(1).optional(),
   topK: z.number().min(0).max(1).optional(),
   presencePenalty: z.number().min(-1).max(1).optional(),

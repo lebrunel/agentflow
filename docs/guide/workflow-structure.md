@@ -23,6 +23,8 @@ Workflows are written using Markdown - a lightweight markup syntax that adds som
 - MDX-like JavaScript expressions (`Hello {name}`) are fully supported and are used to inject the result of previous actions into the current context.
 - Frontmatter is fully supported and used to define [input data](/guide/input-data).
 
+The `.mdx` extension is used for both workflow files and [prompt fragments](#prompt-fragments), which are reusable pieces of prompt engineering that can be included in workflows.
+
 ## Phases
 
 A workflow consists of one or more phases, which are denoted by breaking the document up with horizontal rules (`---`).
@@ -169,3 +171,51 @@ Write a poem about cats.
   <GenText as="poem" model="openai:gpt-4o" />
 </Loop>
 ```
+
+## Prompt fragments
+
+Prompt fragments are reusable pieces of prompt engineering that define how an agent should think or behave. They allow you to maintain consistent agent behaviors, personas, and instructions across multiple workflows.
+
+### Organization
+
+Prompt fragments are stored in the `prompts` directory of your Agentflow project:
+
+```
+📁 prompts/
+    ├── personas/
+    │   ├── marketer.mdx
+    │   └── researcher.mdx
+    └── instructions/
+        ├── conversion-rules.mdx
+        └── tone-guidelines.mdx
+```
+
+### Composition
+
+Prompt fragments are composable - they can include other fragments using the same expression syntax used in workflows. This allows you to build complex behaviors from simpler, reusable pieces:
+
+```mdx
+{include('personas/marketer.mdx')}
+
+Additionally, you have 15+ years of marketing experience and
+specialize in B2B technology marketing.
+```
+
+### Using fragments in workflows
+
+Prompt fragments can be included in workflows using the `include()` function in expressions. They can be used both inline within the prompt context and in action attributes:
+
+```mdx
+Write marketing copy for our new product:
+{content}
+
+{include('instructions/tone-guidelines.mdx')}
+{include('instructions/conversion-rules.mdx')}
+
+<GenText
+  as="copy"
+  model="claude-3-5-sonnet-20241022"
+  role={include('personas/marketer.mdx')} />
+```
+
+This makes it easy to maintain consistent agent behaviors across your workflows while keeping your prompts modular and maintainable.

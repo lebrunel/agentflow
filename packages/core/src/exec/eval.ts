@@ -1,5 +1,6 @@
 import vm from 'node:vm'
 import { walk } from 'estree-walker'
+import { dedent } from 'ts-dedent'
 
 import type { ExpressionNode } from '../ast'
 import type { Context } from '../context'
@@ -34,7 +35,7 @@ function createEvalContext(env: Environment, context: Context = {}): vm.Context 
     return prompt.toString()
   }
 
-  return vm.createContext({ ...context, include }, {
+  return vm.createContext({ ...context, dedent, include }, {
     codeGeneration: { strings: false, wasm: false },
     microtaskMode: 'afterEvaluate',
   })

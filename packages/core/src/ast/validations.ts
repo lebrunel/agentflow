@@ -29,6 +29,7 @@ const AST_WHITELIST: Node['type'][] = [
   'ObjectExpression',
   'Property',
   'SpreadElement',
+  'TaggedTemplateExpression',
   'TemplateLiteral',
   'TemplateElement',
   'UnaryExpression',
@@ -153,7 +154,7 @@ export function validateDependency(
     namespace?: string,
   }
 ) {
-  const helperNames = ['include', '$']
+  const helperNames = ['dedent', 'include', '$']
   if (!!namespace) helperNames.push(`$${namespace}`)
 
   if (

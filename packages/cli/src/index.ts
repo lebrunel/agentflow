@@ -6,6 +6,7 @@ import pc from 'picocolors'
 import dotenv from 'dotenv'
 
 import init from './commands/init'
+import create from './commands/create'
 import list from './commands/list'
 import exec from './commands/exec'
 
@@ -31,6 +32,7 @@ cli
   .version(pkg.version)
   .hook('preAction', banner)
   .addCommand(init)
+  .addCommand(create)
   .addCommand(list)
   .addCommand(exec)
   .showHelpAfterError()

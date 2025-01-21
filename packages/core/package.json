@@ -29,6 +29,7 @@
   "dependencies": {
     "@types/path-browserify": "^1.0.3",
     "ai": "^4.0.12",
+    "astring": "^1.9.0",
     "change-case": "^5.4.4",
     "estree-walker": "^3.0.3",
     "it-pushable": "^3.2.3",
@@ -47,6 +48,8 @@
     "unist-util-select": "^5.1.0",
     "unist-util-visit": "^5.0.0",
     "vfile": "^6.0.3",
+    "vfile-message": "^4.0.2",
+    "vfile-reporter": "^8.1.1",
     "yaml": "^2.6.1",
     "zod": "^3.23.8"
   }

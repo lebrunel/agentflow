@@ -4,31 +4,36 @@ import { is } from 'unist-util-is'
 import { visit, CONTINUE, SKIP } from 'unist-util-visit'
 import { z } from 'zod'
 import { camelCase, kebabCase } from 'change-case'
+import { VFile } from 'vfile'
+import { VFileMessage } from 'vfile-message'
+import { reporter } from 'vfile-reporter'
 import remarkParse from 'remark-parse'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
 import yaml from 'yaml'
 import { stringify } from './stringifier'
 import { validateWorkflow, validateEstree } from './validations'
+import { createSealedEvaluator } from '../exec'
 import { Workflow } from '../workflow'
 
 import type { Program } from 'estree-jsx'
 import type { Root, Yaml } from 'mdast'
 import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
 import type { Plugin, Processor, Transformer } from 'unified'
-import type { Compatible, VFile } from 'vfile'
+import type { Compatible } from 'vfile'
 import type { ExpressionNodeType } from './types'
 import type { Environment } from '../env'
-import { createSealedEvaluator } from '../exec'
+
 
 /**
  * Compiles a workflow asynchronously. This function processes the workflow,
  * validates its structure, and returns a Workflow object.
  */
 export async function compile(
-  file: Compatible,
+  src: string | VFile,
   env: Environment,
 ): Promise<WorkflowFile> {
+  const file = vfile(src)
   return createCompiler(env).process(file)
 }
 
@@ -37,11 +42,28 @@ export async function compile(
  * validates its structure, and returns a Workflow object.
  */
 export function compileSync(
-  file: Compatible,
+  src: string | VFile,
   env: Environment,
 ): WorkflowFile {
+  const file = vfile(src)
   return createCompiler(env).processSync(file)
 }
+
+function vfile(src: string | VFile): VFile {
+  return src && typeof src === 'object' && 'message' in src && 'messages' in src
+    ? src
+    : new VFile(src)
+}
+
+//function handleCompileError(error: unknown, file: VFile): never {
+//  if (error instanceof VFileMessage) {
+//    throw new Error(
+//      reporter([file], { defaultName: '[workflow]', verbose: true })
+//    )
+//  } else {
+//    throw error
+//  }
+//}
 
 export function createCompiler(
   env: Environment
@@ -55,13 +77,12 @@ export function createCompiler(
 }
 
 export function createPromptProcessor(env: Environment): Processor<Root, Root, Root, Root, string> {
-  const proc = unified()
+  return unified()
+    .data('promptStack', [])
     .use(remarkParse)
     .use(remarkMdx)
     .use(promptMdx, env)
     .use(promptCompile, env)
-  proc.data('promptStack', [])
-  return proc
 }
 
 function promptMdx(
@@ -239,7 +260,7 @@ function parseAttributes(
   return attributes
 }
 
-// Type
+// Types
 
 type WorkflowFile = VFile & {
   result: Workflow,

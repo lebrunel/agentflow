@@ -2,6 +2,7 @@ import { experimental_createProviderRegistry as createProviderRegistry } from 'a
 import { kebabCase } from 'change-case'
 import nPath from 'path-browserify'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
+import { createPromptProcessor } from '../ast'
 import { Prompt } from '../prompt'
 
 import type { LanguageModel, Provider } from 'ai'
@@ -9,7 +10,7 @@ import type { VFile } from 'vfile'
 import type { z } from 'zod'
 import type { UserConfig } from './config'
 import type { Action } from '../action'
-import { createPromptProcessor, type WorkflowValidator } from '../ast'
+import type { WorkflowValidator } from '../ast'
 import type { Tool } from '../tool'
 import type { Workflow } from '../workflow'
 

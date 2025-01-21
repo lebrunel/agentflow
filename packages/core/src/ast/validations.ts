@@ -39,6 +39,12 @@ const AST_WHITELIST: Node['type'][] = [
   'BlockStatement',
   'ReturnStatement',
   'FunctionExpression',
+
+  'JSXFragment',
+  'JSXOpeningFragment',
+  'JSXClosingFragment',
+  'JSXText',
+  'JSXExpressionContainer',
 ]
 
 const IDENTIFIER_BLACKLIST: string[] = [
@@ -162,7 +168,7 @@ export function validateDependency(
     !helperNames.includes(key)
   ) {
     file.fail(
-      `Unknown context "${key}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
+      `Unknown context "${key}". This Action depends on context that hasn't been defined earlier in the workflow.`,
       node,
       'workflow-parse:undefined-context'
     )

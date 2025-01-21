@@ -60,8 +60,11 @@ function evalExpression<T = any>(expression: ExpressionNode, context: vm.Context
  * Extracts dependencies from the given expression. This function helps
  * identify the variables that the expression relies on for evaluation.
  */
-export function getExpressionDependencies(expression: ExpressionNode): string[] {
-  const tree = expression.data!.estree! as Program
+export function getExpressionDependencies(expression: ExpressionNode | EsNode): string[] {
+  const root = expression.type === 'expression'
+    ? expression.data!.estree! as Program
+    : expression
+
   const globals = new Set<string>()
   const scopeChain: Array<Set<string>> = [new Set()]
 
@@ -99,7 +102,7 @@ export function getExpressionDependencies(expression: ExpressionNode): string[] 
     });
   }
 
-  walk(tree, {
+  walk(root, {
     enter(node: EsNode, parent: EsNode | null) {
       if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
         scopeChain.unshift(new Set());

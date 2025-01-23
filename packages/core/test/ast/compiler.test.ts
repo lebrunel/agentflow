@@ -1,13 +1,15 @@
 import { beforeAll, describe, expect, test } from 'bun:test'
 import { VFile } from 'vfile'
 import dd from 'ts-dedent'
-import { env, createEnv} from 'test/support/env'
-import { createCompiler, compile, compileSync } from 'src/ast'
+import { env, createEnv } from 'test/support/env'
+import { createCompiler, compile, stringify } from 'src/ast'
+import { createSealedEvaluator } from 'src/exec'
 import { Workflow } from 'src/workflow'
 import type { Processor } from 'unified'
 import type { Paragraph, Root, Yaml } from 'mdast'
 import type { ActionNode, ExpressionNode } from 'src'
 import { selectAll } from 'unist-util-select'
+
 
 function isWorkflowVFile(val: any): val is VFile {
   return val
@@ -138,16 +140,8 @@ describe('createCompiler()', () => {
 })
 
 describe('compile()', () => {
-  test('returns an async VFile', async () => {
-    const result = compile('Test', env)
-    expect(result).toBeInstanceOf(Promise)
-    expect(await result).toSatisfy(isWorkflowVFile)
-  })
-})
-
-describe('compileSync()', () => {
   test('returns a VFile', () => {
-    expect(compileSync('Test', env)).toSatisfy(isWorkflowVFile)
+    expect(compile('Test', env)).toSatisfy(isWorkflowVFile)
   })
 })
 
@@ -166,7 +160,7 @@ describe('compiling with Prompts', () => {
     {include('foo.mdx')} {include('bar.mdx')}
     `
 
-    const file = compileSync(src, env)
+    const file = compile(src, env)
     const workflow = file.result
     expect(workflow.ast.children).toHaveLength(2)
     expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
@@ -186,7 +180,7 @@ describe('compiling with Prompts', () => {
     {include('foo')} {include('bar')}
     `
 
-    const file = compileSync(src, env)
+    const file = compile(src, env)
     const workflow = file.result
     expect(workflow.ast.children).toHaveLength(2)
     expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
@@ -205,7 +199,7 @@ describe('compiling with Prompts', () => {
     {include('foo.mdx')} {include('foo.mdx')}
     `
 
-    const file = compileSync(src, env)
+    const file = compile(src, env)
     const workflow = file.result
     expect(workflow.ast.children).toHaveLength(2)
     expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(2)
@@ -225,7 +219,7 @@ describe('compiling with Prompts', () => {
     {include('foo.mdx')}
     `
 
-    const file = compileSync(src, env)
+    const file = compile(src, env)
     const workflow = file.result
     expect(workflow.ast.children).toHaveLength(2)
     expect(selectAll('expression', workflow.ast.children[1])).toHaveLength(1)
@@ -237,7 +231,7 @@ describe('compiling with Prompts', () => {
 
     {include('foo.mdx')}
     `
-    expect(() => compileSync(src, env)).toThrow(/prompt not found/i)
+    expect(() => compile(src, env)).toThrow(/prompt not found/i)
   })
 
   test('throws error if circular import', () => {
@@ -253,7 +247,237 @@ describe('compiling with Prompts', () => {
 
     {include('foo.mdx')}
     `
-    expect(() => compileSync(src, env)).toThrow(/circular dependency/i)
+    expect(() => compile(src, env)).toThrow(/circular dependency/i)
   })
 
+})
+
+
+describe('Fragments', () => {
+  const env = createEnv({
+    prompts: { 'bar.mdx': 'Bar' }
+  })
+
+  const proc = createCompiler(env)
+  const evaluate = createSealedEvaluator(env)
+
+  function compile(src: string): Root {
+    const ast = proc.parse(src)
+    return proc.runSync(ast)
+  }
+
+  // Test cases
+  const tests = {
+    simple: dd`
+    Test
+
+    {<>Foo</>}
+    `,
+
+    simpleArray: dd`
+    Test
+
+    {[1,2].map(n => (
+      <>
+        Foo {n}
+      </>
+    ))}
+    `,
+
+    deepArray: dd`
+    Test
+
+    {[1,2].map(a => (
+      <>
+        {[1,2].map(b => (
+          <>
+            {[1,2].map(c => (
+              <>
+                Foo {a} {b} {c}
+                Bar {a * b * c}
+              </>
+            ))}
+          </>
+        ))}
+      </>
+    ))}
+    `,
+
+    inline: `Test {<>Foo</>}`,
+
+    inlineArray: `Test {[1,2].map(n => (<>Foo {n}</>))}`,
+
+    mixed: dd`
+    Test
+
+    {
+      <>
+        Foo {include('bar.mdx')}
+      </>
+    }
+    `
+  }
+
+  test('compile into _fragment() function calls', () => {
+    const ast = compile(tests.simple)
+    expect(ast.children).toHaveLength(2)
+    expect(ast.children[1].type).toBe('expression')
+    expect(stringify(ast)).toMatch(`_fragment('Foo',{})`)
+  })
+
+  test('compile into _fragment() function calls with dependent args', () => {
+    const ast = compile(tests.simpleArray)
+    expect(ast.children).toHaveLength(2)
+    expect(ast.children[1].type).toBe('expression')
+    expect(stringify(ast)).toMatch(`_fragment('Foo {n}',{n})`)
+  })
+
+  test('compile deep fragments into nested function calls', () => {
+    const ast = compile(tests.deepArray)
+    expect(ast.children).toHaveLength(2)
+    expect(ast.children[1].type).toBe('expression')
+    expect(stringify(ast)).toMatch(/(?:.*?_fragment\(){3}.*/)
+  })
+
+  test('evaluate inline fragments into a string', () => {
+    const ast = compile(tests.inline)
+    expect(stringify(ast, { evaluate })).toBe('Test Foo')
+  })
+
+  test('evaluate inline fragment arrays into a string', () => {
+    const ast = compile(tests.inlineArray)
+    expect(stringify(ast, { evaluate })).toBe('Test Foo 1\nFoo 2')
+  })
+
+  test('evaluate fragment arrays into a string', () => {
+    const ast = compile(tests.simpleArray)
+    expect(stringify(ast, { evaluate })).toMatch(/(\nFoo \d){2}/m)
+  })
+
+  test('evaluates deep fragment arrays into string', () => {
+    const ast = compile(tests.deepArray)
+    expect(stringify(ast, { evaluate })).toMatch(/(\nFoo \d \d \d\nBar \d){8}/m)
+  })
+
+  test('compiles and evaluates fragments with nested include statements', () => {
+    const ast = compile(tests.mixed)
+    expect(ast.children).toHaveLength(2)
+    expect(ast.children[1].type).toBe('expression')
+    expect(stringify(ast)).toMatch(`Foo {_fragment('Bar')}`)
+    expect(stringify(ast, { evaluate })).toMatch('Test\n\nFoo Bar')
+  })
+})
+
+describe('Prompt', () => {
+  const env = createEnv({
+    prompts: {
+      'bar.mdx': 'Bar',
+      'baz.mdx': 'Baz',
+      'barbaz.mdx': `Bar {include('baz.mdx')}`,
+
+      'barmulti.mdx': dd`
+      # Bar
+
+      Bar
+      `,
+
+      'bazmulti.mdx': dd`
+      # Baz
+
+      Baz
+      `,
+
+      'barcomment.mdx': dd`
+      > Comment
+
+      Bar
+      `,
+
+      'barxml.mdx': dd`
+      <example>Quote</example>
+
+      Bar
+      `,
+
+      'baraction.mdx': dd`
+      <GenText as="bar" model="gpt-4o" />
+
+      Bar
+      `,
+    }
+  })
+
+  const proc = createCompiler(env)
+  const evaluate = createSealedEvaluator(env)
+
+  function compile(src: string): Root {
+    const ast = proc.parse(src)
+    return proc.runSync(ast)
+  }
+
+  test('stringifies simple values onto single line', () => {
+    const src = dd`
+    Foo {include('bar.mdx')} {include('baz.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(`Foo {_fragment('Bar')} {_fragment('Baz')}`)
+    expect(stringify(ast, { evaluate })).toMatch('Foo Bar Baz')
+  })
+
+  test('stringifies chained includes', () => {
+    const src = dd`
+    Foo {include('barbaz.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(/(?:.*?_fragment\(){2}.*/)
+    expect(stringify(ast, { evaluate })).toMatch('Foo Bar Baz')
+  })
+
+  test('stringifies multi-line values correctly', () => {
+    const src = dd`
+    Foo {include('barmulti.mdx')} {include('bazmulti.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(/(?:.*?_fragment\(){2}.*/)
+    expect(stringify(ast, { evaluate })).toMatch('Foo # Bar\n\nBar # Baz\n\nBaz')
+  })
+
+  test('ignores markdown comments in prompts', () => {
+    const src = dd`
+    Foo
+
+    {include('barcomment.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(`Foo\n\n{_fragment('Bar')`)
+    expect(stringify(ast, { evaluate })).toMatch('Foo\n\nBar')
+  })
+
+  test('stringifies xml-like elemnts in prompts', () => {
+    const src = dd`
+    Foo
+
+    {include('barxml.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(/Foo\n\n{_fragment\('.*'\)/)
+    expect(stringify(ast, { evaluate })).toMatch('Foo\n\n<example>Quote</example>\n\nBar')
+  })
+
+  test('actions in prompts are re-stringified', () => {
+    const src = dd`
+    Foo
+
+    {include('baraction.mdx')}
+    `
+
+    const ast = compile(src)
+    expect(stringify(ast)).toMatch(/Foo\n\n{_fragment\('.*'\)/)
+    expect(stringify(ast, { evaluate })).toMatch('Foo\n\n<GenText as="bar" model="gpt-4o" />\n\nBar')
+  })
 })

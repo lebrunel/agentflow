@@ -2,13 +2,12 @@ import { describe, expect, test } from 'bun:test'
 import { dedent as dd } from 'ts-dedent'
 import { env } from 'test/support/env'
 
-import { compileSync, ExecutionController } from 'src/index'
-import type { Workflow } from 'src/index'
+import { ExecutionController } from 'src/index'
+import { Workflow } from 'src/index'
 
 describe('<Cond />', () => {
   function compile(src: string): Workflow {
-    const file = compileSync(src, env)
-    return file.result
+    return Workflow.compile(src, env)
   }
 
   test('children are evaluated when if is true', async () => {

@@ -84,6 +84,7 @@ export function stringify(root: Root, options: StringifyOptions = {}): string {
         for (const expression of expressions) {
           const str = expression.value
           const result = toContextValue(evaluate(expression))
+
           nodeStr = result.type === 'primitive'
             ? nodeStr.replace(`{${str}}`, String(result.value))
             : nodeStr.replace(`{${str}}`, '')

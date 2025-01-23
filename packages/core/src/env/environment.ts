@@ -3,7 +3,6 @@ import { kebabCase } from 'change-case'
 import nPath from 'path-browserify'
 import { condAction, loopAction, genTextAction, genObjectAction } from '../actions'
 import { createPromptProcessor } from '../ast'
-import { Prompt } from '../prompt'
 
 import type { LanguageModel, Provider } from 'ai'
 import type { VFile } from 'vfile'
@@ -48,7 +47,7 @@ export class Environment {
     return this.actions[name]
   }
 
-  usePrompt(path: string): Prompt {
+  usePrompt(path: string): string {
     path = nPath.normalize(path)
     if (nPath.extname(path) !== '.mdx') path += '.mdx'
     if (!this.prompts[path]) {
@@ -149,7 +148,7 @@ function createPromptRegistry(
   const proc = createPromptProcessor(env)
   return Object.entries(prompts).reduce((obj, [path, value]) => {
     const key = nPath.normalize(path)
-    obj[key] = new Prompt(key, value, proc)
+    obj[key] = value
     return obj
   }, {} as PromptRegistry)
 }
@@ -178,5 +177,5 @@ function normalizeParams<T extends { name: string }>(
 export type Plugin = (env: EnvironmentBuilder) => void
 
 type ActionRegistry = Record<string, Action>
-type PromptRegistry = Record<string, Prompt>
+type PromptRegistry = Record<string, string>
 type ToolRegistry = Record<string, Tool>

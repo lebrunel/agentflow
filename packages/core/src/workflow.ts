@@ -1,6 +1,6 @@
 import { is } from 'unist-util-is'
 import { toString } from 'mdast-util-to-string'
-import { compile, compileSync, createScopedView } from './ast'
+import { compile, createScopedView } from './ast'
 import { ExecutionController } from './exec'
 
 import type { Root } from 'mdast'
@@ -37,13 +37,13 @@ export class Workflow {
       || 'Untitled'
   }
 
-  static async compile(src: string | VFile, env: Environment): Promise<Workflow> {
-    const file = await compile(src, env)
+  static compile(src: string | VFile, env: Environment): Workflow {
+    const file = compile(src, env)
     return file.result
   }
 
   static compileSync(src: string | VFile, env: Environment): Workflow {
-    const file = compileSync(src, env)
+    const file = compile(src, env)
     return file.result
   }
 

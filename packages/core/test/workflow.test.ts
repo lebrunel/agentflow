@@ -48,10 +48,8 @@ describe('Workflow', () => {
   })
 })
 
-test('Workflow.compile() asyncronously compiles to a workflow', () => {
-  expect(Workflow.compile('Test', env)).resolves.toBeInstanceOf(Workflow)
-})
-
-test('Workflow.compileSync() compiles to a workflow', () => {
+test('Workflow.compile() syncronously compiles to a workflow', () => {
+  expect(Workflow.compile('Test', env)).toBeInstanceOf(Workflow)
+  // todo deprecated
   expect(Workflow.compileSync('Test', env)).toBeInstanceOf(Workflow)
 })

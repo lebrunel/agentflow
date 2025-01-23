@@ -1,246 +1,164 @@
 import { unified } from 'unified'
-import { u } from 'unist-builder'
-import { is } from 'unist-util-is'
-import { visit, CONTINUE, SKIP } from 'unist-util-visit'
-import { z } from 'zod'
-import { camelCase, kebabCase } from 'change-case'
-import remarkParse from 'remark-parse'
+import { VFile } from 'vfile'
+import { VFileMessage } from 'vfile-message'
+import { reporter } from 'vfile-reporter'
 import remarkFrontmatter from 'remark-frontmatter'
 import remarkMdx from 'remark-mdx'
-import yaml from 'yaml'
-import { stringify } from './stringifier'
-import { validateWorkflow, validateEstree } from './validations'
+import remarkParse from 'remark-parse'
+import remarkStringify from 'remark-stringify'
+import { validateWorkflow } from './validations'
+import { visitor } from './visitor'
+import {
+  parseFrontmatter,
+  removeComments,
+  rewriteExpressions,
+  visitActions,
+  transformExpressions,
+  transformIncludeFunctions,
+  transformJsxFragments,
+  validateAsyncFunctions,
+  validateIdentifierBlacklist,
+  validateNodeWhitelist,
+  validateProgram,
+} from './visitors'
 import { Workflow } from '../workflow'
 
-import type { Program } from 'estree-jsx'
-import type { Root, Yaml } from 'mdast'
-import type { MdxJsxFlowElement, MdxJsxTextElement } from 'mdast-util-mdx-jsx'
+import type { Root } from 'mdast'
 import type { Plugin, Processor, Transformer } from 'unified'
-import type { Compatible, VFile } from 'vfile'
-import type { ExpressionNodeType } from './types'
 import type { Environment } from '../env'
-import { createSealedEvaluator } from '../exec'
 
-/**
- * Compiles a workflow asynchronously. This function processes the workflow,
- * validates its structure, and returns a Workflow object.
- */
-export async function compile(
-  file: Compatible,
-  env: Environment,
-): Promise<WorkflowFile> {
-  return createCompiler(env).process(file)
-}
+const baseProcessor = unified()
+  .use(remarkParse)
+  .use(remarkStringify)
+  .use(remarkMdx)
 
-/**
- * Compiles a workflow synchronously. This function processes the workflow,
- * validates its structure, and returns a Workflow object.
- */
-export function compileSync(
-  file: Compatible,
+export function compile(
+  src: string | VFile,
   env: Environment,
-): WorkflowFile {
-  return createCompiler(env).processSync(file)
+  onFail?: CompileFailCallback,
+): VFile & { result: Workflow } {
+  const file = looksLikeVfile(src) ? src : new VFile(src)
+  try {
+    return createCompiler(env).processSync(file)
+  } catch(err) {
+    if (typeof onFail === 'function' && err instanceof VFileMessage) {
+      return onFail(err, file)
+    } else {
+      throw err
+    }
+  }
 }
 
 export function createCompiler(
   env: Environment
 ): Processor<Root, Root, Root, Root, Workflow> {
-  return unified()
-    .use(remarkParse)
-    .use(remarkFrontmatter, ['yaml'])
-    .use(remarkMdx)
-    .use(workflowMdx, env)
-    .use(workflowCompile, env)
-}
+  // The main workflow transformer.
+  // Walks the entire Markdown and ES tree validating and transforming nodes.
+  const workflowVisitor: () => Transformer<Root, Root> = () => (tree, file) => {
+    const promptProc = createPromptProcessor(env)
+    const fragmentProc = createFragmentProcessor(env)
 
-export function createPromptProcessor(env: Environment): Processor<Root, Root, Root, Root, string> {
-  const proc = unified()
-    .use(remarkParse)
-    .use(remarkMdx)
-    .use(promptMdx, env)
-    .use(promptCompile, env)
-  proc.data('promptStack', [])
-  return proc
-}
-
-function promptMdx(
-  this: Processor,
-  env: Environment,
-): Transformer<Root, Root> {
-  return (tree, file) => {
-    visit(tree, (node, i, parent) => {
-      // root node, just continue
-      if (typeof i === 'undefined') return CONTINUE
-
-      // blockquotes, treat as comments, remove and and ignore
-      if (is(node, 'blockquote')) {
-        parent!.children.splice(i, 1)
-        return [SKIP, i]
-      }
-
-      // Expressions
-      if (is(node, 'mdxFlowExpression') || is(node, 'mdxTextExpression')) {
-        validateEstree(node.data!.estree as Program, file, env)
-
-        parent!.children[i] = u('expression', {
-          expressionType: (is(node, 'mdxFlowExpression') ? 'flow' : 'text') as ExpressionNodeType,
-          data: node.data,
-          value: node.value,
-          position: node.position,
-        })
-
-        return SKIP
-      }
-    })
+    visitor(tree, file)
+      .on('md:enter', parseFrontmatter)
+      .on('md:enter', removeComments)
+      .on('md:enter', visitActions, env, { transform: true })
+      .on('md:enter', transformExpressions)
+      .on('es:enter', validateProgram)
+      .on('es:enter', validateNodeWhitelist)
+      .on('es:enter', validateIdentifierBlacklist)
+      .on('es:enter', validateAsyncFunctions)
+      .on('es:leave', transformIncludeFunctions, env, promptProc)
+      .on('es:leave', transformJsxFragments, fragmentProc)
+      .on('md:leave', rewriteExpressions)
+      .visit()
   }
-}
 
-const promptCompile: Plugin<[Environment], Root, string> = function (
-  this: Processor,
-  env: Environment,
-) {
-  const evaluate = createSealedEvaluator(env)
-  this.compiler = function(tree) {
-    return stringify(tree as Root, { evaluate })
-  }
-}
-
-function workflowMdx(env: Environment): Transformer<Root, Root> {
-  return (tree, file) => {
-    visit(tree, (node, i, parent) => {
-      // root node, just continue
-      if (typeof i === 'undefined') return CONTINUE
-
-      // yaml node, parse and validate frontmatter
-      if (is(node, 'yaml')) {
-        node.data = parseFrontMatter(node, file)
-        return SKIP
-      }
-
-      // blockquotes, treat as comments, remove and and ignore
-      if (is(node, 'blockquote')) {
-        parent!.children.splice(i, 1)
-        return [SKIP, i]
-      }
-
-      // Actions
-      if (is(node, 'mdxJsxFlowElement')) {
-        const { children, position } = node
-        const name = kebabCase(node.name || '')
-        const attr = parseAttributes(node, file, env)
-
-        try {
-          const action = env.useAction(name)
-          const attributes = action.parse(attr)
-
-          parent!.children[i] = u('action', {
-            name,
-            children,
-            attributes,
-            position,
-          })
-
-          return CONTINUE
-
-        } catch(e) {
-          if (e instanceof z.ZodError) {
-            for (const issue of e.issues) {
-              file.fail(
-                `Invalid action attributes at /${issue.path.join('.')}. ${issue.message}`,
-                node,
-                'workflow-parse:invalid-action-attributes'
-              )
-            }
-          } else {
-            file.fail(
-              `Unknown action '${name || 'unnamed'}'. Actions must be registered.`,
-              node,
-              'workflow-parse:unknown-action'
-            )
-          }
-        }
-      }
-
-      if (is(node, 'mdxJsxTextElement')) {
-        file.fail('Action must be a block-level element', node, 'workflow-parse:action-inline')
-        return SKIP
-      }
-
-      // Expressions
-      if (is(node, 'mdxFlowExpression') || is(node, 'mdxTextExpression')) {
-        validateEstree(node.data!.estree as Program, file, env)
-
-        parent!.children[i] = u('expression', {
-          expressionType: (is(node, 'mdxFlowExpression') ? 'flow' : 'text') as ExpressionNodeType,
-          data: node.data,
-          value: node.value,
-          position: node.position,
-        })
-
-        return SKIP
-      }
-    })
-  }
-}
-
-const workflowCompile: Plugin<[Environment], Root, Workflow> = function(
-  this: Processor,
-  env: Environment,
-) {
-  this.compiler = function (tree, file) {
-    const workflow = new Workflow(tree as Root, env, file.basename)
-    validateWorkflow(workflow, file)
-    env.validate(workflow, file)
-    return workflow
-  }
-}
-
-function parseFrontMatter(node: Yaml, file: VFile): any {
-  try {
-    return yaml.parse(node.value)
-  } catch (e: unknown) {
-    file.fail(e as Error, node, 'workflow-parse:yaml-error')
-  }
-}
-
-function parseAttributes(
-  node: MdxJsxFlowElement | MdxJsxTextElement,
-  file: VFile,
-  env: Environment,
-): Record<string, any> {
-  const attributes: Record<string, any> = {}
-
-  for (const attr of node.attributes) {
-    if (attr.type === 'mdxJsxAttribute') {
-      const propName = camelCase(attr.name)
-
-      if (is(attr.value, 'mdxJsxAttributeValueExpression')) {
-        validateEstree(attr.value.data?.estree as Program, file, env)
-
-        attributes[propName] = u('expression', {
-          expressionType: 'attribute',
-          data: attr.value.data,
-          value: attr.value.value,
-          position: node.position,
-        })
-      } else {
-        attributes[propName] = attr.value
-      }
-    } else {
-      file.fail(
-        'Unsupported attribute syntax in Action. Use key-value pairs only.',
-        attr,
-        'workflow-parse:unsupported-attribute-syntax'
-      )
+  // Workflow compiler - creates workflow and runs additional validations
+  const workflowCompiler = function(this: Processor) {
+    this.compiler = function (tree, file) {
+      const workflow = new Workflow(tree as Root, env, file.basename)
+      validateWorkflow(workflow, file)
+      env.validate(workflow, file)
+      return workflow
     }
   }
 
-  return attributes
+  return baseProcessor()
+    .use(remarkFrontmatter, ['yaml'])
+    .use(workflowVisitor)
+    .use(workflowCompiler as Plugin<[], Root, Workflow>)
 }
 
-// Type
+export function createPromptProcessor(
+  env: Environment,
+  includeStack: string[] = [],
+): Processor<Root, Root, Root, Root, string> {
+  // Prompt transformer.
+  // Walks the tree of seperate prompt files, doing most of the same validation
+  // as the main workflow transformer.
+  const promptVisitor: (this: Processor) => Transformer<Root, Root> = function() {
+    return (tree, file) => {
+      const promptProc = createPromptProcessor(env, this.data('includeStack'))
+      const fragmentProc = createFragmentProcessor(env, this.data('includeStack'))
 
-type WorkflowFile = VFile & {
-  result: Workflow,
+      visitor(tree, file)
+        .on('md:enter', removeComments)
+        .on('md:enter', visitActions, env)
+        .on('md:enter', transformExpressions)
+        .on('es:enter', validateProgram)
+        .on('es:enter', validateNodeWhitelist)
+        .on('es:enter', validateIdentifierBlacklist)
+        .on('es:enter', validateAsyncFunctions)
+        .on('es:leave', transformIncludeFunctions, env, promptProc)
+        .on('es:leave', transformJsxFragments, fragmentProc)
+        .on('md:leave', rewriteExpressions)
+        .visit()
+    }
+  }
+
+  return baseProcessor()
+    .data('includeStack', [...includeStack])
+    .use(promptVisitor)
 }
+
+export function createFragmentProcessor(
+  env: Environment,
+  includeStack: string[] = [],
+): Processor<Root, Root, Root, Root, string> {
+  // Fragment transformer
+  // For fragments we end up walking the sub-tree again. No need to re-validate
+  // but we still apply transformations to inner fragments and inlcude statements.
+  const fragmentVisitor: (this: Processor) => Transformer<Root, Root> = function() {
+    return (tree, file) => {
+      const promptProc = createPromptProcessor(env, this.data('includeStack'))
+      const fragmentProc = createFragmentProcessor(env, this.data('includeStack'))
+
+      visitor(tree, file)
+        .on('md:enter', visitActions, env)
+        .on('md:enter', transformExpressions)
+        .on('es:leave', transformIncludeFunctions, env, promptProc)
+        .on('es:leave', transformJsxFragments, fragmentProc)
+        .on('md:leave', rewriteExpressions)
+        .visit()
+    }
+  }
+  return baseProcessor()
+    .data('includeStack', [...includeStack])
+    .use(fragmentVisitor)
+}
+
+export const reportFail: CompileFailCallback = (error, file) => {
+  console.error(reporter([file], { defaultName: '[workflow]', verbose: true }))
+  console.error(error)
+  process.exit(1)
+}
+
+// Helpers
+
+function looksLikeVfile(src: any): src is VFile {
+  return typeof src === 'object' && 'message' in src && 'messages' in src
+}
+
+// Types
+
+export type CompileFailCallback = (error: VFileMessage, file: VFile) => never

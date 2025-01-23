@@ -1,10 +1,10 @@
 import { is } from 'unist-util-is'
 import { toString } from 'mdast-util-to-string'
-import { compile, compileSync, createScopedView, validateWorkflow } from './ast'
+import { compile, createScopedView } from './ast'
 import { ExecutionController } from './exec'
 
 import type { Root } from 'mdast'
-import type { Compatible } from 'vfile'
+import type { VFile } from 'vfile'
 import type { WorkflowScope } from './ast'
 import type { ContextValueMap } from './context'
 import type { Environment } from './env'
@@ -37,13 +37,13 @@ export class Workflow {
       || 'Untitled'
   }
 
-  static async compile(source: Compatible, env: Environment): Promise<Workflow> {
-    const file = await compile(source, env)
+  static compile(src: string | VFile, env: Environment): Workflow {
+    const file = compile(src, env)
     return file.result
   }
 
-  static compileSync(source: Compatible, env: Environment): Workflow {
-    const file = compileSync(source, env)
+  static compileSync(src: string | VFile, env: Environment): Workflow {
+    const file = compile(src, env)
     return file.result
   }
 

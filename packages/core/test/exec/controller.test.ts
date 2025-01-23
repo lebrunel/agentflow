@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, test } from 'bun:test'
 import dd from 'ts-dedent'
 import { env } from 'test/support/env'
 
-import { compileSync, ExecutionController, ExecutionStatus } from 'src/index'
+import { Workflow, ExecutionController, ExecutionStatus } from 'src/index'
 import { ExecutionCursor, type ContextValueMap } from 'src/index'
 
 const src = dd`
@@ -32,8 +32,7 @@ A final thing
 
 Testing the suffix: {a1}
 `
-const file = compileSync(src, env)
-const workflow = file.result
+const workflow = Workflow.compile(src, env)
 
 describe('ExecutionController', () => {
   let ctrl: ExecutionController

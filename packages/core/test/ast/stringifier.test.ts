@@ -8,19 +8,21 @@ import type { Root } from 'mdast'
 
 const evalExpression = createDynamicEvaluator(env)
 
+const proc = createCompiler(env)
+
 function parse(markdown: string): Root {
-  const proc = createCompiler(env)
-  return proc.runSync(proc.parse(markdown))
+  const ast = proc.parse(markdown)
+  return proc.runSync(ast)
 }
 
 describe('stringify()', () => {
   test('stringifies as source', () => {
     const tests = [
       'Foo {bar}',
-      'One {1}, two {1 + 1}, three {4 - 1}',
+      'One {1}, two {1+1}, three {4-1}',
       dd`
       - foo
-      - { ['bar', 'qux'].join('\\n- ') }
+      - {['bar','qux'].join('\\n- ')}
       `
     ]
 

@@ -1,6 +1,4 @@
 import { is } from 'unist-util-is'
-import { walk } from 'estree-walker'
-import { VFileMessage } from 'vfile-message'
 import { walkScopeTree } from '../ast'
 import { getExpressionDependencies } from '../exec'
 
@@ -9,63 +7,7 @@ import type { Program, Property } from 'estree-jsx'
 import type { VFile } from 'vfile'
 import type { ExpressionNode } from './types'
 import type { ContextKey } from '../context'
-import type { Environment } from '../env'
 import type { Workflow } from '../workflow'
-
-const AST_WHITELIST: Node['type'][] = [
-  'Program',
-  'ExpressionStatement',
-  'ArrayExpression',
-  'ArrowFunctionExpression',
-  'AssignmentExpression',
-  'BinaryExpression',
-  'CallExpression',
-  'ChainExpression',
-  'ConditionalExpression',
-  'Identifier',
-  'Literal',
-  'LogicalExpression',
-  'MemberExpression',
-  'ObjectExpression',
-  'Property',
-  'SpreadElement',
-  'TemplateLiteral',
-  'TemplateElement',
-  'UnaryExpression',
-  'UpdateExpression',
-  'VariableDeclaration',
-  'VariableDeclarator',
-  'BlockStatement',
-  'ReturnStatement',
-  'FunctionExpression',
-]
-
-const IDENTIFIER_BLACKLIST: string[] = [
-  'eval',
-  'Function',
-  'window',
-  'document',
-  'global',
-  'globalThis',
-  'process',
-  'require',
-  'module',
-  'exports',
-  '__dirname',
-  '__filename',
-  'setTimeout',
-  'setInterval',
-  'setImmediate',
-  'clearTimeout',
-  'clearInterval',
-  'clearImmediate',
-  'Promise',
-  'Proxy',
-  'Reflect',
-  'constructor',
-  '__proto__',
-  'prototype',
-]
 
 export function validateWorkflow(
   workflow: Workflow,
@@ -144,6 +86,29 @@ export function validateWorkflow(
   })
 }
 
+const JS_GLOBALS = [
+  // global identifiers
+  'undefined',
+  'globalThis',
+  'NaN',
+  'Infinity',
+  // global constructors
+  'Object',
+  'Array',
+  'String',
+  'Number',
+  'Boolean',
+  'Date',
+  'Math',
+  'JSON',
+  'RegExp',
+  'Error',
+  // Agentflow builtins
+  'dedent',
+  'include',
+  '_fragment',
+]
+
 export function validateDependency(
   key: ContextKey,
   contextKeys: Set<ContextKey>,
@@ -153,94 +118,19 @@ export function validateDependency(
     namespace?: string,
   }
 ) {
-  const helperNames = ['include', '$']
-  if (!!namespace) helperNames.push(`$${namespace}`)
+  const helperNames = !!namespace ? ['$', `$${namespace}`] : ['$']
 
   if (
     !contextKeys.has(key) &&
-    !helperNames.includes(key)
+    !helperNames.includes(key) &&
+    !JS_GLOBALS.includes(key)
   ) {
     file.fail(
-      `Unknown context "${key}". This Action depends on a context that hasn't been defined earlier in the workflow.`,
+      `Unknown context "${key}". This Action depends on context that hasn't been defined earlier in the workflow.`,
       node,
       'workflow-parse:undefined-context'
     )
   }
-}
-
-export function validateEstree(
-  program: Program,
-  file: VFile,
-  env: Environment,
-) {
-  for (const stmt of program.body) {
-    if (stmt.type !== 'ExpressionStatement') {
-      file.fail(
-        'Invalid workflow expression. Only simple expression statements are supported.',
-        stmt,
-        'workflow-parse:invalid-expression'
-      )
-    }
-  }
-
-  walk(program, {
-    enter(node) {
-      if (!AST_WHITELIST.includes(node.type)) {
-        file.fail(
-          `Unsupported JavaScript syntax '${node.type}' in workflow expression.`,
-          node,
-          'workflow-parse:unsupported-syntax'
-        )
-      }
-
-      if (node.type === 'Identifier' && IDENTIFIER_BLACKLIST.includes(node.name)) {
-        file.fail(
-          `Restricted identifier '${node.name}' used in workflow expression.`,
-          node,
-          'workflow-parse:restricted-identifier'
-        )
-      }
-
-      if (
-        (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression')
-        && node.async
-      ) {
-        file.fail(
-          'Async functions are not supported in workflow expressions.',
-          node,
-          'workflow-parse:async-function-not-allowed'
-        )
-      }
-
-      // If it's an include statement we try processing
-      // It can only fail with not found or circular reference
-      if (
-        node.type === 'CallExpression' &&
-        node.callee.type === 'Identifier' &&
-        node.callee.name === 'include' &&
-        node.arguments.length >= 1
-      ) {
-        // todo - actually just fail here if arg is not a string literal
-        try {
-          const arg = node.arguments[0]
-          if (arg.type !== 'Literal' || typeof arg.value !== 'string') {
-            throw new Error('include() argument must be a string literal')
-          }
-          const prompt = env.usePrompt(arg.value)
-          prompt.process()
-        } catch(e) {
-          // If it's already a VFileMessage, let it bubble up
-          if (e instanceof VFileMessage) throw e
-
-          file.fail(
-            (e as Error).message,
-            node,
-            'workflow-parse:todo'
-          )
-        }
-      }
-    }
-  })
 }
 
 export function validateUniqueness(

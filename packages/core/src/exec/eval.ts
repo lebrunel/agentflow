@@ -1,8 +1,11 @@
 import vm from 'node:vm'
 import { walk } from 'estree-walker'
+import { dedent } from 'ts-dedent'
+import { stringify, createFragmentProcessor } from '../ast'
+import { FRAGMENT_SYMBOL } from '../context'
 
 import type { ExpressionNode } from '../ast'
-import type { Context } from '../context'
+import type { Context, Fragment } from '../context'
 import type { Environment } from '../env'
 import type {
   Identifier,
@@ -28,13 +31,15 @@ export function createDynamicEvaluator(env: Environment) {
 }
 
 function createEvalContext(env: Environment, context: Context = {}): vm.Context {
-  function include(path: string): string {
-    const prompt = env.usePrompt(path)
-    prompt.process()
-    return prompt.toString()
+  function _fragment(path: string, ctx: Context = {}): Fragment {
+    const evaluate = createSealedEvaluator(env, ctx)
+    const proc = createFragmentProcessor(env)
+    const ast = proc.parse(path)
+    const src = stringify(proc.runSync(ast), { evaluate })
+    return [FRAGMENT_SYMBOL, src]
   }
 
-  return vm.createContext({ ...context, include }, {
+  return vm.createContext({ ...context, dedent, _fragment }, {
     codeGeneration: { strings: false, wasm: false },
     microtaskMode: 'afterEvaluate',
   })
@@ -42,7 +47,7 @@ function createEvalContext(env: Environment, context: Context = {}): vm.Context 
 
 function evalExpression<T = any>(expression: ExpressionNode, context: vm.Context): T {
   try {
-    const script = new vm.Script(`(${expression.value.trim()})`)
+    const script = new vm.Script(expression.value)
     return script.runInContext(context, {
       timeout: 50,
       breakOnSigint: true,
@@ -59,8 +64,11 @@ function evalExpression<T = any>(expression: ExpressionNode, context: vm.Context
  * Extracts dependencies from the given expression. This function helps
  * identify the variables that the expression relies on for evaluation.
  */
-export function getExpressionDependencies(expression: ExpressionNode): string[] {
-  const tree = expression.data!.estree! as Program
+export function getExpressionDependencies(expression: ExpressionNode | EsNode): string[] {
+  const root = expression.type === 'expression'
+    ? expression.data!.estree! as Program
+    : expression
+
   const globals = new Set<string>()
   const scopeChain: Array<Set<string>> = [new Set()]
 
@@ -98,7 +106,7 @@ export function getExpressionDependencies(expression: ExpressionNode): string[] 
     });
   }
 
-  walk(tree, {
+  walk(root, {
     enter(node: EsNode, parent: EsNode | null) {
       if (node.type === 'FunctionExpression' || node.type === 'ArrowFunctionExpression') {
         scopeChain.unshift(new Set());
@@ -126,7 +134,8 @@ export function getExpressionDependencies(expression: ExpressionNode): string[] 
           !(parent?.type === 'Property' && !parent.computed && parent.key === node) &&
           // This is a member expression property, not a variable reference
           !(parent?.type === 'MemberExpression' && parent.property === node && !parent.computed) &&
-          !isInScope(node.name)
+          !isInScope(node.name) &&
+          !node.name.startsWith('_')
         ) {
           globals.add(node.name);
         }

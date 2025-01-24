@@ -71,6 +71,7 @@ declare module 'unified' {
   }
 
   interface Data {
+    includeStack?: string[];
     promptStack?: string[];
   }
 }

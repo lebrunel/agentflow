@@ -24,6 +24,9 @@ export type JsonContextValue = {
   value: JsonValue,
 }
 
+export const FRAGMENT_SYMBOL = Symbol('fragment')
+export type Fragment = [typeof FRAGMENT_SYMBOL, string]
+
 type JsonPrimitive = string | number | boolean | null
 type JsonArray = Array<JsonValue>
 type JsonObject = { [key: string]: JsonValue }

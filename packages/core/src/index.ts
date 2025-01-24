@@ -12,16 +12,22 @@ export * as actions from './actions'
 
 export {
   compile,
-  compileSync,
   createCompiler,
   createStringifier,
   createScopedView,
+  reportFail,
   stringify,
   stringifyContext,
   walkScopeTree,
+  visitor,
   type ActionNode,
+  type CompileFailCallback,
   type ExpressionNode,
+  type EsVisitor,
+  type MdVisitor,
   type StringifyOptions,
+  type VisitorContext,
+  type VisitorFactory,
   type WorkflowScope,
   type WorkflowPhase,
   type WorkflowStep,
@@ -47,6 +53,8 @@ export {
 } from './env'
 
 export {
+  createDynamicEvaluator,
+  createSealedEvaluator,
   cursorCompare,
   getExpressionDependencies,
   parseLocation,
@@ -63,10 +71,6 @@ export {
   type StepEvent,
   type StepResult,
 } from './exec'
-
-export {
-  Prompt
-} from './prompt'
 
 export {
   defineTool,

@@ -16,9 +16,9 @@ describe('Environment', () => {
     })
 
     test('usePrompt() returns prompt for normalised path', () => {
-      expect(env.usePrompt('foo.mdx').src).toBe('Foo')
-      expect(env.usePrompt('bar.mdx').src).toBe('Bar')
-      expect(env.usePrompt('foo/bar/qux.mdx').src).toBe('Qux')
+      expect(env.usePrompt('foo.mdx')).toBe('Foo')
+      expect(env.usePrompt('bar.mdx')).toBe('Bar')
+      expect(env.usePrompt('foo/bar/qux.mdx')).toBe('Qux')
     })
 
     test('usePrompt() throws error for unknown path', () => {
@@ -38,9 +38,9 @@ describe('Environment', () => {
     })
 
     test('usePrompt() returns prompt for normalised path', () => {
-      expect(env.usePrompt('foo.mdx').src).toBe('Foo')
-      expect(env.usePrompt('bar.mdx').src).toBe('Bar')
-      expect(env.usePrompt('foo/bar/qux.mdx').src).toBe('Qux')
+      expect(env.usePrompt('foo.mdx')).toBe('Foo')
+      expect(env.usePrompt('bar.mdx')).toBe('Bar')
+      expect(env.usePrompt('foo/bar/qux.mdx')).toBe('Qux')
     })
 
     test('usePrompt() throws error for unknown path', () => {

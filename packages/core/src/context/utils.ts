@@ -1,4 +1,5 @@
-import type { ContextValue, ContextValueMap } from './types'
+import { FRAGMENT_SYMBOL } from './types'
+import type { ContextValue, ContextValueMap, Fragment } from './types'
 
 /**
  * TODO
@@ -23,6 +24,14 @@ export function toContextValue(value: any): ContextValue {
     return { type: 'file', value }
   }
 
+  if (isFragment(value)) {
+    return { type: 'primitive', value: value[1] }
+  }
+
+  if (Array.isArray(value) && value.every(isFragment)) {
+    return { type: 'primitive', value: value.map(v => v[1]).join('\n') }
+  }
+
   return { type: 'json', value }
 }
 
@@ -44,4 +53,10 @@ export function wrapContext(obj: Record<string, any>): ContextValueMap {
     ctx[key] = toContextValue(value)
     return ctx
   }, {} as ContextValueMap)
+}
+
+// Helpres
+
+function isFragment(val: any): val is Fragment {
+  return Array.isArray(val) && val[0] === FRAGMENT_SYMBOL && typeof val[1] === 'string'
 }

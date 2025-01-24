@@ -1,16 +1,14 @@
 import { describe, expect, test } from 'bun:test'
 import { u } from 'unist-builder'
-import { parse } from 'acorn'
 import { VFile } from 'vfile'
-import { env } from 'test/support/env'
-import { compileSync, validateDependency, validateEstree, validateUniqueness } from 'src/ast'
+import { env, createEnv } from 'test/support/env'
+import { compile, validateDependency, validateUniqueness } from 'src/ast'
 import dd from 'ts-dedent'
-
-import type { Program } from 'estree-jsx'
+import type { Environment } from 'src'
 
 describe('validateWorkflow()', () => {
-  function validate(src: string) {
-    compileSync(src, env) // calls validateWorkflow internally
+  function validate(src: string, e: Environment = env): VFile {
+    return compile(src, e) // calls validateWorkflow internally
   }
 
   test('accepts workflow with known actions', () => {
@@ -35,7 +33,7 @@ describe('validateWorkflow()', () => {
     expect(() => validate(src)).not.toThrow()
   })
 
-  test('throws with unknown actions', () => {
+  test('unknown actions accepted but cause warning', () => {
     const src = dd`
     Hello
 
@@ -44,7 +42,11 @@ describe('validateWorkflow()', () => {
     <Break as="test" />
     `
 
-    expect(() => validate(src)).toThrow(/unknown action/i)
+    expect(() => {
+      const file = validate(src)
+      expect(file.messages).toHaveLength(1)
+      expect(file.messages[0].message).toMatch(/not recognized as a registered action/i)
+    }).not.toThrow()
   })
 
   test('accepts workflow with unique inputs and action keys', () => {
@@ -193,6 +195,60 @@ describe('validateWorkflow()', () => {
     expect(() => validate(src1)).toThrow(/Unknown context "foo"/)
     expect(() => validate(src2)).toThrow(/Unknown context "foo"/)
   })
+
+  describe('within Fragments', () => {
+    test('unknown actions are valid and accepted as raw html', () => {
+      const src = dd`
+      {
+        <>
+          <think foo="bar" qux={123}>Baz</think>
+        </>
+      }
+      `
+
+      expect(() => validate(src)).not.toThrow()
+    })
+
+    test('recognised actions are treated as raw html with a warning', () => {
+      const src = dd`
+      {
+        <>
+          <GenText as="foo" model="gpt-4o" />
+        </>
+      }
+      `
+
+      expect(() => {
+        const file = validate(src)
+        expect(file.messages).toHaveLength(1)
+        expect(file.messages[0].message).toMatch(/actions in fragments/i)
+      }).not.toThrow()
+    })
+  })
+
+  describe('within Prompts', () => {
+    const env = createEnv({
+      prompts: {
+        'a.mdx': `<think foo="bar" qux={123}>Baz</think>`,
+        'b.mdx': `<GenText as="foo" model="gpt-4o" />`
+      }
+    })
+
+    test('unknown actions are valid and accepted as raw html', () => {
+      const src = `{include('a')}`
+      expect(() => validate(src, env)).not.toThrow()
+    })
+
+    test('recognised actions are treated as raw html with a warning', () => {
+      const src = `{include('b')}`
+
+      expect(() => {
+        const file = validate(src, env)
+        expect(file.messages).toHaveLength(1)
+        expect(file.messages[0].message).toMatch(/actions in fragments/i)
+      }).not.toThrow()
+    })
+  })
 })
 
 describe('validateDependency()', () => {
@@ -215,89 +271,6 @@ describe('validateDependency()', () => {
   test('accepts $namespace helper if given in options', () => {
     expect(() => validate('$test', new Set(['foo', 'bar']))).toThrow()
     expect(() => validate('$test', new Set(['foo', 'bar']), 'test')).not.toThrow()
-  })
-})
-
-describe('validateEstree()', () => {
-  function validate(src: string) {
-    const ast = parse(src, { ecmaVersion: 'latest', sourceType: 'module' })
-    validateEstree(ast as Program, new VFile())
-  }
-
-  test('accepts simple expression', () => {
-    expect(() => validate('1 + 2')).not.toThrow()
-  })
-
-  test('accepts object and array literals', () => {
-    expect(() => validate('({ a: 1, b: [1, 2, 3] })')).not.toThrow()
-  })
-
-  test('accepts function expression', () => {
-    expect(() => validate('(function() { return 42; })')).not.toThrow()
-  })
-
-  test('accepts arrow function', () => {
-    expect(() => validate('(x => x * 2)')).not.toThrow()
-  })
-
-  test('accepts ternary operator', () => {
-    expect(() => validate('true ? 1 : 0')).not.toThrow()
-  })
-
-  test('accepts template literal', () => {
-    expect(() => validate('`Hello, ${name}!`')).not.toThrow()
-  })
-
-  test('throws on class declaration', () => {
-    expect(() => validate('class MyClass {}')).toThrow()
-  })
-
-  test('throws on function declaration', () => {
-    expect(() => validate('function myFunction() {}')).toThrow()
-  })
-
-  test('throws on import statement', () => {
-    expect(() => validate('import { foo } from "bar";')).toThrow()
-  })
-
-  test('throws on export statement', () => {
-    expect(() => validate('export const x = 5;')).toThrow()
-  })
-
-  test('throws on require call', () => {
-    expect(() => validate('const fs = require("fs");')).toThrow()
-  })
-
-  test('throws on async function expression', () => {
-    expect(() => validate('(async () => {})()')).toThrow()
-  })
-
-  test('throws on for loop', () => {
-    expect(() => validate('for (let i = 0; i < 10; i++) {}')).toThrow()
-  })
-
-  test('throws on while loop', () => {
-    expect(() => validate('while (true) {}')).toThrow()
-  })
-
-  test('throws on try-catch', () => {
-    expect(() => validate('try { something(); } catch (e) {}')).toThrow()
-  })
-
-  test('throws on use of blacklisted identifier', () => {
-    expect(() => validate('eval("1 + 1")')).toThrow()
-  })
-
-  test('throws on use of global object', () => {
-    expect(() => validate('window.location')).toThrow()
-  })
-
-  test('throws on use of setTimeout', () => {
-    expect(() => validate('setTimeout(() => {}, 1000)')).toThrow()
-  })
-
-  test('throws on use of Promise constructor', () => {
-    expect(() => validate('new Promise((resolve, reject) => {})')).toThrow()
   })
 })
 

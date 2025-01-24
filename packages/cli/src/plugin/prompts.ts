@@ -1,7 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { basename, resolve } from 'node:path'
 import { lookup } from 'mime-types'
-import { createPrompt, isEnterKey, usePrefix, useState, useKeypress } from '@inquirer/core'
+import { createPrompt, isEnterKey, isBackspaceKey, usePrefix, useState, useKeypress } from '@inquirer/core'
 import { input, editor, select } from '@inquirer/prompts'
 import pc from 'picocolors'
 

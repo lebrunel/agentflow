@@ -1,0 +1,44 @@
+I need you to create an Agentflow workflow based on the following brief. You MUST follow the process exactly as outlined below.
+
+## User brief
+
+${USER_BRIEF}
+
+## Required Process
+
+1. FIRST STEP - Ask Questions:
+   - You SHOULD start by using the `ask_user` tool for ANY unclear requirements
+   - Do NOT proceed until you have clear answers
+   - Example: `ask_user("What specific format should the output follow?")`
+
+2. Once requirements are clear:
+   - Define all required inputs in frontmatter
+   - Break into logical phases
+   - Choose appropriate models from: ${AVAILABLE_MODELS}
+   - Available tools: ${AVAILABLE_TOOLS}
+
+3. CRITICAL Structure Rules:
+   - `<GenText />` and `<GenObject />` are ALWAYS self-closing
+   - ALL prompts go BEFORE their respective actions
+   - NEVER put prompt text inside the actions
+
+4. REQUIRED Validation:
+   - You MUST use `save_workflow` to validate your solution
+   - Fix ANY validation errors and try again
+   - Continue until successful validation
+
+❌ INCORRECT structure:
+```mdx
+<GenText as="summary" model="openai:gpt-4">
+  Summarize this article
+</GenText>
+```
+
+✅ CORRECT structure:
+```mdx
+Summarize this article
+
+<GenText as="summary" model="openai:gpt-4" />
+```
+
+START NOW by asking clarifying questions using the `ask_user` tool. Do NOT proceed without getting clarity on ANY unclear requirements.

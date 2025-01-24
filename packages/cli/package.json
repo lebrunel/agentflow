@@ -25,7 +25,10 @@
   "dependencies": {
     "@agentflow/core": "workspace:^0.4.0",
     "@agentflow/tools": "workspace:^0.3.1",
+    "@ai-sdk/anthropic": "^1.1.2",
+    "@ai-sdk/openai": "^1.1.2",
     "@inquirer/prompts": "^7.1.0",
+    "ai": "^4.0.12",
     "change-case": "^5.4.4",
     "commander": "^12.1.0",
     "create-agentflow": "workspace:^0.3.0",
@@ -33,6 +36,7 @@
     "dotenv": "^16.4.7",
     "fast-glob": "^3.3.3",
     "mime-types": "^2.1.35",
+    "ollama-ai-provider": "^1.2.0",
     "picocolors": "^1.1.1",
     "ts-dedent": "^2.2.0",
     "yaml": "^2.6.1",

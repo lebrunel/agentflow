@@ -1,0 +1,24 @@
+I need you to create an Agentflow workflow based on the following brief. Take your time to analyze the requirements and create a well-structured solution.
+
+## User brief
+
+${USER_BRIEF}
+
+Important implementation guidelines:
+
+1. Structure your workflow properly:
+   - Define all required inputs in the frontmatter
+   - Break complex processes into logical phases
+   - Choose appropriate models for different tasks
+   - Remember that `<GenText />` and `<GenObject />` actions use the text BEFORE them as their input
+   - Each action's result becomes part of the context for subsequent actions in the same phase
+
+2. Available models: ${AVAILABLE_MODELS}
+
+3. Key validation points:
+   - Ensure variable names are unique within their scope
+   - Properly pass context between phases using expressions
+   - Correctly scope variables in loops and conditions
+   - Validate all input requirements
+
+Create your workflow based on the requirements provided in the brief. Make reasonable assumptions where details are not explicitly provided.
